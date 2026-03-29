@@ -23,7 +23,7 @@
   - `Notification` → `notify-confirm.mp3`（需要用户注意）
   - `StopFailure` → `notify-error.mp3`（执行出错）
   - `SubagentStop` → `notify-progress.mp3`（子 agent 完成）
-- **D-04:** 音频播放后台运行（`paplay ... 2>/dev/null &`），不阻塞 Claude Code
+- **D-04:** 音频播放使用 `async: true`（Claude Code 原生异步机制），不阻塞 Claude Code 执行。Shell 脚本 `notify-play.sh` 内同步调用 paplay，由 hook 配置的 `async: true` 确保不阻塞。（原方案为 shell `&` 后台运行，经 RESEARCH 确认 `async: true` 为更优的 Claude Code 原生方案）
 
 ### 冷却/防抖
 - **D-05:** 同一音频 5 秒内不重复播放（简单冷却机制）
@@ -33,7 +33,7 @@
 - **D-07:** 提供 `install.sh`，功能：复制 mp3 → 用 jq 结构化修改 `~/.claude/settings.json` 添加 hooks → 幂等（重复运行不出错）
 - **D-08:** 提供 `uninstall.sh`，用 jq 从 settings.json 移除 notify hooks → 清理 `~/.claude/notify-*.mp3`
 - **D-09:** 安装脚本必须用 jq 或 Node.js 操作 JSON，禁止用 sed/awk 修改 settings.json（避免破坏配置）
-- **D-10:** hooks 中的 command 使用绝对路径：`/usr/bin/paplay ~/.claude/notify-{type}.mp3 2>/dev/null &`
+- **D-10:** hooks 中的 command 使用绝对路径：`notify-play.sh` 脚本路径和音频文件路径均为绝对路径
 
 ### Claude's Discretion
 - 冷却锁文件的具体命名和清理策略
@@ -105,3 +105,4 @@ None — discussion stayed within phase scope
 
 *Phase: 03-hooks*
 *Context gathered: 2026-03-30*
+*Last updated: 2026-03-30 — updated D-04 from shell & to async: true per RESEARCH recommendation*

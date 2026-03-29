@@ -26,7 +26,7 @@
 
 ### Hooks 集成
 
-- [ ] **HOOKS-01**: Claude Code hooks 配置 3 种事件对应不同音频：Stop → notify-complete.mp3、Notification → notify-confirm.mp3、StopFailure → notify-error.mp3
+- [ ] **HOOKS-01**: Claude Code hooks 配置 4 种事件对应不同音频：Stop → notify-complete.mp3、Notification → notify-confirm.mp3、StopFailure → notify-error.mp3、SubagentStop → notify-progress.mp3
 
 ## v2 Requirements
 
@@ -70,4 +70,4 @@
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 after initial definition*
+*Last updated: 2026-03-30 — updated HOOKS-01 to include SubagentStop event (4 events total)*
