@@ -9,7 +9,7 @@
 
 | # | Phase | Goal | Requirements | Plans | Status |
 |---|-------|------|--------------|-------|--------|
-| 1 | Docker TTS 环境 | 2/2 | Complete |  |
+| 1 | Docker TTS 环境 | 2/2 | Complete    | 2026-03-29 |
 | 2 | 生成脚本 | 一键脚本完成全流程，支持单独重新生成 | SCRIPT-01, SCRIPT-02, SCRIPT-03 | 3 | Pending |
 | 3 | Hooks 集成 | Claude Code 3 种事件触发不同通知音频 | HOOKS-01 | 2 | Pending |
 
@@ -21,7 +21,7 @@
 
 **Requirements:** DOCKER-01, DOCKER-02, DOCKER-03, AUDIO-01, AUDIO-02, AUDIO-03, AUDIO-04
 
-**Plans:** 2/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 01-01-PLAN.md — Create Dockerfile, requirements.txt, and generate.py (source artifacts)
