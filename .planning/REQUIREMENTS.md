@@ -20,9 +20,9 @@
 
 ### 编排脚本
 
-- [ ] **SCRIPT-01**: 一键脚本执行完整流程：docker build → 模型下载 → TTS 推理 → 转换 → 放置文件
-- [ ] **SCRIPT-02**: 生成后验证音频文件存在且可播放（paplay 验证）
-- [ ] **SCRIPT-03**: 支持单独重新生成指定类型的通知音频
+- [x] **SCRIPT-01**: 一键脚本执行完整流程：docker build → 模型下载 → TTS 推理 → 转换 → 放置文件
+- [x] **SCRIPT-02**: 生成后验证音频文件存在且可播放（paplay 验证）
+- [x] **SCRIPT-03**: 支持单独重新生成指定类型的通知音频
 
 ### Hooks 集成
 
@@ -58,9 +58,9 @@
 | AUDIO-02 | Phase 1 | Complete |
 | AUDIO-03 | Phase 1 | Complete |
 | AUDIO-04 | Phase 1 | Complete |
-| SCRIPT-01 | Phase 2 | Pending |
-| SCRIPT-02 | Phase 2 | Pending |
-| SCRIPT-03 | Phase 2 | Pending |
+| SCRIPT-01 | Phase 2 | Complete |
+| SCRIPT-02 | Phase 2 | Complete |
+| SCRIPT-03 | Phase 2 | Complete |
 | HOOKS-01 | Phase 3 | Pending |
 
 **Coverage:**

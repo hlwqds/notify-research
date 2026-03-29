@@ -46,7 +46,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 02-01-PLAN.md — Modify generate.py with --type argparse + create generate.sh orchestration script
+- [x] 02-01-PLAN.md — Modify generate.py with --type argparse + create generate.sh orchestration script
 
 **Success criteria:**
 1. `./generate.sh` 一键完成：docker build（如需）→ 模型下载（如需）→ TTS 推理 → 转换 → 放置
