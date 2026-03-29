@@ -9,8 +9,8 @@
 
 | # | Phase | Goal | Requirements | Plans | Status |
 |---|-------|------|--------------|-------|--------|
-| 1 | Docker TTS 环境 | 2/2 | Complete    | 2026-03-29 |
-| 2 | 生成脚本 | 一键脚本完成全流程，支持单独重新生成 | SCRIPT-01, SCRIPT-02, SCRIPT-03 | 1 | Pending |
+| 1 | Docker TTS 环境 | 用户可以构建 Spark-TTS Docker 镜像并生成 4 种通知语音文件 | DOCKER-01~03, AUDIO-01~04 | 2/2 | Complete    | 2026-03-29 |
+| 2 | 生成脚本 | 一键脚本完成全流程，支持单独重新生成 | SCRIPT-01, SCRIPT-02, SCRIPT-03 | 1/1 | Complete    | 2026-03-29 |
 | 3 | Hooks 集成 | Claude Code 3 种事件触发不同通知音频 | HOOKS-01 | 2 | Pending |
 
 ---
@@ -43,7 +43,7 @@ Plans:
 
 **Requirements:** SCRIPT-01, SCRIPT-02, SCRIPT-03
 
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [x] 02-01-PLAN.md — Modify generate.py with --type argparse + create generate.sh orchestration script
@@ -82,9 +82,9 @@ Plans:
 | AUDIO-02 | Phase 1 | Complete |
 | AUDIO-03 | Phase 1 | Complete |
 | AUDIO-04 | Phase 1 | Complete |
-| SCRIPT-01 | Phase 2 | Pending |
-| SCRIPT-02 | Phase 2 | Pending |
-| SCRIPT-03 | Phase 2 | Pending |
+| SCRIPT-01 | Phase 2 | Complete |
+| SCRIPT-02 | Phase 2 | Complete |
+| SCRIPT-03 | Phase 2 | Complete |
 | HOOKS-01 | Phase 3 | Pending |
 
 **v1 requirements:** 11 total
@@ -93,4 +93,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-30 after completing Phase 1*
+*Last updated: 2026-03-30 after completing Phase 2*
