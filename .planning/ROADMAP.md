@@ -1,103 +1,29 @@
 # Roadmap: Claude Code 语音通知
 
-**Created:** 2026-03-30
-**Phases:** 3
-**Granularity:** Coarse
-**Coverage:** 11/11 v1 requirements mapped
+## Milestones
 
-## Phase Overview
+- ✅ **v1.0 语音通知** — Phases 1-3 (shipped 2026-03-30)
 
-| # | Phase | Goal | Requirements | Plans | Status |
-|---|-------|------|--------------|-------|--------|
-| 1 | Docker TTS 环境 | 用户可以构建 Spark-TTS Docker 镜像并生成 4 种通知语音文件 | DOCKER-01~03, AUDIO-01~04 | 2/2 | Complete    | 2026-03-29 |
-| 2 | 生成脚本 | 一键脚本完成全流程，支持单独重新生成 | SCRIPT-01, SCRIPT-02, SCRIPT-03 | 1/1 | Complete    | 2026-03-29 |
-| 3 | Hooks 集成 | Claude Code 4 种事件触发不同通知音频（async hooks + 冷却防抖） | HOOKS-01 | 1 | Pending |
+## Phases
 
----
+<details>
+<summary>✅ v1.0 语音通知 (Phases 1-3) — SHIPPED 2026-03-30</summary>
 
-## Phase 1: Docker TTS 环境
+- [x] Phase 1: Docker TTS 环境 (2/2 plans) — completed 2026-03-30
+- [x] Phase 2: 生成脚本 (1/1 plans) — completed 2026-03-30
+- [x] Phase 3: Hooks 集成 (1/1 plans) — completed 2026-03-30
 
-**Goal:** 用户可以构建 Spark-TTS Docker 镜像并生成 4 种通知语音文件
+</details>
 
-**Requirements:** DOCKER-01, DOCKER-02, DOCKER-03, AUDIO-01, AUDIO-02, AUDIO-03, AUDIO-04
+## Progress
 
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 01-01-PLAN.md — Create Dockerfile, requirements.txt, and generate.py (source artifacts)
-- [x] 01-02-PLAN.md — Build Docker image, run TTS generation, verify output (build + verify)
-
-**Success criteria:**
-1. `docker build` 成功构建镜像，包含 Python 3.12 + PyTorch CPU + Spark-TTS + ffmpeg
-2. `docker run` 可执行 Spark-TTS 推理，输出 WAV 文件到指定目录
-3. ffmpeg 将 WAV 转换为 mp3，输出到 `~/.claude/notify-{type}.mp3`
-4. 4 种通知语音风格为温柔低沉慵懒（female, low pitch, low speed）
-
-**UI hint:** no
+| Phase | Milestone | Plans | Status | Completed |
+|-------|-----------|-------|--------|-----------|
+| 1. Docker TTS 环境 | v1.0 | 2/2 | Complete | 2026-03-30 |
+| 2. 生成脚本 | v1.0 | 1/1 | Complete | 2026-03-30 |
+| 3. Hooks 集成 | v1.0 | 1/1 | Complete | 2026-03-30 |
 
 ---
-
-## Phase 2: 生成脚本
-
-**Goal:** 用户运行一个脚本即可生成所有通知音频，支持验证和单独重新生成
-
-**Requirements:** SCRIPT-01, SCRIPT-02, SCRIPT-03
-
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] 02-01-PLAN.md — Modify generate.py with --type argparse + create generate.sh orchestration script
-
-**Success criteria:**
-1. `./generate.sh` 一键完成：docker build（如需）→ 模型下载（如需）→ TTS 推理 → 转换 → 放置
-2. 生成完毕自动验证 mp3 文件存在且格式有效（file 命令验证）
-3. `./generate.sh --type confirm` 可单独重新生成指定通知音频
-
-**UI hint:** no
-
----
-
-## Phase 3: Hooks 集成
-
-**Goal:** Claude Code 在 Stop/Notification/StopFailure/SubagentStop 事件时播放对应通知音频
-
-**Requirements:** HOOKS-01
-
-**Plans:** 1 plan
-
-Plans:
-- [x] 03-01-PLAN.md -- Create notify-play.sh cooldown wrapper + install.sh/uninstall.sh for hooks integration
-
-**Success criteria:**
-1. 任务完成时播放 `notify-complete.mp3`，需要确认时播放 `notify-confirm.mp3`，出错时播放 `notify-error.mp3`，子 agent 完成时播放 `notify-progress.mp3`
-2. 音频播放不阻塞 Claude Code 执行（async: true）
-3. 5 秒冷却防抖机制避免重复播放
-4. install.sh 幂等安装，uninstall.sh 清理卸载
-
-**UI hint:** no
-
----
-
-## Coverage
-
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| DOCKER-01 | Phase 1 | Complete |
-| DOCKER-02 | Phase 1 | Complete |
-| DOCKER-03 | Phase 1 | Complete |
-| AUDIO-01 | Phase 1 | Complete |
-| AUDIO-02 | Phase 1 | Complete |
-| AUDIO-03 | Phase 1 | Complete |
-| AUDIO-04 | Phase 1 | Complete |
-| SCRIPT-01 | Phase 2 | Complete |
-| SCRIPT-02 | Phase 2 | Complete |
-| SCRIPT-03 | Phase 2 | Complete |
-| HOOKS-01 | Phase 3 | Pending |
-
-**v1 requirements:** 11 total
-**Mapped to phases:** 11
-**Unmapped:** 0
-
----
+*See .planning/milestones/v1.0-ROADMAP.md for archived details*
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-30 after completing Phase 2*
+*Last updated: 2026-03-30 after v1.0 milestone completion*
