@@ -26,7 +26,7 @@
 
 ### Hooks 集成
 
-- [ ] **HOOKS-01**: Claude Code hooks 配置 4 种事件对应不同音频：Stop → notify-complete.mp3、Notification → notify-confirm.mp3、StopFailure → notify-error.mp3、SubagentStop → notify-progress.mp3
+- [x] **HOOKS-01**: Claude Code hooks 配置 4 种事件对应不同音频：Stop → notify-complete.mp3、Notification → notify-confirm.mp3、StopFailure → notify-error.mp3、SubagentStop → notify-progress.mp3
 
 ## v2 Requirements
 
@@ -61,7 +61,7 @@
 | SCRIPT-01 | Phase 2 | Complete |
 | SCRIPT-02 | Phase 2 | Complete |
 | SCRIPT-03 | Phase 2 | Complete |
-| HOOKS-01 | Phase 3 | Pending |
+| HOOKS-01 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 11 total

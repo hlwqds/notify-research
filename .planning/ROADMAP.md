@@ -66,7 +66,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 03-01-PLAN.md -- Create notify-play.sh cooldown wrapper + install.sh/uninstall.sh for hooks integration
+- [x] 03-01-PLAN.md -- Create notify-play.sh cooldown wrapper + install.sh/uninstall.sh for hooks integration
 
 **Success criteria:**
 1. 任务完成时播放 `notify-complete.mp3`，需要确认时播放 `notify-confirm.mp3`，出错时播放 `notify-error.mp3`，子 agent 完成时播放 `notify-progress.mp3`
