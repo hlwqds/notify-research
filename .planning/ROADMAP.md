@@ -11,7 +11,7 @@
 |---|-------|------|--------------|-------|--------|
 | 1 | Docker TTS 环境 | 用户可以构建 Spark-TTS Docker 镜像并生成 4 种通知语音文件 | DOCKER-01~03, AUDIO-01~04 | 2/2 | Complete    | 2026-03-29 |
 | 2 | 生成脚本 | 一键脚本完成全流程，支持单独重新生成 | SCRIPT-01, SCRIPT-02, SCRIPT-03 | 1/1 | Complete    | 2026-03-29 |
-| 3 | Hooks 集成 | Claude Code 3 种事件触发不同通知音频 | HOOKS-01 | 2 | Pending |
+| 3 | Hooks 集成 | Claude Code 4 种事件触发不同通知音频（async hooks + 冷却防抖） | HOOKS-01 | 1 | Pending |
 
 ---
 
@@ -59,13 +59,20 @@ Plans:
 
 ## Phase 3: Hooks 集成
 
-**Goal:** Claude Code 在 Stop/Notification/StopFailure 事件时播放对应通知音频
+**Goal:** Claude Code 在 Stop/Notification/StopFailure/SubagentStop 事件时播放对应通知音频
 
 **Requirements:** HOOKS-01
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 03-01-PLAN.md -- Create notify-play.sh cooldown wrapper + install.sh/uninstall.sh for hooks integration
+
 **Success criteria:**
-1. 任务完成时播放 `notify-complete.mp3`，需要确认时播放 `notify-confirm.mp3`，出错时播放 `notify-error.mp3`
-2. 音频播放不阻塞 Claude Code 执行（后台 `&`）
+1. 任务完成时播放 `notify-complete.mp3`，需要确认时播放 `notify-confirm.mp3`，出错时播放 `notify-error.mp3`，子 agent 完成时播放 `notify-progress.mp3`
+2. 音频播放不阻塞 Claude Code 执行（async: true）
+3. 5 秒冷却防抖机制避免重复播放
+4. install.sh 幂等安装，uninstall.sh 清理卸载
 
 **UI hint:** no
 
