@@ -16,6 +16,7 @@
 - [x] 使用 Spark-TTS 0.5B 生成 4 种通知语音（任务完成、请确认、出错、进行中）(Phase 1+2: docker-tts, generate-script)
 - [x] 一键脚本生成所有音频文件到 `~/.claude/` 目录 (Phase 2: generate-script — generate.sh)
 - [x] 音频文件与 Claude Code hooks 配合（hooks 已配置，播放 `~/.claude/notify-*.mp3`）(Phase 1: docker-tts)
+- [x] Claude Code hooks 在 Stop/Notification/StopFailure/SubagentStop 事件时播放对应通知音频 (Phase 3: hooks — install.sh + notify-play.sh)
 
 ### Active
 
@@ -52,6 +53,9 @@
 | Spark-TTS 0.5B | 开源 Apache 2.0，中文支持好 | Phase 1 validated |
 | 预生成 mp3 提交到仓库 | 免除 Docker 依赖即可使用，开箱即用 | Phase 2 validated |
 | --type 选择性生成 | 支持单独重新生成某类通知，不必全部重建 | Phase 2 validated |
+| async: true 非阻塞 hooks | 原生 Claude Code 机制，优于 shell & 后台化 | Phase 3 validated |
+| jq 幂等操作 settings.json | 结构化 JSON 修改，避免 sed/awk 破坏配置 | Phase 3 validated |
+| 5 秒冷却防抖 | 基于临时文件时间戳，同一音频不重复播放 | Phase 3 validated |
 
 ## Evolution
 
@@ -71,4 +75,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after Phase 2 (generate-script) completion*
+*Last updated: 2026-03-30 after Phase 3 (hooks) completion*
