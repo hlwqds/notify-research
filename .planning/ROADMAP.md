@@ -21,6 +21,12 @@
 
 **Requirements:** DOCKER-01, DOCKER-02, DOCKER-03, AUDIO-01, AUDIO-02, AUDIO-03, AUDIO-04
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Create Dockerfile, requirements.txt, and generate.py (source artifacts)
+- [ ] 01-02-PLAN.md — Build Docker image, run TTS generation, verify output (build + verify)
+
 **Success criteria:**
 1. `docker build` 成功构建镜像，包含 Python 3.12 + PyTorch CPU + Spark-TTS + ffmpeg
 2. `docker run` 可执行 Spark-TTS 推理，输出 WAV 文件到指定目录
