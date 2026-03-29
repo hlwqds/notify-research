@@ -1,0 +1,18 @@
+# Spark-TTS Python dependencies (from official requirements.txt, excluding gradio)
+einops==0.8.1
+einx==0.3.0
+numpy==2.2.3
+omegaconf==2.3.0
+packaging==24.2
+safetensors==0.5.2
+soundfile==0.12.1
+soxr==0.5.0.post1
+tqdm==4.66.5
+transformers==4.46.2
+
+# NOT included: gradio==5.18.0 (unnecessary for CLI-only, saves ~500MB)
+# NOT included: torchvision (not needed for TTS inference)
+
+# Additional deps for Docker environment
+huggingface_hub>=0.29.0  # Model auto-download (not in official requirements.txt) per D-02
+protobuf>=4.21.0         # Safety dependency for transformers per D-12
