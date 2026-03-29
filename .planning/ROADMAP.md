@@ -10,7 +10,7 @@
 | # | Phase | Goal | Requirements | Plans | Status |
 |---|-------|------|--------------|-------|--------|
 | 1 | Docker TTS 环境 | 2/2 | Complete    | 2026-03-29 |
-| 2 | 生成脚本 | 一键脚本完成全流程，支持单独重新生成 | SCRIPT-01, SCRIPT-02, SCRIPT-03 | 3 | Pending |
+| 2 | 生成脚本 | 一键脚本完成全流程，支持单独重新生成 | SCRIPT-01, SCRIPT-02, SCRIPT-03 | 1 | Pending |
 | 3 | Hooks 集成 | Claude Code 3 种事件触发不同通知音频 | HOOKS-01 | 2 | Pending |
 
 ---
@@ -43,9 +43,14 @@ Plans:
 
 **Requirements:** SCRIPT-01, SCRIPT-02, SCRIPT-03
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 02-01-PLAN.md — Modify generate.py with --type argparse + create generate.sh orchestration script
+
 **Success criteria:**
 1. `./generate.sh` 一键完成：docker build（如需）→ 模型下载（如需）→ TTS 推理 → 转换 → 放置
-2. 生成完毕自动验证 4 个 mp3 文件存在且可播放（paplay 测试）
+2. 生成完毕自动验证 mp3 文件存在且格式有效（file 命令验证）
 3. `./generate.sh --type confirm` 可单独重新生成指定通知音频
 
 **UI hint:** no
