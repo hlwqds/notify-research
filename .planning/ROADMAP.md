@@ -9,7 +9,7 @@
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 1 | Docker TTS 环境 | 可构建的 Spark-TTS Docker 镜像，能推理生成音频 | DOCKER-01, DOCKER-02, DOCKER-03, AUDIO-01, AUDIO-02, AUDIO-03, AUDIO-04 | 4 |
+| 1 | Docker TTS 环境 | 1/2 | In Progress|  |
 | 2 | 生成脚本 | 一键脚本完成全流程，支持单独重新生成 | SCRIPT-01, SCRIPT-02, SCRIPT-03 | 3 |
 | 3 | Hooks 集成 | Claude Code 3 种事件触发不同通知音频 | HOOKS-01 | 2 |
 
@@ -21,10 +21,10 @@
 
 **Requirements:** DOCKER-01, DOCKER-02, DOCKER-03, AUDIO-01, AUDIO-02, AUDIO-03, AUDIO-04
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 01-01-PLAN.md — Create Dockerfile, requirements.txt, and generate.py (source artifacts)
+- [x] 01-01-PLAN.md — Create Dockerfile, requirements.txt, and generate.py (source artifacts)
 - [ ] 01-02-PLAN.md — Build Docker image, run TTS generation, verify output (build + verify)
 
 **Success criteria:**

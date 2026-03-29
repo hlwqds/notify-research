@@ -7,16 +7,16 @@
 
 ### Docker 环境
 
-- [ ] **DOCKER-01**: Dockerfile 基于 python:3.12-slim 构建 Spark-TTS 运行环境（PyTorch CPU + Spark-TTS + ffmpeg）
-- [ ] **DOCKER-02**: 模型权重（Spark-TTS-0.5B, ~3.95GB）通过 volume mount 加载，不打入镜像层
-- [ ] **DOCKER-03**: Docker 镜像可正常执行 Spark-TTS 推理并输出 WAV 文件
+- [x] **DOCKER-01**: Dockerfile 基于 python:3.12-slim 构建 Spark-TTS 运行环境（PyTorch CPU + Spark-TTS + ffmpeg）
+- [x] **DOCKER-02**: 模型权重（Spark-TTS-0.5B, ~3.95GB）通过 volume mount 加载，不打入镜像层
+- [x] **DOCKER-03**: Docker 镜像可正常执行 Spark-TTS 推理并输出 WAV 文件
 
 ### 音频生成
 
-- [ ] **AUDIO-01**: 生成 4 种通知语音：任务完成（"主人，任务完成了"）、请确认（"主人，请确认一下"）、出错（"主人，出错了"）、进行中（"主人，还在进行中"）
-- [ ] **AUDIO-02**: WAV 输出转换为 mp3 格式（ffmpeg）
-- [ ] **AUDIO-03**: 音频文件输出到 `~/.claude/notify-complete.mp3`、`notify-confirm.mp3`、`notify-error.mp3`、`notify-progress.mp3`
-- [ ] **AUDIO-04**: 语音风格为温柔低沉慵懒（`--gender female --pitch low --speed low`）
+- [x] **AUDIO-01**: 生成 4 种通知语音：任务完成（"主人，任务完成了"）、请确认（"主人，请确认一下"）、出错（"主人，出错了"）、进行中（"主人，还在进行中"）
+- [x] **AUDIO-02**: WAV 输出转换为 mp3 格式（ffmpeg）
+- [x] **AUDIO-03**: 音频文件输出到 `~/.claude/notify-complete.mp3`、`notify-confirm.mp3`、`notify-error.mp3`、`notify-progress.mp3`
+- [x] **AUDIO-04**: 语音风格为温柔低沉慵懒（`--gender female --pitch low --speed low`）
 
 ### 编排脚本
 
@@ -51,13 +51,13 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DOCKER-01 | Phase 1 | Pending |
-| DOCKER-02 | Phase 1 | Pending |
-| DOCKER-03 | Phase 1 | Pending |
-| AUDIO-01 | Phase 1 | Pending |
-| AUDIO-02 | Phase 1 | Pending |
-| AUDIO-03 | Phase 1 | Pending |
-| AUDIO-04 | Phase 1 | Pending |
+| DOCKER-01 | Phase 1 | Complete |
+| DOCKER-02 | Phase 1 | Complete |
+| DOCKER-03 | Phase 1 | Complete |
+| AUDIO-01 | Phase 1 | Complete |
+| AUDIO-02 | Phase 1 | Complete |
+| AUDIO-03 | Phase 1 | Complete |
+| AUDIO-04 | Phase 1 | Complete |
 | SCRIPT-01 | Phase 2 | Pending |
 | SCRIPT-02 | Phase 2 | Pending |
 | SCRIPT-03 | Phase 2 | Pending |
