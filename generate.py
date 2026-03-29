@@ -32,12 +32,18 @@ NOTIFICATIONS = [
 MODEL_DIR = os.environ.get("MODEL_DIR", "/app/pretrained_models/Spark-TTS-0.5B")
 OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "/output")
 
+# Ensure huggingface cache is writable when running as non-root in Docker
+_HF_CACHE = os.path.join(OUTPUT_DIR, ".hf_cache")
+os.environ.setdefault("HF_HOME", _HF_CACHE)
+os.environ.setdefault("TRANSFORMERS_CACHE", os.path.join(_HF_CACHE, "transformers"))
+os.environ.setdefault("HF_HUB_CACHE", os.path.join(_HF_CACHE, "hub"))
+
 
 def download_model(model_dir: str) -> None:
     """Download model weights via huggingface_hub if not present (D-02)."""
-    # Check if model appears populated (has LLM/ subdirectory)
-    llm_dir = os.path.join(model_dir, "LLM")
-    if os.path.isdir(llm_dir) and os.listdir(llm_dir):
+    # Check if model weights exist (look for actual safetensors, not just tokenizer files)
+    llm_safetensors = os.path.join(model_dir, "LLM", "model.safetensors")
+    if os.path.isfile(llm_safetensors):
         print(f"Model already exists at {model_dir}, skipping download.")
         return
 

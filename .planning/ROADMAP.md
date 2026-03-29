@@ -7,11 +7,11 @@
 
 ## Phase Overview
 
-| # | Phase | Goal | Requirements | Success Criteria |
-|---|-------|------|--------------|------------------|
-| 1 | Docker TTS 环境 | 1/2 | In Progress|  |
-| 2 | 生成脚本 | 一键脚本完成全流程，支持单独重新生成 | SCRIPT-01, SCRIPT-02, SCRIPT-03 | 3 |
-| 3 | Hooks 集成 | Claude Code 3 种事件触发不同通知音频 | HOOKS-01 | 2 |
+| # | Phase | Goal | Requirements | Plans | Status |
+|---|-------|------|--------------|-------|--------|
+| 1 | Docker TTS 环境 | 2/2 | Complete |  |
+| 2 | 生成脚本 | 一键脚本完成全流程，支持单独重新生成 | SCRIPT-01, SCRIPT-02, SCRIPT-03 | 3 | Pending |
+| 3 | Hooks 集成 | Claude Code 3 种事件触发不同通知音频 | HOOKS-01 | 2 | Pending |
 
 ---
 
@@ -21,11 +21,11 @@
 
 **Requirements:** DOCKER-01, DOCKER-02, DOCKER-03, AUDIO-01, AUDIO-02, AUDIO-03, AUDIO-04
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans executed
 
 Plans:
 - [x] 01-01-PLAN.md — Create Dockerfile, requirements.txt, and generate.py (source artifacts)
-- [ ] 01-02-PLAN.md — Build Docker image, run TTS generation, verify output (build + verify)
+- [x] 01-02-PLAN.md — Build Docker image, run TTS generation, verify output (build + verify)
 
 **Success criteria:**
 1. `docker build` 成功构建镜像，包含 Python 3.12 + PyTorch CPU + Spark-TTS + ffmpeg
@@ -70,13 +70,13 @@ Plans:
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DOCKER-01 | Phase 1 | Pending |
-| DOCKER-02 | Phase 1 | Pending |
-| DOCKER-03 | Phase 1 | Pending |
-| AUDIO-01 | Phase 1 | Pending |
-| AUDIO-02 | Phase 1 | Pending |
-| AUDIO-03 | Phase 1 | Pending |
-| AUDIO-04 | Phase 1 | Pending |
+| DOCKER-01 | Phase 1 | Complete |
+| DOCKER-02 | Phase 1 | Complete |
+| DOCKER-03 | Phase 1 | Complete |
+| AUDIO-01 | Phase 1 | Complete |
+| AUDIO-02 | Phase 1 | Complete |
+| AUDIO-03 | Phase 1 | Complete |
+| AUDIO-04 | Phase 1 | Complete |
 | SCRIPT-01 | Phase 2 | Pending |
 | SCRIPT-02 | Phase 2 | Pending |
 | SCRIPT-03 | Phase 2 | Pending |
@@ -88,3 +88,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-03-30*
+*Last updated: 2026-03-30 after completing Phase 1*
