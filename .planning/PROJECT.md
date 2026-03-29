@@ -12,14 +12,14 @@
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Docker 化 Spark-TTS 环境，无需手动安装 conda/Python 依赖 (Phase 1: docker-tts)
+- [x] 使用 Spark-TTS 0.5B 生成 4 种通知语音（任务完成、请确认、出错、进行中）(Phase 1+2: docker-tts, generate-script)
+- [x] 一键脚本生成所有音频文件到 `~/.claude/` 目录 (Phase 2: generate-script — generate.sh)
+- [x] 音频文件与 Claude Code hooks 配合（hooks 已配置，播放 `~/.claude/notify-*.mp3`）(Phase 1: docker-tts)
 
 ### Active
 
-- [ ] Docker 化 Spark-TTS 环境，无需手动安装 conda/Python 依赖
-- [ ] 使用 Spark-TTS 0.5B 生成 4 种通知语音（任务完成、请确认、出错、进行中）
-- [ ] 一键脚本生成所有音频文件到 `~/.claude/` 目录
-- [ ] 音频文件与 Claude Code hooks 配合（hooks 已配置，播放 `~/.claude/notify-*.mp3`）
+(None — all requirements validated)
 
 ### Out of Scope
 
@@ -46,10 +46,12 @@
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| 预生成而非实时合成 | CPU 推理 8 分钟/句，实时不可接受 | — Pending |
-| Docker 容器化 | 消除宿主机 conda/Python 依赖，一键构建 | — Pending |
-| 4 种固定通知文案 | 覆盖主要场景（完成、确认、出错、进行中） | — Pending |
-| Spark-TTS 0.5B | 开源 Apache 2.0，中文支持好 | — Pending |
+| 预生成而非实时合成 | CPU 推理 8 分钟/句，实时不可接受 | Phase 1 validated |
+| Docker 容器化 | 消除宿主机 conda/Python 依赖，一键构建 | Phase 1 validated |
+| 4 种固定通知文案 | 覆盖主要场景（完成、确认、出错、进行中） | Phase 1+2 validated |
+| Spark-TTS 0.5B | 开源 Apache 2.0，中文支持好 | Phase 1 validated |
+| 预生成 mp3 提交到仓库 | 免除 Docker 依赖即可使用，开箱即用 | Phase 2 validated |
+| --type 选择性生成 | 支持单独重新生成某类通知，不必全部重建 | Phase 2 validated |
 
 ## Evolution
 
@@ -69,4 +71,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after initialization*
+*Last updated: 2026-03-30 after Phase 2 (generate-script) completion*
