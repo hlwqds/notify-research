@@ -33,11 +33,17 @@ Hooks 集成（Phase 3）不在本阶段。
 - **D-09:** 包含中文帮助信息，说明脚本用途
 - **D-10:** 无需 dry-run、verbose 等高级选项
 
+### Audio Files in Repository
+- **D-11:** Phase 1 已生成的 4 个 mp3 文件提交到仓库（`audio/` 目录），作为默认使用的通知音频
+- **D-12:** Phase 3 hooks 默认引用仓库中的 `audio/notify-*.mp3`，不需要用户手动运行 Docker 生成
+- **D-13:** generate.sh 保留用于重新生成音频（如需更换语音或调整参数），但不再是必需步骤
+
 ### Claude's Discretion
 - generate.py 的参数传递机制（argparse / sys.argv / 环境变量）
 - 进度输出格式（echo / printf 风格）
 - 退出码定义
 - 脚本中的变量定义和路径拼接方式
+- mp3 文件在仓库中的目录结构（audio/ 根目录 vs 其他）
 
 </decisions>
 
