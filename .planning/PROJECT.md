@@ -10,7 +10,7 @@
 
 ## Current State
 
-v1.2 in progress — Phase 6 complete, bash 单元测试 next.
+v1.2 complete — all phases done (06 test infra, 07 bash tests, 08 PowerShell tests). 12/12 PS requirements verified, 3 pre-existing notify-play test failures noted.
 
 ### Shipped Versions
 
