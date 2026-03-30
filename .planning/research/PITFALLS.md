@@ -1,445 +1,511 @@
-# Pitfalls Research: Cross-Platform Audio Notification Support (v1.1)
+# Pitfalls Research: Test Infrastructure for Shell/PowerShell Notification Scripts
 
-**Domain:** Cross-platform audio notification system (Linux/macOS/Windows) for Claude Code hooks
+**Domain:** Adding cross-platform test infrastructure (bats, Pester, ShellCheck, PSScriptAnalyzer, Docker matrix) to shell/PowerShell notification scripts
 **Researched:** 2026-03-30
 **Confidence:** MEDIUM-HIGH
-**Scope:** Pitfalls specific to ADDING macOS and Windows support to the existing Linux notification system
+**Scope:** Pitfalls specific to ADDING test infrastructure to shell/PowerShell projects. Builds on the existing v1.1 PITFALLS.md which covers cross-platform runtime issues.
 
 ## Critical Pitfalls
 
-Mistakes that cause silent failures, broken hooks, or require rewrites.
+Mistakes that cause tests to be unreliable, misleading, or impossible to run in CI/Docker.
 
-### Pitfall 1: Windows Backslash Paths in Hook Commands Silently Fail
+### Pitfall 1: Testing Cooldown Logic with Real Time Produces Flaky Tests
 
 **What goes wrong:**
-All hooks using Windows backslash paths (`\`) in `settings.json` fail with "Module not found" errors. The backslashes are completely stripped before reaching the shell executable, turning `C:\Users\username\.claude\scripts\notify-play.ps1` into `C:Usersusernameclaude...`.
+Tests that exercise the 5-second cooldown mechanism (lock file timestamp check) use `sleep` and real wall-clock time. Tests pass most of the time but intermittently fail in CI under load, making the test suite unreliable. A test that asserts "within 5 seconds, playback is skipped" may fail if the CI runner is slow and the `date +%s` call happens to straddle a second boundary.
 
 **Why it happens:**
-Claude Code >= 2.1.47 changed how it passes command strings to the shell. Backslashes in the command are consumed as escape characters before reaching the target executable. This is a confirmed bug (GitHub issue #26759, reported 2026-02-19) affecting all Windows/MINGW users.
+The cooldown logic in `notify-play.sh` uses `date +%s` minus `stat` mtime to compute lock age. Testing this requires creating a lock file, waiting, then checking behavior. The 1-second granularity of epoch seconds means tests that check "is it within cooldown?" are inherently non-deterministic when the lock age is close to the 5-second threshold. CI runners under load add extra latency.
 
-**Consequences:**
-Every hook command that uses absolute Windows paths fails silently. The install script works (writes to settings.json), but the hooks never execute at runtime. User gets zero notification with no error visible in normal Claude Code output.
+**How to avoid:**
+1. **Do not use `sleep` to test cooldown.** Instead, directly manipulate the lock file timestamp to simulate aging:
+   ```bash
+   # Create lock file with specific age
+   touch "$LOCK_FILE"
+   touch -d "6 seconds ago" "$LOCK_FILE"  # GNU/Linux
+   touch -A "-000600" "$LOCK_FILE"         # macOS BSD
+   ```
+2. If time manipulation is not feasible, make the cooldown duration injectable (e.g., via environment variable) so tests can use a very short cooldown (0 or 1 second) instead of 5 seconds.
+3. Add a tolerance buffer in assertions -- never assert exactly at the boundary (e.g., assert at 6 seconds instead of 5).
 
-**Prevention:**
-1. Always use forward slashes in hook `command` values, even on Windows: `"command": "bash C:/Users/username/.claude/scripts/notify-play.sh"`
-2. In install.ps1, convert all paths to forward slashes before writing to settings.json
-3. Never hardcode backslash paths in the hook command strings
-4. Test hook execution on Windows after install, not just settings.json writing
-
-**Detection:**
-- `claude --debug` shows "hook error" entries for every hook event
-- Running the command manually with backslashes works, but hooks fail
-- Check that the hook command in settings.json contains no `\` characters
+**Warning signs:**
+- Tests that call `sleep` are slow (2-5 seconds per test) and occasionally fail
+- Test results differ between local runs and CI runs
+- Running the same test 10 times produces different pass/fail outcomes
 
 **Phase to address:**
-Phase 1 (Cross-platform install scripts) -- this is the highest-priority pitfall. The install scripts MUST generate forward-slash paths for Windows.
+Phase 1 (bats unit tests for shell scripts) -- this is the first logic that needs testing, and the flaky test risk is immediate.
 
 ---
 
-### Pitfall 2: PowerShell `ConvertTo-Json` Truncates Nested Objects (Default Depth 2)
+### Pitfall 2: Headless CI/Docker Cannot Play Audio -- Tests Must Mock, Not Execute
 
 **What goes wrong:**
-Using PowerShell's native `ConvertTo-Json` to manipulate `settings.json` silently truncates nested objects beyond 2 levels deep. The hooks configuration is 4+ levels deep (`.hooks.Stop[].hooks[].command`). After round-tripping through `ConvertTo-Json | Set-Content`, the hook entries become `{...}` placeholders or are completely lost.
+Tests that run `notify-play.sh` or `notify-play.ps1` end-to-end try to invoke `paplay`, `afplay`, or `MediaPlayer`. In Docker containers and CI runners (no audio hardware, no PulseAudio, no desktop session), these commands either fail or hang indefinitely. The test suite becomes unusable in CI.
 
 **Why it happens:**
-PowerShell's `ConvertTo-Json` defaults to `-Depth 2`. The Claude Code `settings.json` hook structure requires at least depth 5 to fully preserve:
-```
-hooks (1) -> Stop (2) -> [0] (3) -> hooks (4) -> [0] (5) -> command
-```
+The scripts hardcode absolute paths to audio players (`/usr/bin/paplay`, `/usr/bin/afplay`) and directly instantiate .NET classes (`Add-Type -AssemblyName PresentationCore; New-Object System.Windows.Media.MediaPlayer`). There is no abstraction layer that allows substituting a mock. In CI, `paplay` fails immediately (good), but `MediaPlayer` on Windows can hang waiting for a WPF dispatcher thread that never starts (bad -- test timeout).
 
-**Consequences:**
-install.ps1 appears to succeed (no errors), but `settings.json` is corrupted -- hook entries are empty objects or missing entirely. Claude Code either ignores malformed hooks or errors on load. The existing Linux `jq` approach has no such limitation.
+**How to avoid:**
+1. **For bats tests:** Create stub scripts for `paplay` and `afplay` that log their invocation arguments to a file and exit 0. Place stubs in a `test/fixtures/bin/` directory and prepend it to `$PATH`:
+   ```bash
+   setup() {
+       export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
+       mkdir -p "$BATS_TEST_TMPDIR/bin"
+       # Create stub paplay that records calls
+       cat > "$BATS_TEST_TMPDIR/bin/paplay" << 'STUB'
+       echo "$@" >> "$BATS_TMPDIR/paplay.log"
+       exit 0
+   STUB
+       chmod +x "$BATS_TEST_TMPDIR/bin/paplay"
+   }
+   ```
+2. **For Pester tests:** Refactor `notify-play.ps1` to extract the audio playback into a wrapper function, then mock the function in tests:
+   ```powershell
+   # In production code
+   function Invoke-AudioPlayback {
+       param([string]$AudioFile)
+       Add-Type -AssemblyName PresentationCore
+       $player = New-Object System.Windows.Media.MediaPlayer
+       # ...
+   }
+   ```
+   ```powershell
+   # In Pester test
+   Mock Invoke-AudioPlayback {} -ModuleName notify-play
+   ```
+3. **Never instantiate MediaPlayer in tests.** It requires a WPF dispatcher thread and desktop session, neither of which exist in CI or Docker.
+4. **Pester's Mock cannot mock .NET constructor calls** (`New-Object System.Windows.Media.MediaPlayer`). Only PowerShell commands/functions/cmdlets can be mocked. This is why extracting to a wrapper function is necessary.
 
-**Prevention:**
-1. Always use `ConvertTo-Json -Depth 10` (or higher) when writing settings.json
-2. Better: use `jq` on Windows too -- it works via Git Bash/MINGW, and the install.ps1 can invoke `jq.exe` if available
-3. Best: write the Windows install as a PowerShell wrapper that calls a bash script (same logic, same jq invocation)
-4. Validate JSON structure after writing -- load it back and check that hook entries exist
-
-**Detection:**
-- Open settings.json after install and verify hook entries are not `{...}` placeholders
-- Compare file size before and after -- truncated file is suspiciously small
-- Run `claude /hooks` to check if hooks are registered
+**Warning signs:**
+- Tests pass locally (with audio hardware) but fail/hang in CI
+- Pester tests timeout after default 30 seconds
+- Docker test matrix shows Windows container tests as "stuck"
 
 **Phase to address:**
-Phase 1 (Cross-platform install scripts) -- JSON manipulation is the core of install/uninstall. This must work correctly on all platforms.
+Phase 1 (bats unit tests) and Phase 2 (Pester unit tests) -- this affects both test frameworks.
 
 ---
 
-### Pitfall 3: `stat -c %Y` Does Not Work on macOS (Cooldown Lock Breaks)
+### Pitfall 3: Pester Version Mismatch Between PowerShell 5.1 and pwsh 7
 
 **What goes wrong:**
-The existing `notify-play.sh` uses `stat -c %Y "$LOCK_FILE"` to get file modification time for the 5-second cooldown. On macOS, this command fails because macOS uses BSD `stat`, not GNU `stat`. The BSD equivalent is `stat -f %m`. The script crashes with "stat: illegal option -- c" on every notification.
+Tests written for Pester v5 on `pwsh 7` fail on Windows PowerShell 5.1, or vice versa. The project targets PowerShell 5.1 (per the existing install.ps1 constraints), but developers may test on `pwsh 7`. Pester v6 has dropped support for PS 3/4/5.0, and v5 has different syntax from v4. Loading the wrong Pester version causes cryptic type errors (`[PesterConfiguration]` not found, parameterized tests fail silently).
 
 **Why it happens:**
-`stat` is not POSIX-standardized. Linux uses GNU coreutils `stat` with `-c` for format strings and `%Y` for mtime epoch. macOS uses BSD `stat` with `-f` for format strings and `%m` for mtime epoch. The two are completely incompatible.
+Windows ships with PowerShell 5.1 pre-installed. Many developers also install PowerShell 7 (`pwsh`). VSCode may load Pester from different module paths depending on which shell is active. If Pester v4 and v5 are both installed (v4 in system modules, v5 in user modules), VSCode may load the wrong one, causing `[PesterConfiguration]` type conflicts (GitHub Issue pester/Pester#1770).
 
-**Consequences:**
-Every hook invocation that calls `notify-play.sh` fails with a non-zero exit code. Since the script uses `set -euo pipefail`, the error is fatal. The notification never plays. On macOS, the user sees no error because Claude Code async hooks swallow stderr.
+**How to avoid:**
+1. **Pin Pester version explicitly** in test scripts and CI:
+   ```powershell
+   # At top of test file
+   Import-Module Pester -MinimumVersion 5.5.0 -MaximumVersion 5.99.99 -ErrorAction Stop
+   ```
+2. **Do NOT use Pester v6** -- it drops PS 3/4/5.0 support. PS 5.1 support in v6 is uncertain and the migration effort is not worthwhile for notification scripts.
+3. **Test on PS 5.1 specifically**, not just pwsh 7. Many cmdlets and .NET types behave differently.
+4. **In Docker Windows containers**, note that Nano Server only supports `pwsh` while Server Core supports both PS 5.1 and `pwsh`. For PS 5.1 compatibility testing, use a Server Core image.
+5. **Use `PSScriptAnalyzer` with the `desktop-5.1.14393.206-windows` target profile** to catch PS 5.1 incompatible syntax at lint time:
+   ```powershell
+   # PSScriptAnalyzerSettings.psd1
+   @{
+       Rules = @{
+           PSUseCompatibleSyntax = @{
+               Enable = $true
+               TargetVersions = @("5.1")
+           }
+           PSUseCompatibleCommands = @{
+               Enable = $true
+               TargetProfiles = @("desktop-5.1.14393.206-windows")
+           }
+       }
+   }
+   ```
 
-**Prevention:**
-1. Detect OS and use the correct stat flag:
-```bash
-if [[ "$(uname)" == "Darwin" ]]; then
-    LOCK_AGE=$(( $(date +%s) - $(stat -f %m "$LOCK_FILE") ))
-else
-    LOCK_AGE=$(( $(date +%s) - $(stat -c %Y "$LOCK_FILE") ))
-fi
-```
-2. Alternative: avoid `stat` entirely. Use `date +%s` and `find` with OS detection, or use a pure bash approach
-3. Test on macOS before considering the cross-platform migration complete
-
-**Detection:**
-- Run `notify-play.sh` manually on macOS -- it errors immediately
-- Check for "stat: illegal option" in `claude --debug` output
-- On macOS, `/tmp/claude-notify-*.lock` files are never created
+**Warning signs:**
+- `[PesterConfiguration]` type not found error
+- Parameterized tests (`-TestCases`) produce no output
+- Tests pass on pwsh 7 but fail on powershell 5.1
+- VSCode Pester extension shows different results than `Invoke-Pester` in terminal
 
 **Phase to address:**
-Phase 1 (Cross-platform notify-play.sh) -- this is the first script that must work on all platforms.
+Phase 2 (Pester unit tests) -- version compatibility must be decided before writing tests. Phase 3 (PSScriptAnalyzer) can catch syntax issues early.
 
 ---
 
-### Pitfall 4: `/tmp` Lock Files Break on macOS (Sandboxed TMPDIR)
+### Pitfall 4: bats `load` Path Resolution Breaks When Run from Different Directories
 
 **What goes wrong:**
-The existing cooldown mechanism hardcodes `/tmp/claude-notify-${TYPE}.lock` as the lock file path. On macOS, `/tmp` is a symlink to `/private/tmp`, and recent macOS versions (Ventura 13.7.7+) have restricted `/tmp` access. More critically, `$TMPDIR` on macOS points to a per-user sandboxed path like `/var/folders/jd/.../T/`, not `/tmp`.
+Test helper files loaded via bats `load` command cannot be found when tests are run from a directory other than the project root. `bats tests/notify-play.bats` works, but `cd tests && bats notify-play.bats` fails with "file not found" because `load` resolves paths relative to the **test file's location**, not the working directory.
 
 **Why it happens:**
-macOS uses per-user temp directories via `$TMPDIR` for security sandboxing. Hardcoded `/tmp` paths work (via the symlink) but may break in future macOS versions or under App Sandbox. On Windows, `/tmp` does not exist at all -- the temp directory is `%TEMP%` or `%TMP%`.
+The bats `load` command sources files relative to the current test file's directory. However, the test's working directory (`$PWD`) defaults to where `bats` was invoked, not where the test file lives. If helper files are referenced using `$PWD`-relative paths (e.g., `load ../scripts/notify-play.sh`), the resolution depends on the invocation directory.
 
-**Consequences:**
-On macOS: Lock files may fail to create in restricted environments. On Windows: The bash script tries to write to `/tmp` which does not exist, causing cooldown to always fail (actually this means no cooldown, but the script still works since `set -euo pipefail` would fail on the `[ -f ]` check succeeding but `stat` failing). The Windows PowerShell equivalent needs `%TEMP%`.
+**How to avoid:**
+1. Use a consistent project-root-relative structure and always invoke bats from the project root:
+   ```
+   project/
+   ├── scripts/
+   │   └── notify-play.sh
+   └── tests/
+       ├── helpers/
+       │   └── common.bash
+       └── notify-play.bats
+   ```
+   In `notify-play.bats`: `load helpers/common` resolves to `tests/helpers/common.bash`.
+2. To source production scripts (not helpers), use absolute paths derived from the test file:
+   ```bash
+   SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")" && pwd)"
+   REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+   source "$REPO_ROOT/scripts/notify-play.sh"
+   ```
+3. **Never use `source` with relative paths for production code** -- always compute absolute paths first.
+4. Document the expected invocation: `bats tests/` from project root.
 
-**Prevention:**
-1. Use `$TMPDIR` on macOS/Linux and `%TEMP%` on Windows:
-```bash
-LOCK_DIR="${TMPDIR:-/tmp}"
-LOCK_FILE="$LOCK_DIR/claude-notify-${TYPE}.lock"
-```
-2. In PowerShell: `$lockFile = Join-Path $env:TEMP "claude-notify-$type.lock"`
-3. Document that lock files use platform temp directories
-
-**Detection:**
-- On Windows bash (Git Bash/MINGW): check if `/tmp` resolves
-- On macOS restricted environments: check if lock file creation succeeds
-- Look for permission denied errors in hook output
+**Warning signs:**
+- `load` or `source` fails with "file not found"
+- Tests pass in CI but fail locally (or vice versa) due to different working directories
+- Docker `WORKDIR` causes test failures
 
 **Phase to address:**
-Phase 1 (Cross-platform notify-play.sh) -- must work with platform temp directories.
+Phase 1 (bats unit tests) -- directory structure and file loading must be correct from the start.
+
+---
+
+### Pitfall 5: Lock File Pollution Between Tests -- No Temp Directory Isolation
+
+**What goes wrong:**
+Multiple test cases that exercise cooldown logic share the same lock file path (`/tmp/claude-notify-complete.lock`). If tests run in parallel (bats `--parallel` flag) or if teardown fails to clean up, a lock file created by one test affects subsequent tests. Tests become order-dependent: test A creates a lock, test B sees it and skips playback when it should not.
+
+**Why it happens:**
+The production script hardcodes the lock file path to `/tmp/claude-notify-${TYPE}.lock`. Tests that invoke the script directly use the same path. bats does not sandbox the filesystem. While bats provides `$BATS_TEST_TMPDIR` (a unique temp dir per test), the production script does not use it.
+
+**How to avoid:**
+1. **Override the lock file path in tests** by setting a test-specific temp directory:
+   ```bash
+   setup() {
+       export LOCK_DIR="$BATS_TEST_TMPDIR"
+       # Refactor notify-play.sh to use $LOCK_DIR instead of /tmp
+       # Or: create a wrapper that sets TMPDIR before invoking
+       export TMPDIR="$BATS_TEST_TMPDIR"
+   }
+   ```
+2. **Better: make the lock directory configurable** in the production script via environment variable with fallback:
+   ```bash
+   LOCK_DIR="${NOTIFY_LOCK_DIR:-${TMPDIR:-/tmp}}"
+   LOCK_FILE="$LOCK_DIR/claude-notify-${TYPE}.lock"
+   ```
+3. Always clean up lock files in teardown:
+   ```bash
+   teardown() {
+       rm -f "$BATS_TEST_TMPDIR"/claude-notify-*.lock
+   }
+   ```
+4. Never use bats `--parallel` without ensuring each test uses `$BATS_TEST_TMPDIR`.
+
+**Warning signs:**
+- Tests pass individually (`bats tests/notify-play.bats`) but fail when run as a suite
+- Tests pass in one order but fail in another
+- Adding a new test causes an unrelated existing test to fail
+
+**Phase to address:**
+Phase 1 (bats unit tests) -- temp directory isolation is fundamental to test reliability.
 
 ---
 
 ## Moderate Pitfalls
 
-Mistakes that degrade user experience or cause platform-specific bugs.
+Mistakes that cause degraded developer experience or incomplete test coverage.
 
-### Pitfall 5: Windows Audio Playback Blocking -- `WMPlayer.OCX` Leaves Orphan Processes
+### Pitfall 6: bats `setup()` Runs Per-Test, Not Once -- Expensive Setup Repeated
 
 **What goes wrong:**
-Using the Windows Media Player COM object (`New-Object -ComObject WMPlayer.OCX`) to play notification audio leaves a hidden `wmplayer.exe` process running after each notification. Over time, dozens of orphan processes accumulate, consuming memory and potentially causing audio conflicts.
+Placing expensive operations (Docker container startup, model file copying, environment bootstrapping) in `setup()` causes them to run before every single test. A test suite with 20 tests takes 60 seconds instead of 3 seconds because Docker starts 20 times.
 
 **Why it happens:**
-The COM object requires explicit cleanup: `$player.close()` followed by `[System.Runtime.InteropServices.Marshal]::ReleaseComObject($player)`. Most example scripts skip this cleanup. Additionally, the COM object's async playback (`$player.playState` monitoring) requires a polling loop, making the script more complex than needed.
+bats `setup()` and `teardown()` run before and after **each individual test**, not once per test file. This is documented but counter-intuitive for developers coming from JUnit or pytest where `@BeforeAll` runs once.
 
-**Consequences:**
-Zombie `wmplayer.exe` processes accumulate. Each uses ~30MB of memory. After a day of coding with frequent notifications, the user may have 50+ zombie processes. Eventually, audio playback starts failing or the system becomes sluggish.
-
-**Prevention:**
-1. Use `.NET `System.Media.SoundPlayer` instead -- it has simple `Play()` (non-blocking) and `PlaySync()` (blocking) methods, and cleans up automatically:
-```powershell
-(New-Object System.Media.SoundPlayer 'C:\path\to\notify.mp3').PlaySync()
-```
-2. If using WMPlayer.OCX, always call `$player.close()` and release the COM object in a `try/finally` block
-3. The `SoundPlayer` approach is preferred for short notification sounds
-
-**Detection:**
-- Check Task Manager for multiple `wmplayer.exe` processes
-- Audio playback becomes unreliable after many notifications
+**How to avoid:**
+1. Use `setup_file()` / `teardown_file()` for one-time setup per test file.
+2. Use `setup_suite()` / `teardown_suite()` (in a `setup_suite.bash` file) for one-time setup across the entire suite.
+3. Keep `setup()` lightweight -- only create per-test temp directories and stub commands.
+4. Document which setup scope is used and why.
 
 **Phase to address:**
-Phase 1 (Cross-platform audio playback) -- this is the core user-facing behavior.
+Phase 1 (bats unit tests) -- choose the right setup scope before writing tests.
 
 ---
 
-### Pitfall 6: `afplay` Concurrent Playback Causes AudioQueueStart Errors
+### Pitfall 7: ShellCheck Suppression Without Understanding Creates False Confidence
 
 **What goes wrong:**
-On macOS, `afplay` is not designed for concurrent playback. If multiple notifications fire within the cooldown window but the cooldown logic fails (or before it takes effect), launching multiple `afplay` instances can trigger `AudioQueueStart` errors and require restarting `coreaudiod` to recover.
+Developers add `# shellcheck disable=SCXXXX` directives to silence warnings without understanding the underlying issue. The script passes ShellCheck with zero warnings but still contains bugs (unquoted variables, word splitting, glob expansion). CI shows green but the script fails in production.
 
 **Why it happens:**
-`afplay` uses Apple's AudioQueue API, which has undocumented behavior when multiple instances access the same audio device simultaneously. The cooldown mechanism is supposed to prevent this, but if the cooldown fails (see Pitfall 3), rapid-fire notifications can trigger the issue.
+ShellCheck warnings are sometimes noisy for well-intentioned patterns. The existing scripts use `set -euo pipefail` which mitigates some issues, leading developers to suppress warnings that seem unnecessary. However, suppression directives disable the check for the entire command, not just the false positive.
 
-**Consequences:**
-Audio becomes completely broken on macOS until the user restarts `coreaudiod`:
-```bash
-sudo launchctl stop com.apple.audio.coreaudiod
-sudo launchctl start com.apple.audio.coreaudiod
-```
-This affects ALL audio on the system, not just notifications.
-
-**Prevention:**
-1. Ensure the cooldown mechanism is rock-solid on macOS (fix Pitfall 3 first)
-2. Add a process-level guard: check if `afplay` is already running before launching:
-```bash
-if pgrep -x afplay > /dev/null 2>&1; then
-    exit 0  # Already playing, skip
-fi
-```
-3. Redirect stderr to /dev/null and use `|| true` for safety
-
-**Detection:**
-- `afplay` produces `AudioQueueStart` errors in console output
-- System audio stops working (no sound from any app)
-- `coreaudiod` process needs restart
+**How to avoid:**
+1. **Never suppress without a comment** explaining why:
+   ```bash
+   # shellcheck disable=SC2086  # Intentional word split: $args contains separate arguments
+   some_command $args
+   ```
+2. **Scope suppression to single lines** -- avoid file-level `# shellcheck disable=` which disables all checks.
+3. **Review every suppression** in code review. Maintain a suppression log if the project grows.
+4. For the existing scripts, the most likely ShellCheck findings will be:
+   - SC2086 (double quote variables) -- the scripts already quote correctly
+   - SC1091 (source not following) -- expected for external dependencies
+   - SC2034 (unused variable) -- check if truly unused
+5. Run ShellCheck with `severity=warning` (not `error`) initially to see all findings.
 
 **Phase to address:**
-Phase 1 (Cross-platform audio playback) -- defensive coding for macOS.
+Phase 3 (ShellCheck static analysis) -- establish suppression policy before running.
 
 ---
 
-### Pitfall 7: Claude Code Hook `shell` Field Not Set for Windows PowerShell Hooks
+### Pitfall 8: Docker Test Matrix for Windows Containers Is Extremely Heavy (3-11 GB Images)
 
 **What goes wrong:**
-On Windows, Claude Code hooks default to running via `bash` (if available via Git Bash/MINGW) or `cmd`. If the install script writes bash commands but the user's environment only has PowerShell, hooks fail silently. Conversely, if the install script writes PowerShell commands but Claude Code runs them via bash, they fail.
+Adding Windows containers to the Docker test matrix seems straightforward but the Windows Server Core base image is 3-5 GB and a full Nano Server image can be 1-2 GB. Downloading and building Windows containers takes 10-30 minutes, making local development painful and CI slow. The project documentation says "local-only Docker matrix" but the image sizes may make this impractical.
 
 **Why it happens:**
-Claude Code hooks support a `"shell": "powershell"` field on command hooks. Without it, Claude Code auto-detects the shell: it looks for `pwsh.exe` (PowerShell 7+) first, then `powershell.exe` (5.1), with a fallback to bash. The `shell` field tells Claude Code explicitly which shell to use for a specific hook. This feature exists but is not obvious from the default configuration.
+Windows containers require a Windows host OS layer. Unlike Linux containers which share the host kernel, Windows containers include their own Windows kernel components. Even "minimal" Windows Server Core images are gigabytes.
 
-**Consequences:**
-- Bash commands fail if bash is not in PATH (common on fresh Windows installs without Git for Windows)
-- PowerShell commands fail if Claude Code tries to run them via bash
-- The install script works but hooks never execute
-
-**Prevention:**
-1. In install.ps1, set `"shell": "powershell"` on all hook entries
-2. In install.sh (Linux/macOS), explicitly set `"shell": "bash"` (or omit since bash is default)
-3. Document that Windows users need PowerShell 5.1+ (pre-installed on Windows 10/11) or PowerShell 7+
-4. The `shell` field is the cleanest solution -- it lets each platform's install script configure hooks for the correct shell
-
-**Detection:**
-- On Windows, check `claude --debug` for "shell not found" or "command not found" errors
-- If hooks fire but produce no output, the shell may be wrong
-- Test: manually run the hook command in the target shell
+**How to avoid:**
+1. **Prefer WSL2 with Linux containers for PowerShell Core testing** -- `mcr.microsoft.com/powershell:latest` is a Linux image (~400 MB) that runs `pwsh`. This does NOT test PS 5.1 compatibility but is much lighter.
+2. **For PS 5.1 compatibility, test natively on Windows** (not in Docker). PS 5.1 is pre-installed on all Windows 10/11 machines. Running Pester directly in PowerShell 5.1 is simpler and more reliable than Windows containers.
+3. **If Windows containers are needed**, use `mcr.microsoft.com/windows/servercore:ltsc2022` (~3 GB) and accept the size. Never use full Server images.
+4. **Document the Docker matrix as optional** -- Linux containers for bats, native Windows for Pester. Docker Windows containers are a "nice to have" not a requirement.
+5. Use `--platform linux/amd64` to avoid pulling Windows images on Linux hosts by accident.
 
 **Phase to address:**
-Phase 1 (Cross-platform install scripts) -- the `shell` field must be set correctly per platform.
+Phase 4 (Docker test matrix) -- decide on matrix strategy before building Dockerfiles. This decision affects CI pipeline complexity.
 
 ---
 
-### Pitfall 8: macOS `date +%s` Compatibility
+### Pitfall 9: `teardown()` Failure Reported Against Wrong Test in bats
 
 **What goes wrong:**
-The `notify-play.sh` script uses `date +%s` to get the current epoch time. On macOS, the BSD `date` command supports `%s` (seconds since epoch), but older BSD variants (FreeBSD 6.x, some macOS versions before Sierra) may not. In practice, all modern macOS versions (10.12+) support this, so this is LOW risk.
+When a bats `teardown()` function fails, the error is attributed to the **next test**, not the test whose teardown actually failed. This makes debugging very confusing: "test B failed because of an error in test A's teardown" is not obvious from the output.
 
 **Why it happens:**
-GNU `date` and BSD `date` have different flag sets. The `%s` format specifier is supported on both GNU and modern BSD `date`, but was historically a GNU extension.
+This is a known bats-core behavior (GitHub Issue bats-core/bats-core#1136). The teardown failure is detected when the next test's `setup()` runs, so the error gets associated with that test.
 
-**Consequences:**
-If `date +%s` fails, the arithmetic expression in the cooldown check produces an error. Under `set -euo pipefail`, this crashes the script.
-
-**Prevention:**
-1. Test on the minimum supported macOS version (likely 12 Monterey)
-2. If paranoid, use `perl -e 'print time'` as a fallback (perl is always available on macOS)
-3. In practice, `date +%s` works on macOS 10.12+, so this is low risk
-
-**Detection:**
-- Run `date +%s` on the target macOS version
-- Check for "date: illegal option" or empty output
+**How to avoid:**
+1. Make `teardown()` robust -- use `|| true` for cleanup operations that can fail:
+   ```bash
+   teardown() {
+       rm -f "$BATS_TEST_TMPDIR"/claude-notify-*.lock || true
+   }
+   ```
+2. If teardown must fail for debugging, check `$BATS_TEST_NAME` to identify which test caused the issue.
+3. Be aware of this behavior when debugging -- if a test fails unexpectedly, check the previous test's teardown.
 
 **Phase to address:**
-Phase 1 (Cross-platform notify-play.sh) -- verify during macOS testing.
+Phase 1 (bats unit tests) -- understand this quirk before writing teardown logic.
+
+---
+
+### Pitfall 10: macOS-Specific `stat` and `touch` Flags Break Tests on Linux
+
+**What goes wrong:**
+Tests written on macOS use BSD `stat -f %m` and `touch -A` flags. These tests fail on Linux (CI) because Linux uses GNU `stat -c %Y` and `touch -d`. Conversely, tests written on Linux fail on macOS. The project already handles this in production code (v1.1), but test helper functions may accidentally use OS-specific flags.
+
+**Why it happens:**
+Test helper functions that manipulate file timestamps for cooldown testing need to "age" a lock file. The `touch` command for setting arbitrary timestamps is completely different between GNU and BSD:
+- Linux: `touch -d "6 seconds ago" "$FILE"`
+- macOS: `touch -A "-000600" "$FILE"` (the `-A` argument format is MMDDhhmm, not human-readable)
+
+**How to avoid:**
+1. Create a portable helper function in `tests/helpers/common.bash`:
+   ```bash
+   set_file_age() {
+       local file="$1"
+       local seconds_ago="$2"
+       if [[ "$(uname -s)" == "Darwin" ]]; then
+           # macOS: touch -A uses [[CC]YY]MMDDhhmm[.SS] format
+           local now_epoch=$(date +%s)
+           local target_epoch=$((now_epoch - seconds_ago))
+           local target_date=$(date -r "$target_epoch" +%Y%m%d%H%M.%S)
+           touch -t "$target_date" "$file"
+       else
+           touch -d "${seconds_ago} seconds ago" "$file"
+       fi
+   }
+   ```
+2. Alternatively, since the production script already detects the OS for stat, reuse that pattern in test helpers.
+3. Test this helper on both macOS and Linux early.
+
+**Phase to address:**
+Phase 1 (bats unit tests) -- the cooldown timestamp helper is needed for the first meaningful test.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 9: Windows `jq` Not Available Natively
+### Pitfall 11: ShellCheck Docker Image Missing `shell` Binary for Glob Support
 
 **What goes wrong:**
-The install and uninstall scripts depend on `jq` for JSON manipulation of `settings.json`. On Windows, `jq` is not pre-installed. The PowerShell approach using `ConvertTo-Json` has its own pitfalls (Pitfall 2).
+Running ShellCheck via its official Docker image (`koalaman/shellcheck`) produces false negatives for rules that require shell execution (SC2250, SC2296). The Docker image does not include a full `shell` binary for glob expansion analysis (GitHub Issue koalaman/shellcheck#2862).
 
-**Prevention:**
-1. Bundle `jq.exe` with the project for Windows, or check for it and provide install instructions
-2. Alternative: have install.ps1 download `jq.exe` from GitHub releases
-3. Alternative: write a PowerShell native JSON manipulation using `-Depth 10` (see Pitfall 2)
-4. Git for Windows includes `jq.exe` in its PATH -- check `C:\Program Files\Git\usr\bin\jq.exe`
+**How to avoid:**
+1. Install ShellCheck natively on Linux/macOS (`apt install shellcheck` or `brew install shellcheck`) rather than running via Docker.
+2. If Docker is required, accept the reduced coverage and document the limitation.
+3. For the existing simple scripts (no complex globbing), this is unlikely to be a practical issue.
 
 **Phase to address:**
-Phase 1 (Cross-platform install scripts) -- decide jq strategy for Windows.
+Phase 3 (ShellCheck integration) -- minor concern, decide native vs Docker installation.
 
 ---
 
-### Pitfall 10: macOS `afplay` Format Limitation (Irrelevant for MP3)
+### Pitfall 12: bats Parallel Mode Changes Test Timing Assumptions
 
 **What goes wrong:**
-`afplay` only supports formats handled by Apple CoreAudio: AIFF, CAF, MP3, WAV, M4A, AAC. It cannot play OGG, Opus, FLAC, or other open-source formats.
+Running `bats --parallel` to speed up CI causes tests to fail because parallel tests share the same `/tmp` directory. Lock file tests conflict, temp files collide, and timing-sensitive tests produce unpredictable results.
 
-**Why it happens:**
-`afplay` relies on CoreAudio framework for format decoding.
-
-**Prevention:**
-This is a non-issue for the current project because the audio files are MP3, which CoreAudio fully supports. However, if the format ever changes to OGG or FLAC, this would break macOS playback without any error message (afplay fails silently on unsupported formats).
-
-**Detection:**
-- Test with actual audio files on macOS
-- `afplay` produces no output on failure -- use file format check before playback
+**How to avoid:**
+1. Do NOT use `bats --parallel` for this project. The test suite is small (6 scripts, ~20 tests) and should complete in under 5 seconds without parallelism.
+2. If parallelism is ever needed, ensure every test uses `$BATS_TEST_TMPDIR` exclusively (see Pitfall 5).
 
 **Phase to address:**
-Not a concern for v1.1 (MP3 format). Flag for future if audio format changes.
+Phase 1 (bats unit tests) -- document that parallel execution is not supported.
 
 ---
 
-### Pitfall 11: Script Shebang Line (`#!/usr/bin/env bash`) on Windows
+### Pitfall 13: PSScriptAnalyzer `UseCompatibleTypes` May Flag PresentationCore on Non-Windows
 
 **What goes wrong:**
-The shebang line `#!/usr/bin/env bash` is ignored by Windows native. If the user tries to run `notify-play.sh` directly from PowerShell or cmd, it fails. The script only works when invoked by Claude Code's hook runner, which handles shell selection.
+Running PSScriptAnalyzer with `UseCompatibleTypes` rule against the PowerShell scripts flags `System.Windows.Media.MediaPlayer` (from PresentationCore) as incompatible with non-Windows targets. This is technically correct but expected -- MediaPlayer only exists on Windows.
 
-**Prevention:**
-1. Claude Code's `shell: "bash"` field handles this -- it invokes bash explicitly
-2. For direct script testing on Windows, document that scripts must be run via `bash notify-play.sh`
-3. The Windows install.ps1 should not try to execute bash scripts directly
-
-**Phase to address:**
-Phase 1 (Cross-platform install scripts) -- ensure scripts are invoked via the correct shell.
-
----
-
-### Pitfall 12: PowerShell `SoundPlayer` Only Supports WAV Natively
-
-**What goes wrong:**
-The recommended `.NET SoundPlayer` class only natively supports WAV files. If the notification audio is MP3 (as in the current project), `SoundPlayer` throws an exception: "The wave header is corrupt."
-
-**Why it happens:**
-`System.Media.SoundPlayer` is a legacy .NET class built on Windows waveOut API. It only understands WAV format.
-
-**Prevention:**
-1. Use `WMPlayer.OCX` COM object for MP3 playback (with proper cleanup, see Pitfall 5)
-2. Or use `System.Media.SoundPlayer` with WAV files instead of MP3
-3. Or use `[System.Windows.Media.MediaPlayer]` from PresentationCore (supports MP3 but requires WPF/PresentationCore assembly loaded)
-4. Or use `Invoke-Item $audioFile` which opens the file with the system default player (simplest but opens a visible window)
-5. The simplest reliable approach for MP3 on Windows is:
-```powershell
-Add-Type -AssemblyName presentationCore
-$player = New-Object System.Windows.Media.MediaPlayer
-$player.Open([System.Uri]::new("C:\path\to\notify.mp3"))
-$player.Play()
-Start-Sleep -Seconds 3  # Wait for notification to finish
-$player.Close()
-```
-
-**Detection:**
-- `SoundPlayer` constructor with MP3 path throws immediately
-- Error: "The wave header is corrupt" or similar
+**How to avoid:**
+1. Configure PSScriptAnalyzer to target only `desktop-5.1.14393.206-windows`, not cross-platform profiles.
+2. Suppress the warning for the specific line if needed:
+   ```powershell
+   [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseCompatibleTypes', '')]
+   ```
+3. This is expected behavior -- the scripts are Windows-only by design.
 
 **Phase to address:**
-Phase 1 (Cross-platform audio playback) -- this directly affects which Windows audio approach to use.
+Phase 3 (PSScriptAnalyzer) -- configure the correct target profile.
 
 ---
 
-## Architecture Pitfalls
+## Technical Debt Patterns
 
-### Pitfall 13: One Script to Rule Them All -- Cross-Platform Wrapper Complexity
+Shortcuts that seem reasonable but create long-term problems.
 
-**What goes wrong:**
-Trying to make `notify-play.sh` work on all three platforms with OS detection leads to a fragile script that accumulates platform-specific branches. Every new platform adds complexity, and testing all combinations becomes impractical.
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Skip mocking, use `sleep` in tests | Tests written faster | Flaky CI, slow suite (2-5s per test) | Never for cooldown tests; OK for smoke tests |
+| Test only on pwsh 7, ignore PS 5.1 | Simpler test writing | Scripts break on default Windows PS | Never -- PS 5.1 is the target |
+| Use Docker for all platforms including Windows | One tool for everything | 3-11 GB Windows images, slow CI, requires Windows host | Never for PS 5.1 testing; consider Linux pwsh container |
+| Suppress all ShellCheck warnings to get green CI | Quick compliance | Hidden bugs, false confidence | Never without per-suppression justification |
+| Run bats without temp directory isolation | Simpler test code | Order-dependent tests, parallel hazards | Never |
+| Use Pester v6 for newer features | Access to latest Pester features | Drops PS 3/4/5.0 support, uncertain PS 5.1 support | Never until PS 5.1 support is explicitly confirmed |
 
-**Why it happens:**
-The natural instinct is to modify the existing script rather than create new ones. But the three platforms have fundamentally different audio playback mechanisms:
-- Linux: `paplay` (PulseAudio/PipeWire)
-- macOS: `afplay` (CoreAudio)
-- Windows: PowerShell/.NET (Windows Media APIs)
+## Integration Gotchas
 
-**Prevention:**
-1. Keep `notify-play.sh` for Linux/macOS only (both are Unix-like)
-2. Create a separate `notify-play.ps1` for Windows
-3. Let the install scripts choose the correct wrapper per platform
-4. The shared logic (cooldown, lock files, argument parsing) can be duplicated or extracted to a shared module
-5. Alternatively, use the Claude Code `shell` field to invoke the correct script per platform
+Common mistakes when connecting test infrastructure to external tools and CI.
 
-**Detection:**
-- notify-play.sh grows beyond 50 lines with multiple `if [[ "$(uname)" == ... ]]` branches
-- Testing matrix becomes 3 OS x 4 events = 12 combinations, each needing separate validation
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| bats + production scripts | Sourcing scripts that execute side effects (play audio, write to `$HOME/.claude`) | Set `NOTIFY_LOCK_DIR` and mock audio commands in PATH before sourcing |
+| Pester + settings.json | Tests modify real `~/.claude/settings.json`, polluting the developer's environment | Use `$env:USERPROFILE = "$TestDrive"` or mock file operations |
+| ShellCheck + shebang | ShellCheck may not detect the correct shell for `.ps1` files | Run ShellCheck separately: `shellcheck scripts/*.sh` and `Invoke-ScriptAnalyzer scripts/*.ps1` |
+| Docker + bats | `bats` not installed in the Docker image, or wrong version | Install bats-core via npm (`npm install -g bats`) or clone from GitHub in Dockerfile |
+| Docker + Pester | Pester module not pre-installed in Windows container | `pwsh -Command "Install-Module Pester -Force -Scope CurrentUser"` in Dockerfile |
+| CI + lock files | Lock files persist between CI runs on self-hosted runners | Always clean `$TMPDIR`/`$TEMP` in CI setup step |
 
-**Phase to address:**
-Phase 1 (Architecture decision) -- decide on single-script vs multi-script approach before writing code.
+## Performance Traps
 
----
+Patterns that work at small scale but fail as the test suite grows.
 
-### Pitfall 14: Idempotency Across Different Install Scripts
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| `sleep` in tests | Each cooldown test takes 5+ seconds; 10 tests = 50+ seconds | Mock time via timestamp manipulation; make cooldown configurable | Immediately at 5+ tests |
+| Docker Windows pull time | CI pipeline takes 15-30 minutes for Windows container phase | Use native Windows for PS 5.1; skip Windows containers if possible | First CI run |
+| No test isolation | Adding tests breaks existing tests | Use `$BATS_TEST_TMPDIR` and fresh `$TESTDRIVE` per test | At 3+ test files |
+| Repeated expensive setup | Docker startup in `setup()` runs per test | Use `setup_file()` for Docker; per-test setup only for mocks | At 5+ tests |
 
-**What goes wrong:**
-The install.sh ensures idempotency via jq's JSON manipulation (setting the same hook entries replaces them). If install.ps1 uses a different JSON manipulation approach, running install.sh and then install.ps1 (or vice versa) may produce different JSON formatting or corrupt the hooks section.
+## "Looks Done But Isn't" Checklist
 
-**Why it happens:**
-`jq` formats JSON with specific indentation and ordering. PowerShell's `ConvertTo-Json` uses different formatting (2-space indentation, different key ordering for objects). If a user switches platforms and re-runs the other install script, the JSON formatting changes but the content should remain the same -- unless the PowerShell script uses `-Depth` truncation (Pitfall 2).
+Things that appear complete but are missing critical pieces.
 
-**Prevention:**
-1. Both install scripts should produce identical JSON structure for hooks
-2. Test: run install.sh, verify hooks, then run install.ps1 on the same settings.json, verify hooks still work
-3. Consider having both scripts use `jq` for JSON manipulation (jq.exe exists for Windows)
-4. Or accept that switching platforms requires re-running the appropriate install script
+- [ ] **Cooldown tests:** Do tests manipulate file timestamps instead of using `sleep`? Verify by running 10 times -- any intermittent failure indicates real-time dependency.
+- [ ] **Audio mocking:** Do bats tests stub `paplay`/`afplay` in PATH? Do Pester tests mock the playback function? Verify by checking that the real audio command is never invoked (check process list).
+- [ ] **Temp isolation:** Does each test use its own temp directory? Verify by running tests in random order -- any order-dependent failure indicates shared state.
+- [ ] **PS 5.1 coverage:** Have tests been run on actual Windows PowerShell 5.1 (not just pwsh 7)? Verify by checking `$PSVersionTable.PSVersion` in CI output.
+- [ ] **ShellCheck zero warnings:** Are all ShellCheck warnings addressed, not just suppressed? Review each `# shellcheck disable` directive.
+- [ ] **PSScriptAnalyzer profile:** Is the `desktop-5.1.14393.206-windows` target profile configured? Verify by checking PSScriptAnalyzer output includes version-specific warnings.
+- [ ] **Docker matrix runs locally:** Does `docker compose up` start all three platform containers and run tests? Verify on a fresh machine (no cached images).
+- [ ] **settings.json not polluted:** After running all tests, is the developer's `~/.claude/settings.json` unchanged? Verify by diffing before/after.
+- [ ] **Lock files cleaned up:** After test suite completes, are there leftover `/tmp/claude-notify-*.lock` files? Verify by listing `/tmp` after tests.
 
-**Detection:**
-- Diff the settings.json before and after running the "other" platform's install
-- Run `claude /hooks` to verify hooks are correctly registered after cross-platform install
+## Recovery Strategies
 
-**Phase to address:**
-Phase 1 (Cross-platform install scripts) -- test cross-platform idempotency.
+When pitfalls occur despite prevention, how to recover.
 
----
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| Flaky time-based tests | MEDIUM | 1. Identify tests with `sleep` calls. 2. Replace with timestamp manipulation. 3. Add retry assertion if absolutely needed. |
+| CI hangs on MediaPlayer | LOW | 1. Add timeout to Pester tests (`-Timeout 5`). 2. Extract MediaPlayer to wrapper function. 3. Mock wrapper in tests. |
+| Pester version conflict | LOW | 1. Remove all Pester versions: `Get-Module Pester -All \| Remove-Module -Force`. 2. Install specific version: `Install-Module Pester -RequiredVersion 5.5.0 -Force`. 3. Pin version in test files. |
+| bats path resolution broken | LOW | 1. Compute absolute paths using `$BATS_TEST_FILENAME`. 2. Add error checking for file existence. 3. Document required invocation directory. |
+| Lock file pollution | LOW | 1. Clean `/tmp/claude-notify-*.lock`. 2. Add `$BATS_TEST_TMPDIR` to all tests. 3. Add cleanup to teardown. |
+| Docker Windows too heavy | HIGH | 1. Remove Windows containers from Docker Compose. 2. Add native Windows testing instructions. 3. Keep Linux containers only. |
 
-## Phase-Specific Warnings
+## Pitfall-to-Phase Mapping
 
-| Phase Topic | Likely Pitfall | Mitigation |
-|-------------|---------------|------------|
-| Cross-platform notify-play.sh | Pitfall 3 (stat incompatible), Pitfall 4 (TMPDIR), Pitfall 6 (afplay concurrency) | OS-detect stat flags, use $TMPDIR, add pgrep guard for afplay |
-| Windows audio playback | Pitfall 5 (orphan processes), Pitfall 12 (SoundPlayer WAV-only) | Use MediaPlayer from PresentationCore, or WMPlayer.OCX with cleanup |
-| install.ps1 JSON manipulation | Pitfall 2 (ConvertTo-Json depth), Pitfall 1 (backslash paths) | Use -Depth 10, always forward slashes in command strings |
-| Hook shell configuration | Pitfall 7 (shell field not set) | Set `"shell": "powershell"` on Windows, `"shell": "bash"` on Linux/macOS |
-| Architecture design | Pitfall 13 (one-script complexity), Pitfall 14 (cross-platform idempotency) | Separate bash and PowerShell scripts, use jq for JSON on all platforms |
+How roadmap phases should address these pitfalls.
 
----
-
-## "Looks Done But Isn't" Checklist for Cross-Platform
-
-- [ ] **macOS stat:** Does `stat -f %m` work on macOS? (or OS-detect stat flags)
-- [ ] **macOS TMPDIR:** Does lock file creation work with `$TMPDIR` on macOS?
-- [ ] **macOS afplay:** Does `afplay` play the MP3 files? (it should, MP3 is CoreAudio-supported)
-- [ ] **macOS concurrency:** Does rapid-fire notification trigger AudioQueueStart errors?
-- [ ] **Windows paths:** Do hook commands in settings.json use forward slashes?
-- [ ] **Windows shell:** Do hooks have `"shell": "powershell"` set?
-- [ ] **Windows audio:** Does the chosen audio approach (MediaPlayer/WMPlayer/Invoke-Item) play MP3 without leaving zombie processes?
-- [ ] **Windows JSON:** Does install.ps1 preserve full hook structure without truncation?
-- [ ] **Windows jq:** Is jq available, or does install.ps1 handle JSON correctly without it?
-- [ ] **Cross-platform idempotency:** Can both install scripts safely run on the same settings.json?
-- [ ] **Cooldown:** Does the 5-second cooldown work identically on all three platforms?
-- [ ] **Error swallowing:** Since hooks are async, can you detect failures? (`claude --debug`)
-
----
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| Pitfall 1 (flaky cooldown tests) | Phase 1 (bats tests) | Run cooldown tests 20 times locally and in CI -- zero failures |
+| Pitfall 2 (headless audio) | Phase 1 (bats), Phase 2 (Pester) | Verify no real audio command runs during tests (check process list, temp logs) |
+| Pitfall 3 (Pester version) | Phase 2 (Pester tests) | Run `Invoke-Pester` on PS 5.1 and pwsh 7 -- identical results |
+| Pitfall 4 (bats path resolution) | Phase 1 (bats tests) | Run `bats tests/` from project root and from subdirectory -- both pass |
+| Pitfall 5 (lock file pollution) | Phase 1 (bats tests) | Run tests in random order 5 times -- all pass identically |
+| Pitfall 6 (setup scope) | Phase 1 (bats tests) | Verify no Docker start in `setup()`, only in `setup_file()` |
+| Pitfall 7 (ShellCheck suppression) | Phase 3 (ShellCheck) | Review all suppressions in code review; zero uncommented suppressions |
+| Pitfall 8 (Docker Windows size) | Phase 4 (Docker matrix) | Measure total image download time; if >5 min, reconsider strategy |
+| Pitfall 9 (teardown attribution) | Phase 1 (bats tests) | Verify teardown uses `|| true` for cleanup |
+| Pitfall 10 (macOS stat/touch) | Phase 1 (bats tests) | Run all bats tests on both macOS and Linux |
+| Pitfall 13 (PSScriptAnalyzer types) | Phase 3 (PSScriptAnalyzer) | Configure desktop-5.1 profile; verify PresentationCore not flagged as error |
 
 ## Sources
 
 ### HIGH Confidence (Official Documentation / Verified Issues)
 
-- [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks) -- `shell` field, async hooks, hook configuration schema, Windows PowerShell support (verified 2026-03-30)
-- [GitHub Issue #26759: Windows backslash paths broken in 2.1.47](https://github.com/anthropics/claude-code/issues/26759) -- confirmed bug with backslash path stripping in hook commands (verified 2026-03-30)
+- [bats-core Writing Tests](https://bats-core.readthedocs.io/en/stable/writing-tests.html) -- `load`, `$BATS_TEST_TMPDIR`, `$BATS_FILE_TMPDIR`, setup/teardown scopes (verified 2026-03-30)
+- [bats-core FAQ](https://bats-core.readthedocs.io/en/stable/faq.html) -- setup runs per-test, setup_suite for global setup (verified 2026-03-30)
+- [bats-core Issue #1136: teardown failure attribution](https://github.com/bats-core/bats-core/issues/1136) -- teardown failure reported against wrong test (verified 2026-03-30)
+- [bats-core Issue #226: temp file cleanup](https://github.com/bats-core/bats-core/issues/226) -- cleanup strategies (verified 2026-03-30)
+- [bats-core Issue #283: isolated temp dir per run](https://github.com/bats-core/bats-core/issues/283) -- temp directory isolation discussion (verified 2026-03-30)
+- [Pester v5 to v6 Migration Guide](https://pester.dev/docs/v6/migrations/v5-to-v6) -- dropped PS 3/4/5.0 support (verified 2026-03-30)
+- [Pester Breaking Changes in v5](https://pester.dev/docs/migrations/breaking-changes-in-v5) -- v4 to v5 migration (verified 2026-03-30)
+- [PSScriptAnalyzer UseCompatibleTypes](https://learn.microsoft.com/en-us/powershell/utility-modules/psscriptanalyzer/rules/usecompatibletypes?view=ps-modules) -- compatibility profiles (verified 2026-03-30)
+- [PSScriptAnalyzer for Version Compatibility (Microsoft Dev Blogs)](https://devblogs.microsoft.com/powershell/using-psscriptanalyzer-to-check-powershell-version-compatibility/) -- UseCompatibleSyntax, target profiles (verified 2026-03-30)
+- [Microsoft: Differences between Windows PowerShell 5.1 and PowerShell 7.x](https://learn.microsoft.com/en-us/powershell/scripting/whats-new/differences-from-windows-powershell?view=powershell-7.6) -- cmdlet and type differences (verified 2026-03-30)
 
 ### MEDIUM Confidence (Multiple Sources Agree)
 
-- [PowerShell ConvertTo-Json default depth 2](https://stackoverflow.com/questions/53583677/unexpected-convertto-json-results-answer-it-has-a-default-depth-of-2) -- StackOverflow, PowerShell GitHub issues #8393 and #3181
-- [GNU stat vs BSD stat differences](https://stackoverflow.com/q/22245576) -- StackOverflow, multiple shell scripting references
-- [macOS /tmp vs $TMPDIR](https://news.ycombinator.com/item?id=41913610) -- Hacker News, conda GitHub issue #15440, macOS Ventura restrictions (Flutter issue #173450)
-- [afplay format support](https://developer.apple.com/library/archive/documentation/MusicAudio/Conceptual/CoreAudioOverview/SupportedAudioFormatsMacOSX/SupportedAudioFormatsMacOSX.html) -- Apple Developer docs, OSXDaily confirmation
-- [afplay limitations and concurrency issues](https://stackoverflow.com/q/27482091) -- StackOverflow, Reddit r/macOS discussions
-- [PowerShell jq alternatives](https://ncox.dev/blog/jq-powershell/) -- dedicated jq-to-PowerShell translation guide
+- [bats-core Issue #79: load relative paths](https://github.com/bats-core/bats-core/issues/79) -- load resolves relative to test file (verified 2026-03-30)
+- [bats-core Issue #171: parallel mode](https://github.com/bats-core/bats-core/issues/171) -- parallel execution limitations (verified 2026-03-30)
+- [Pester Issue #1770: PesterConfiguration type conflict](https://github.com/pester/Pester/issues/1770) -- version mismatch symptoms (verified 2026-03-30)
+- [PowerShell/DscResource.Tests Issue #204: Pester in Windows containers](https://github.com/PowerShell/DscResource.Tests/issues/204) -- scope isolation workarounds (verified 2026-03-30)
+- [PS7CompatibilityRules (Jane Street)](https://github.com/janestreet/PS7CompatibilityRules) -- community rules for PS 5.1 to 7 migration (verified 2026-03-30)
+- [How to use bats-mock to assert against calls](https://stackoverflow.com/questions/38315185/how-to-use-bats-mock-to-assert-against-calls-to-a-mocked-script-in-bash-testin) -- stub approach for external commands (verified 2026-03-30)
+- [Stack Overflow: PS 5.1 using module differences](https://stackoverflow.com/questions/78359289/windows-powershell-5-1-cannot-import-local-module-file-with-using-module-but-p) -- module loading differences (verified 2026-03-30)
+- [Stack Overflow: Race condition with lock file](https://stackoverflow.com/questions/325628/how-to-avoid-race-condition-when-using-a-lock-file-to-avoid-two-instances-of-a-s) -- TOCTOU prevention (verified 2026-03-30)
+- [Fixing Flaky Time Based Unit Tests (Expedia Group)](https://medium.com/expedia-group-tech/fixing-flaky-time-based-unit-tests-176accf5096e) -- general time-based test flakiness patterns (MEDIUM -- not shell-specific)
 
-### LOW Confidence (Training Data / Unverified)
+### LOW Confidence (Training Data / Single Source)
 
-- `WMPlayer.OCX` orphan process issue -- based on training data knowledge of COM object lifecycle; no specific source verified
-- `System.Media.SoundPlayer` WAV-only limitation -- well-known .NET constraint but no specific documentation linked
-- `System.Windows.Media.MediaPlayer` for MP3 -- approach known from training data, recommended by community but not verified against latest .NET docs
-- Windows `TEMP`/`TMP` environment variables -- standard convention but edge cases not verified
+- Pester Mock cannot mock .NET constructors -- based on Pester documentation knowledge and community consensus, but no single authoritative source verified
+- Docker Windows container sizes (3-11 GB) -- cited in blog post (Rolling Websphere), not verified against latest Microsoft images
+- ShellCheck Docker glob support limitation -- GitHub Issue koalaman/shellcheck#2862 confirmed, impact on this project's scripts not verified
+- `touch -A` flag for macOS timestamp manipulation -- known BSD syntax, not verified against latest macOS version
+- `faketime` tool for mocking time in bash -- known tool, not verified as available in all CI environments
 
 ---
-*Pitfalls research for: Claude Code voice notification system v1.1 cross-platform support*
+*Pitfalls research for: Claude Code voice notification system v1.2 test infrastructure*
 *Researched: 2026-03-30*

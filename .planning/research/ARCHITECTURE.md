@@ -1,561 +1,699 @@
-# Architecture Research: Cross-Platform Audio Notification Support (v1.1)
+# Architecture Research: Cross-Platform Test Infrastructure (v1.2)
 
-**Domain:** Cross-platform integration for existing Claude Code audio notification system
+**Domain:** Test infrastructure for shell (bash) and PowerShell notification scripts
 **Researched:** 2026-03-30
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This research covers how to extend the v1.0 Linux-only notification system to macOS and Windows. The key architectural discovery is that Claude Code provides a first-class `"shell": "powershell"` field on command hooks, which eliminates the need for bash-to-PowerShell translation at the hook level. The architecture should NOT change the Docker TTS generation pipeline or the pre-generated MP3 files -- those are platform-agnostic already. The changes are confined to three layers: (1) the playback command selection per OS, (2) the install/uninstall scripts, and (3) the cooldown wrapper.
+This research covers how to build a cross-platform test infrastructure for the 6 existing notification scripts (3 bash + 3 PowerShell). The architecture uses a dual-track approach: bats-core for bash tests and Pester for PowerShell tests, with ShellCheck and PSScriptAnalyzer for static analysis. The Docker test matrix runs both tracks in containers (Linux for bash, Windows Server Core for PowerShell) orchestrated by a single `test.sh` entry point. Mocking strategy relies on filesystem isolation via temp directories (bats `$BATS_TMPDIR` / Pester `TestDrive`) rather than function mocking, because the scripts under test are standalone executables invoked as subprocesses, not sourced libraries.
 
-## Critical Discovery: Claude Code `"shell": "powershell"` Field
+## What Gets Tested (and What Does Not)
 
-**HIGH confidence** -- verified from official Claude Code hooks reference at code.claude.com/docs/en/hooks.
+### In Scope
 
-Claude Code hooks support a `"shell"` field on command hooks that accepts `"bash"` (default) or `"powershell"`. When set to `"powershell"`, Claude Code spawns PowerShell directly (auto-detects `pwsh.exe` for PowerShell 7+ with fallback to `powershell.exe` 5.1). This is independent of the `CLAUDE_CODE_USE_POWERSHELL_TOOL` setting.
+| File | Type | What to Test |
+|------|------|-------------|
+| `scripts/install.sh` | bash | jq hook injection, audio file copy, prerequisite checks, version comparison |
+| `scripts/uninstall.sh` | bash | jq hook removal, audio file deletion, idempotency |
+| `scripts/notify-play.sh` | bash | Cooldown logic, OS detection, lock file creation, exit code always 0 |
+| `scripts/install.ps1` | PowerShell | JSON hook injection, audio copy, BOM-free write, prerequisite checks |
+| `scripts/uninstall.ps1` | PowerShell | JSON hook removal, audio deletion, empty hooks cleanup |
+| `scripts/notify-play.ps1` | PowerShell | Cooldown logic, MediaPlayer mock, lock file, exit code always 0 |
 
-This means:
-- On Windows, hooks can run native PowerShell commands without any bash translation layer
-- The same `settings.json` structure works on all platforms -- only the `command` and `shell` fields differ
-- No need for a Windows-compatible bash layer (Git Bash, WSL, etc.)
+### Out of Scope
 
-**Schema:**
-```json
-{
-  "hooks": {
-    "Stop": [{
-      "hooks": [{
-        "type": "command",
-        "shell": "powershell",
-        "command": "powershell-command-here",
-        "async": true,
-        "timeout": 10
-      }]
-    }]
-  }
-}
-```
+| Component | Why Excluded |
+|-----------|-------------|
+| `Dockerfile` (TTS) | Separate concern -- audio generation, not notification logic |
+| `generate.sh` / `generate.py` | Already has `test_generate_args.py` -- Python unit tests |
+| `audio/notify-*.mp3` | Binary files, no logic to test |
+| Claude Code itself | Not our code, cannot test hook dispatch |
 
-## Architecture Overview: What Changes vs What Stays
-
-### Unchanged Components (Platform-Agnostic)
-
-| Component | Why Unchanged |
-|-----------|---------------|
-| `audio/notify-*.mp3` | MP3 files are platform-independent. Already committed to repo. |
-| `Dockerfile` + `generate.sh` | Docker TTS generation only runs on Linux (for audio creation). Output is MP3. |
-| `settings.json` hook structure | Same 4 events: Stop, Notification, StopFailure, SubagentStop. Same `async: true`. |
-| Hook event mapping | Stop->complete, Notification->confirm, StopFailure->error, SubagentStop->progress. |
-| `~/.claude/` as install target | Claude Code uses `~/.claude/` on all platforms for settings and user data. |
-
-### Components That Need Platform Variants
-
-| Component | Linux | macOS | Windows |
-|-----------|-------|-------|---------|
-| **Audio playback command** | `/usr/bin/paplay` | `/usr/bin/afplay` | PowerShell `MediaPlayer` |
-| **Cooldown wrapper** | `scripts/notify-play.sh` (bash) | `scripts/notify-play.sh` (bash, reuse) | `scripts/notify-play.ps1` (PowerShell) |
-| **Install script** | `scripts/install.sh` (bash) | `scripts/install.sh` (bash, reuse) | `scripts/install.ps1` (PowerShell) |
-| **Uninstall script** | `scripts/uninstall.sh` (bash) | `scripts/uninstall.sh` (bash, reuse) | `scripts/uninstall.ps1` (PowerShell) |
-| **Hook `shell` field** | Omitted (default `bash`) | Omitted (default `bash`) | `"shell": "powershell"` |
-
-### Key Insight: macOS Shares Linux Scripts
-
-macOS ships with bash (or zsh with bash compatibility) and `/usr/bin/afplay`. The only difference from Linux is the playback command (`afplay` instead of `paplay`). This means `install.sh`, `uninstall.sh`, and `notify-play.sh` work on macOS with a single change: detect the OS and select the correct player.
-
-Windows requires completely separate scripts in PowerShell.
-
-## Recommended Architecture
+## Architecture Overview
 
 ```
 +------------------------------------------------------------------+
-|                    Platform Detection Layer                       |
+|                    test.sh (Entry Point)                         |
 |                                                                  |
-|  install.sh (Linux/macOS)       install.ps1 (Windows)            |
-|  - detect OS via uname           - native PowerShell              |
-|  - select: paplay or afplay      - select: Windows.Media.MediaPlayer |
-|  - inject hooks with jq          - inject hooks with ConvertFrom-Json  |
+|  Usage: ./test.sh [--shell] [--powershell] [--all]               |
+|  Runs static analysis + unit tests for selected platform(s)      |
 +------------------------------------------------------------------+
-        |                                    |
-        v                                    v
+        |                              |
+        v                              v
++-------------------+    +----------------------------+
+| Bash Track       |    | PowerShell Track           |
+|                   |    |                            |
+| 1. ShellCheck     |    | 1. PSScriptAnalyzer        |
+|    scripts/*.sh   |    |    scripts/*.ps1           |
+|                   |    |                            |
+| 2. bats-core      |    | 2. Pester                  |
+|    tests/bash/    |    |    tests/powershell/       |
++-------------------+    +----------------------------+
+        |                              |
+        v                              v
 +------------------------------------------------------------------+
-|                  Shared Layer (All Platforms)                     |
+|                    Docker Test Matrix                            |
 |                                                                  |
-|  audio/notify-*.mp3  -- pre-generated, committed to repo        |
-|  ~/.claude/           -- install target for all platforms        |
-|  settings.json hooks  -- same 4 events, same event mapping       |
-|  5-second cooldown    -- same debouncing logic per notification  |
-+------------------------------------------------------------------+
-        |
-        v
-+------------------------------------------------------------------+
-|                Platform-Specific Playback Layer                   |
+|  Container 1: debian:bookworm-slim   (bash track)                |
+|  Container 2: mcr.microsoft.com/.../nanoserver (PS track)        |
 |                                                                  |
-|  Linux:   notify-play.sh -> /usr/bin/paplay $AUDIO_FILE         |
-|  macOS:   notify-play.sh -> /usr/bin/afplay $AUDIO_FILE         |
-|  Windows: notify-play.ps1 -> [Windows.Media.MediaPlayer]::Play  |
+|  Orchestrated by test.sh via docker run for each track           |
 +------------------------------------------------------------------+
 ```
 
-## Component Details
-
-### 1. notify-play.sh (Linux + macOS, Modified)
-
-The existing `notify-play.sh` works on both Linux and macOS with one change: detect the OS and select the playback command.
-
-**Current (Linux-only):**
-```bash
-/usr/bin/paplay "$AUDIO_FILE" 2>/dev/null || true
-```
-
-**Proposed (Linux + macOS):**
-```bash
-detect_player() {
-    if [[ "$(uname)" == "Darwin" ]]; then
-        echo "/usr/bin/afplay"
-    else
-        echo "/usr/bin/paplay"
-    fi
-}
-
-PLAYER=$(detect_player)
-$PLAYER "$AUDIO_FILE" 2>/dev/null || true
-```
-
-**Design decision:** Use `uname` for OS detection rather than checking for command existence. Rationale: `uname` is instant and unambiguous. Checking `command -v afplay` would also work but is unnecessary since we already know the platform at install time.
-
-**Cooldown mechanism:** The existing `/tmp/claude-notify-{type}.lock` timestamp approach works on macOS too (macOS has `/tmp`). No change needed.
-
-### 2. notify-play.ps1 (Windows, New)
-
-Windows needs a PowerShell equivalent of the cooldown wrapper. The cooldown logic must use a file-based timestamp mechanism equivalent to the bash version.
-
-**Proposed structure:**
-```powershell
-# notify-play.ps1 — Windows cooldown wrapper for notification playback
-param(
-    [string]$Type,
-    [string]$AudioFile
-)
-
-$LockFile = "$env:TEMP\claude-notify-$Type.lock"
-$CooldownSec = 5
-
-# Check cooldown
-if (Test-Path $LockFile) {
-    $LockAge = (Get-Date) - (Get-Item $LockFile).LastWriteTime
-    if ($LockAge.TotalSeconds -lt $CooldownSec) {
-        exit 0
-    }
-}
-
-# Update lock and play
-Set-Content -Path $LockFile -Value (Get-Date) -NoNewline
-
-Add-Type -AssemblyName presentationCore
-$player = New-Object System.Windows.Media.MediaPlayer
-$player.Open([System.Uri]::new($AudioFile))
-$player.Play()
-exit 0
-```
-
-**Key considerations for notify-play.ps1:**
-
-| Concern | Approach |
-|---------|----------|
-| **MP3 playback** | `System.Windows.Media.MediaPlayer` via `presentationCore` assembly. Supports MP3 natively. Non-blocking by default (Play() returns immediately). |
-| **Cooldown** | File timestamp in `$env:TEMP`, equivalent to `/tmp` on Linux/macOS. |
-| **Error handling** | Exit 0 always (matches bash behavior). Stop/SubagentStop hooks block on non-zero exit. |
-| **MediaPlayer disposal** | Not needed. The script exits after Play(), and Claude Code's async timeout kills the process if needed. MediaPlayer is a lightweight object. |
-| **No `SoundPlayer`** | `System.Media.SoundPlayer` only supports WAV files, not MP3. Must use MediaPlayer. |
-
-**Confidence: HIGH** for `MediaPlayer` approach -- verified from Stack Overflow, Microsoft docs, and multiple PowerShell sources. `SoundPlayer` WAV-only limitation is well-documented.
-
-### 3. install.sh (Linux + macOS, Modified)
-
-The existing `install.sh` needs two changes:
-
-**Change 1: OS detection for player prerequisite check**
-
-Current:
-```bash
-for cmd in jq paplay; do
-    if ! command -v "$cmd" &>/dev/null; then
-        echo "ERROR: $cmd not found." >&2
-        exit 1
-    fi
-done
-```
-
-Proposed:
-```bash
-for cmd in jq; do
-    if ! command -v "$cmd" &>/dev/null; then
-        echo "ERROR: $cmd not found." >&2
-        exit 1
-    fi
-done
-
-# Check platform-specific audio player
-if [[ "$(uname)" == "Darwin" ]]; then
-    PLAYER="afplay"
-else
-    PLAYER="paplay"
-fi
-
-if ! command -v "$PLAYER" &>/dev/null; then
-    echo "ERROR: $PLAYER not found." >&2
-    exit 1
-fi
-```
-
-**Change 2: None needed for hook injection.** The hooks already reference `notify-play.sh` which now handles OS detection internally. The jq command and hook structure remain identical.
-
-### 4. install.ps1 (Windows, New)
-
-The Windows install script must mirror `install.sh` behavior: copy audio files and inject hooks into `settings.json`. The key difference is using PowerShell's `ConvertFrom-Json` / `ConvertTo-Json` instead of `jq`.
-
-**Proposed structure:**
-```powershell
-# install.ps1 — Install Claude Code notification hooks on Windows
-param()
-
-$ClaudeDir = "$env:USERPROFILE\.claude"
-$SettingsPath = "$ClaudeDir\settings.json"
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RepoRoot = Split-Path -Parent $ScriptDir
-$NotifyPlay = "$RepoRoot\scripts\notify-play.ps1"
-
-# Prerequisite checks
-# - Claude Code version check (optional, same logic as bash)
-# - PowerShell MediaCapability check (presentationCore assembly)
-
-# Copy audio files
-$Types = @("complete", "confirm", "error", "progress")
-foreach ($Type in $Types) {
-    $Src = "$RepoRoot\audio\notify-$Type.mp3"
-    $Dst = "$ClaudeDir\notify-$Type.mp3"
-    if (-not (Test-Path $Src)) {
-        Write-Error "ERROR: $Src not found. Audio files must be pre-generated."
-        exit 1
-    }
-    Copy-Item $Src $Dst -Force
-}
-
-# Read and modify settings.json
-$settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
-
-# Ensure hooks object exists
-if (-not $settings.hooks) {
-    $settings | Add-Member -NotePropertyName "hooks" -NotePropertyValue ([PSCustomObject]@{}) -Force
-}
-
-# Define hook commands
-$hookEvents = @{
-    Stop          = @{ cmd = "$NotifyPlay complete $ClaudeDir\notify-complete.mp3" }
-    Notification  = @{ cmd = "$NotifyPlay confirm $ClaudeDir\notify-confirm.mp3" }
-    StopFailure   = @{ cmd = "$NotifyPlay error $ClaudeDir\notify-error.mp3" }
-    SubagentStop  = @{ cmd = "$NotifyPlay progress $ClaudeDir\notify-progress.mp3" }
-}
-
-foreach ($event in $hookEvents.Keys) {
-    $hookEntry = @(
-        @{
-            hooks = @(
-                @{
-                    type    = "command"
-                    shell   = "powershell"
-                    command = $hookEvents[$event].cmd
-                    async   = $true
-                    timeout = 10
-                }
-            )
-        }
-    )
-    $settings.hooks | Add-Member -NotePropertyName $event -NotePropertyValue $hookEntry -Force
-}
-
-# Write back
-$settings | ConvertTo-Json -Depth 100 | Set-Content $SettingsPath -Encoding UTF8
-```
-
-**Critical considerations for install.ps1:**
-
-| Concern | Approach | Confidence |
-|---------|----------|------------|
-| **JSON manipulation** | `ConvertFrom-Json` / `ConvertTo-Json -Depth 100`. Must use `-Depth 100` because default depth is 2 in PowerShell 5.x. | HIGH -- standard PowerShell pattern |
-| **`shell` field** | Set to `"powershell"` on each hook. This tells Claude Code to spawn PowerShell for these hooks. | HIGH -- official Claude Code feature |
-| **Backslash in paths** | PowerShell handles backslashes natively. `$ClaudeDir\notify-complete.mp3` works correctly. | HIGH |
-| **Idempotency** | `Add-Member -Force` overwrites existing properties, same as jq's `=` assignment. Safe to run multiple times. | HIGH |
-| **UTF-8 encoding** | `Set-Content -Encoding UTF8` ensures settings.json is readable. Without this, PowerShell 5.x may write UTF-16 BOM which breaks JSON parsers. | MEDIUM -- `-Encoding UTF8` in PS 5.x writes UTF-8 with BOM. PS 7+ defaults to UTF-8 without BOM. Consider using `[System.IO.File]::WriteAllText()` if BOM issues arise. |
-| **No `jq` dependency** | PowerShell's built-in JSON cmdlets replace jq entirely on Windows. Do not require jq on Windows. | HIGH -- this is the standard approach |
-
-### 5. uninstall.ps1 (Windows, New)
-
-Mirrors `uninstall.sh`: removes hook entries from `settings.json` and deletes audio files.
-
-```powershell
-# uninstall.ps1 — Remove Claude Code notification hooks on Windows
-$ClaudeDir = "$env:USERPROFILE\.claude"
-$SettingsPath = "$ClaudeDir\settings.json"
-
-$settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
-
-# Remove hook entries
-$eventsToRemove = @("Stop", "Notification", "StopFailure", "SubagentStop")
-foreach ($event in $eventsToRemove) {
-    if ($settings.hooks.PSObject.Properties[$event]) {
-        $settings.hooks.PSObject.Properties.Remove($event)
-    }
-}
-
-# Write back
-$settings | ConvertTo-Json -Depth 100 | Set-Content $SettingsPath -Encoding UTF8
-
-# Remove audio files
-$Types = @("complete", "confirm", "error", "progress")
-foreach ($Type in $Types) {
-    Remove-Item "$ClaudeDir\notify-$Type.mp3" -ErrorAction SilentlyContinue
-}
-```
-
-## Hook Configuration Per Platform
-
-### Linux (Current, No Change)
-```json
-{
-  "hooks": {
-    "Stop": [{"hooks": [{"type": "command", "command": "/path/to/notify-play.sh complete /home/user/.claude/notify-complete.mp3", "async": true, "timeout": 10}]}],
-    "Notification": [{"hooks": [{"type": "command", "command": "/path/to/notify-play.sh confirm /home/user/.claude/notify-confirm.mp3", "async": true, "timeout": 10}]}],
-    "StopFailure": [{"hooks": [{"type": "command", "command": "/path/to/notify-play.sh error /home/user/.claude/notify-error.mp3", "async": true, "timeout": 10}]}],
-    "SubagentStop": [{"hooks": [{"type": "command", "command": "/path/to/notify-play.sh progress /home/user/.claude/notify-progress.mp3", "async": true, "timeout": 10}]}]
-  }
-}
-```
-
-### macOS (Same as Linux, `shell` omitted = default `bash`)
-```json
-{
-  "hooks": {
-    "Stop": [{"hooks": [{"type": "command", "command": "/path/to/notify-play.sh complete /Users/user/.claude/notify-complete.mp3", "async": true, "timeout": 10}]}]
-  }
-}
-```
-
-Identical structure. Only difference: `~` expands to `/Users/user` instead of `/home/user`. `notify-play.sh` auto-detects `afplay` vs `paplay`.
-
-### Windows (New: `shell: "powershell"`)
-```json
-{
-  "hooks": {
-    "Stop": [{"hooks": [{"type": "command", "shell": "powershell", "command": "C:\\path\\to\\notify-play.ps1 -Type complete -AudioFile C:\\Users\\user\\.claude\\notify-complete.mp3", "async": true, "timeout": 10}]}]
-  }
-}
-```
-
-Key differences:
-1. `"shell": "powershell"` -- tells Claude Code to invoke PowerShell
-2. Script is `.ps1` not `.sh`
-3. Uses PowerShell parameter syntax (`-Type`, `-AudioFile`)
-4. Windows paths use backslashes
-
-## Data Flow Per Platform
-
-### Linux Data Flow (Unchanged)
-```
-Claude Code fires Stop event
-  -> Hook command: /path/to/notify-play.sh complete ~/.claude/notify-complete.mp3
-  -> notify-play.sh checks /tmp/claude-notify-complete.lock (cooldown)
-  -> Within cooldown? -> exit 0 (skip)
-  -> Touch lock file
-  -> /usr/bin/paplay ~/.claude/notify-complete.mp3
-  -> PulseAudio plays audio
-  -> exit 0
-```
-
-### macOS Data Flow
-```
-Claude Code fires Stop event
-  -> Hook command: /path/to/notify-play.sh complete ~/.claude/notify-complete.mp3
-  -> notify-play.sh uname == "Darwin" -> PLAYER=/usr/bin/afplay
-  -> notify-play.sh checks /tmp/claude-notify-complete.lock (cooldown)
-  -> Within cooldown? -> exit 0 (skip)
-  -> Touch lock file
-  -> /usr/bin/afplay ~/.claude/notify-complete.mp3
-  -> CoreAudio plays audio
-  -> exit 0
-```
-
-### Windows Data Flow
-```
-Claude Code fires Stop event
-  -> Hook command (shell=powershell): C:\path\to\notify-play.ps1 -Type complete -AudioFile C:\Users\user\.claude\notify-complete.mp3
-  -> notify-play.ps1 checks $env:TEMP\claude-notify-complete.lock (cooldown)
-  -> Within cooldown? -> exit 0 (skip)
-  -> Write timestamp to lock file
-  -> Add-Type -AssemblyName presentationCore
-  -> New-Object System.Windows.Media.MediaPlayer
-  -> $player.Open(mp3 file)
-  -> $player.Play()
-  -> exit 0
-  -> Windows audio subsystem plays audio
-```
-
-## Audio Playback Comparison
-
-| Property | `paplay` (Linux) | `afplay` (macOS) | `MediaPlayer` (Windows) |
-|----------|------------------|------------------|------------------------|
-| **Format support** | MP3, WAV, OGG, FLAC | MP3, WAV, AAC, M4A, AIFC | MP3, WAV, WMA, AAC |
-| **Blocking behavior** | Blocks until playback finishes | Blocks until playback finishes | Non-blocking (Play() returns immediately) |
-| **Installation** | Pre-installed (PipeWire/PulseAudio) | Pre-installed (macOS) | Pre-installed (Windows .NET Framework) |
-| **Dependencies** | libpulse | CoreAudio | `presentationCore` assembly |
-| **In async hook** | Works fine (async: true handles blocking) | Works fine (async: true handles blocking) | Works fine (already non-blocking) |
-| **Error on missing** | Exits non-zero | Exits non-zero | Assembly load error |
-
-**Important:** All three commands block (or not) but since hooks use `async: true`, Claude Code does not wait. The `timeout: 10` kills any runaway process.
-
-## Project Structure After v1.1
+## Recommended Project Structure
 
 ```
 notify-research/
-├── audio/                      # (UNCHANGED) Pre-generated MP3 files
+├── audio/                          # (UNCHANGED)
 │   ├── notify-complete.mp3
 │   ├── notify-confirm.mp3
 │   ├── notify-error.mp3
 │   └── notify-progress.mp3
-├── scripts/
-│   ├── install.sh              # (MODIFIED) Linux + macOS install
-│   ├── uninstall.sh            # (MODIFIED) Linux + macOS uninstall
-│   ├── notify-play.sh          # (MODIFIED) Linux + macOS cooldown wrapper
-│   ├── install.ps1             # (NEW) Windows install
-│   ├── uninstall.ps1           # (NEW) Windows uninstall
-│   └── notify-play.ps1         # (NEW) Windows cooldown wrapper
-├── Dockerfile                  # (UNCHANGED) TTS generation only
-├── generate.sh                 # (UNCHANGED) TTS generation only
-├── requirements.txt            # (UNCHANGED)
-└── generate.py                 # (UNCHANGED)
+├── scripts/                        # (UNCHANGED -- files under test)
+│   ├── install.sh
+│   ├── uninstall.sh
+│   ├── notify-play.sh
+│   ├── install.ps1
+│   ├── uninstall.ps1
+│   └── notify-play.ps1
+├── tests/                          # (NEW -- all test infrastructure)
+│   ├── test_helpers/               # Shared fixtures and test data
+│   │   ├── fixtures/               # Static test data files
+│   │   │   ├── settings-empty.json     # Minimal valid settings.json
+│   │   │   ├── settings-with-hooks.json # settings.json with existing hooks
+│   │   │   └── fake-audio.mp3          # Small MP3 file for testing copy/play
+│   │   ├── common.bash              # Shared bash test utilities
+│   │   └── common.ps1              # Shared PowerShell test utilities
+│   ├── bash/                       # bats-core tests
+│   │   ├── install.bats            # Tests for install.sh
+│   │   ├── uninstall.bats          # Tests for uninstall.sh
+│   │   ├── notify_play.bats        # Tests for notify-play.sh
+│   │   └── test_helper/            # bats-core helper libraries
+│   │       ├── bats-support/       # (git submodule or vendored)
+│   │       └── bats-assert/        # (git submodule or vendored)
+│   └── powershell/                 # Pester tests
+│       ├── install.Tests.ps1       # Tests for install.ps1
+│       ├── uninstall.Tests.ps1     # Tests for uninstall.ps1
+│       └── notify_play.Tests.ps1   # Tests for notify-play.ps1
+├── Dockerfile.test                 # (NEW) Multi-stage test runner image
+├── test.sh                         # (NEW) Local test orchestrator
+├── .shellcheckrc                   # (NEW) ShellCheck configuration
+├── .bats.yaml                      # (NEW) bats-core configuration (optional)
+├── PSScriptAnalyzerSettings.psd1   # (NEW) PSScriptAnalyzer rules config
+├── Dockerfile                      # (UNCHANGED) TTS generation
+├── generate.sh                     # (UNCHANGED)
+├── generate.py                     # (UNCHANGED)
+├── test_generate_args.py           # (UNCHANGED) Existing Python tests
+└── requirements.txt                # (UNCHANGED)
 ```
+
+### Structure Rationale
+
+- **`tests/` top-level:** Separates test infrastructure from production code. The existing `test_generate_args.py` stays at root because it tests `generate.py` at root -- moving it would break its relative import. New test infrastructure goes in `tests/`.
+- **`tests/bash/` and `tests/powershell/`:** Parallel directories for each test runner. This makes it easy to run one track independently (`bats tests/bash/` or `Invoke-Pester tests/powershell/`).
+- **`tests/test_helpers/fixtures/`:** Shared test data (fake JSON, fake MP3). Both bash and PowerShell tests reference the same fixture files, avoiding duplication.
+- **`tests/bash/test_helper/`:** Vendored bats-support and bats-assert. These are small libraries (2-3 files each). Vendoring avoids network dependency at test time and pins versions. Alternative: git submodules. Vendoring is simpler for a small project.
+- **`test.sh` at root:** Single entry point. Matches the pattern of `generate.sh` -- a shell script at the project root that orchestrates the workflow. Developers run `./test.sh` and everything happens.
+
+## Docker Test Matrix Architecture
+
+The test matrix uses two separate Docker containers, one per platform track. There is no multi-platform Docker build (no need for ARM emulation). Both containers run on the host Linux machine.
+
+### Container 1: Bash Test Runner
+
+```dockerfile
+# Dockerfile.test (partial -- bash stage)
+FROM debian:bookworm-slim
+
+# Install test dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    jq \
+    shellcheck \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install bats-core + helpers from source
+RUN git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core && \
+    /tmp/bats-core/install.sh /usr/local && \
+    rm -rf /tmp/bats-core
+
+RUN git clone --depth 1 https://github.com/bats-core/bats-support.git /tmp/bats-support && \
+    cp -r /tmp/bats-support/* /usr/local/lib/bats-support/ && \
+    rm -rf /tmp/bats-support
+
+RUN git clone --depth 1 https://github.com/bats-core/bats-assert.git /tmp/bats-assert && \
+    cp -r /tmp/bats-assert/* /usr/local/lib/bats-assert/ && \
+    rm -rf /tmp/bats-assert
+
+# Copy project
+COPY . /app
+WORKDIR /app
+
+# Default: run bash test track
+CMD ["bash", "-c", "shellcheck scripts/*.sh && bats tests/bash/"]
+```
+
+**Key decisions:**
+- `debian:bookworm-slim` matches the existing Dockerfile base. Keeps consistency.
+- `jq` is installed because `install.sh` and `uninstall.sh` require it.
+- `shellcheck` runs as a separate step before bats, failing fast on lint errors.
+- bats-core installed from git (latest stable) rather than Debian package because the Debian version (`bats` package) is often outdated.
+
+**Confidence: HIGH** -- bats-core Docker installation is documented in the [official README](https://github.com/bats-core/bats-core). ShellCheck is available in Debian repos.
+
+### Container 2: PowerShell Test Runner
+
+```dockerfile
+# Dockerfile.test (partial -- PowerShell stage)
+FROM mcr.microsoft.com/powershell:lts-nanoserver-ltsc2022
+
+# Install Pester and PSScriptAnalyzer
+RUN pwsh -Command "Install-Module -Name Pester -Force -Scope AllUsers; \
+                   Install-Module -Name PSScriptAnalyzer -Force -Scope AllUsers"
+
+# Copy project
+COPY . /app
+WORKDIR /app
+
+# Default: run PowerShell test track
+CMD ["pwsh", "-Command", "Invoke-ScriptAnalyzer -Path scripts -Recurse -EnableExit; \
+                        Invoke-Pester -Path tests/powershell -Output Detailed"]
+```
+
+**Key decisions:**
+- `mcr.microsoft.com/powershell:lts-nanoserver-ltsc2022` provides PowerShell 7 LTS on Windows Nano Server. This is the smallest Windows container image with pwsh. Nano Server does NOT have `presentationCore` (MediaPlayer) -- this is acceptable because `notify-play.ps1` MediaPlayer tests will be mocked.
+- Pester and PSScriptAnalyzer installed from PowerShell Gallery via `Install-Module`.
+- `Invoke-ScriptAnalyzer -EnableExit` makes lint errors fail the container (non-zero exit code).
+- **Nano Server caveat:** Nano Server lacks full .NET Framework. `System.Windows.Media.MediaPlayer` (presentationCore) is NOT available in Nano Server containers. Tests that mock MediaPlayer are fine; tests that actually play audio must be skipped in Docker and only run natively on Windows.
+
+**Confidence: MEDIUM** -- Nano Server limitation on presentationCore is documented in Microsoft docs. This means notify-play.ps1 audio playback tests must be conditional (mocked in Docker, integration-tested on real Windows only).
+
+### Alternative: Two Separate Dockerfiles
+
+Instead of a multi-stage Dockerfile.test, use two separate files:
+
+```
+Dockerfile.test-bash      # Debian + bash + shellcheck + bats
+Dockerfile.test-powershell # Windows + pwsh + Pester + PSScriptAnalyzer
+```
+
+**Recommendation:** Use two separate Dockerfiles. Rationale:
+1. Multi-platform Dockerfiles (Linux + Windows in one file) require `--platform` argument on every build, which is error-prone.
+2. The two containers share no build stages -- they are completely independent.
+3. `test.sh` simply selects which Dockerfile to build and run.
+4. Simpler to understand and maintain.
+
+### test.sh Orchestrator
+
+```bash
+#!/usr/bin/env bash
+# test.sh -- Run all tests (static analysis + unit tests)
+# Usage: ./test.sh [--bash] [--powershell] [--all] [--no-docker]
+set -euo pipefail
+
+RUN_BASH=false
+RUN_POWERSHELL=false
+USE_DOCKER=true
+
+# Parse args (simplified)
+for arg in "$@"; do
+    case "$arg" in
+        --bash)       RUN_BASH=true ;;
+        --powershell) RUN_POWERSHELL=true ;;
+        --all)        RUN_BASH=true; RUN_POWERSHELL=true ;;
+        --no-docker)  USE_DOCKER=false ;;
+    esac
+done
+
+# Default: run bash tests (since we're on Linux)
+if [ "$RUN_BASH" = false ] && [ "$RUN_POWERSHELL" = false ]; then
+    RUN_BASH=true
+fi
+
+if [ "$RUN_BASH" = true ]; then
+    if [ "$USE_DOCKER" = true ]; then
+        docker build -f Dockerfile.test-bash -t notify-test-bash .
+        docker run --rm notify-test-bash
+    else
+        shellcheck scripts/*.sh
+        bats tests/bash/
+    fi
+fi
+
+if [ "$RUN_POWERSHELL" = true ]; then
+    if [ "$USE_DOCKER" = true ]; then
+        docker build -f Dockerfile.test-powershell -t notify-test-powershell .
+        docker run --rm notify-test-powershell
+    else
+        pwsh -Command "Invoke-ScriptAnalyzer -Path scripts -Recurse -EnableExit; \
+                        Invoke-Pester -Path tests/powershell -Output Detailed"
+    fi
+fi
+```
+
+**Confidence: HIGH** -- this is a standard shell test orchestration pattern.
+
+## Mocking Strategy
+
+The fundamental challenge: scripts are invoked as subprocesses (`./scripts/install.sh`), not sourced as functions. This means you cannot mock internal functions -- you must mock external dependencies instead.
+
+### Bash Track: Temp Directory Isolation
+
+**Pattern:** Redirect all filesystem operations to a temp directory via environment variable overrides or wrapper scripts.
+
+```
+Real script reads:  $HOME/.claude/settings.json
+Test provides:      $TEST_HOME/.claude/settings.json  (temp dir)
+
+Real script writes: /tmp/claude-notify-complete.lock
+Test provides:      $TEST_TMP/claude-notify-complete.lock (temp dir)
+```
+
+**Implementation for each script:**
+
+#### install.sh Mocking
+
+`install.sh` hardcodes `$HOME/.claude/settings.json`. The script uses `$HOME` directly, not a variable we can override. Two approaches:
+
+**Approach A (recommended): Override HOME in test.**
+```bash
+@test "install.sh copies audio files to claude dir" {
+    TEST_HOME="$(mktemp -d)"
+    # Create fake settings.json
+    echo '{}' > "$TEST_HOME/.claude/settings.json"
+    # Create fake audio source
+    mkdir -p "$TEST_HOME/repo/audio"
+    for type in complete confirm error progress; do
+        echo "fake" > "$TEST_HOME/repo/audio/notify-${type}.mp3"
+    done
+    # Copy script under test
+    cp "$BATS_TEST_DIRNAME/../../scripts/install.sh" "$TEST_HOME/repo/scripts/"
+
+    run env HOME="$TEST_HOME" bash "$TEST_HOME/repo/scripts/install.sh"
+
+    [ "$status" -eq 0 ]
+    [ -f "$TEST_HOME/.claude/notify-complete.mp3" ]
+}
+```
+
+**Why HOME override works:** `install.sh` line 10 sets `CLAUDE_DIR="$HOME/.claude"`. By overriding `$HOME`, all paths redirect to the temp directory. The script also references `SCRIPT_DIR` and `REPO_ROOT` via `dirname "$0"`, so we must place the script at the expected location relative to the fake repo structure.
+
+**Approach B (not recommended): Refactor scripts to accept configurable paths.**
+This changes production code for testability. Not worth it for 6 small scripts.
+
+#### uninstall.sh Mocking
+
+Same HOME override pattern. After install, run uninstall and verify files are gone and settings.json has no hook entries.
+
+#### notify-play.sh Mocking
+
+`notify-play.sh` uses `/tmp/claude-notify-${TYPE}.lock` (hardcoded path). Two sub-problems:
+
+1. **Lock file path:** Can override by setting `LOCK_FILE` -- but the script hardcodes it on line 14. For unit testing, we need to either:
+   - Patch the script to use an env var for the lock file path (minor refactor)
+   - Or accept writing to `/tmp` in tests (harmless for CI)
+
+   **Recommendation:** Add a one-line refactor to notify-play.sh: `LOCK_FILE="${NOTIFY_LOCK_DIR:-/tmp}/claude-notify-${TYPE}.lock"`. This lets tests set `NOTIFY_LOCK_DIR` to a temp directory without changing production behavior (defaults to `/tmp`).
+
+2. **Audio player mocking:** The script calls `/usr/bin/paplay` or `/usr/bin/afplay`. In tests, mock the player command:
+   ```bash
+   setup() {
+       # Create a fake player that succeeds
+       echo '#!/bin/bash' > "$TEST_TMP/fake-player"
+       echo 'exit 0' >> "$TEST_TMP/fake-player"
+       chmod +x "$TEST_TMP/fake-player"
+       export PATH="$TEST_TMP:$PATH"
+       # Create fake audio file
+       echo "fake mp3 data" > "$TEST_TMP/test.mp3"
+   }
+
+   @test "notify-play.sh calls player when not in cooldown" {
+       run bash scripts/notify-play.sh complete "$TEST_TMP/test.mp3"
+       [ "$status" -eq 0 ]
+   }
+   ```
+
+   By prepending a directory with a fake `paplay` and `afplay` to `$PATH`, the script calls the fake instead of the real player.
+
+### PowerShell Track: TestDrive + Mock
+
+Pester provides two mocking mechanisms:
+
+1. **TestDrive:** A temporary PSDrive that is automatically cleaned up. Use it for file I/O tests.
+2. **Mock:** Intercepts PowerShell cmdlet calls. Use it for external dependencies.
+
+#### install.ps1 Mocking
+
+**TestDrive for settings.json:**
+```powershell
+Describe "install.ps1" {
+    BeforeAll {
+        # Source the script (dot-source)
+        . "$PSScriptRoot/../../scripts/install.ps1" -RepoPath (Join-Path $PSScriptRoot "../../")
+    }
+
+    Context "hook injection" {
+        BeforeAll {
+            # Create fake settings.json in TestDrive
+            $fakeSettings = '{"hooks": {}}'
+            Set-Content -Path "TestDrive:/.claude/settings.json" -Value $fakeSettings
+            Set-Content -Path "TestDrive:/.claude/settings.json" -Value '{"hooks":{}}' -NoNewline
+
+            # Create fake audio files in TestDrive
+            foreach ($type in @("complete", "confirm", "error", "progress")) {
+                Set-Content -Path "TestDrive:/audio/notify-$type.mp3" -Value "fake"
+            }
+        }
+
+        It "injects Stop hook into settings.json" {
+            # Mock Get-Content to read from TestDrive instead of real path
+            Mock Get-Content -MockWith {
+                Get-Content "TestDrive:/.claude/settings.json" -Raw
+            } -ParameterFilter { $Path -like "*settings.json" }
+            # ... assertions
+        }
+    }
+}
+```
+
+**However**, `install.ps1` is written as a script with `param()` and top-level code, not as a function. This makes it harder to unit test because running the script triggers all its side effects immediately.
+
+**Practical approach for install.ps1:** Test it as a black-box subprocess, similar to the bash approach:
+
+```powershell
+It "installs hooks and copies audio files" {
+    $result = pwsh -File "$PSScriptRoot/../../scripts/install.ps1" `
+        -RepoPath $TestDrive
+    $result | Should -Be 0
+    "$TestDrive/../.claude/notify-complete.mp3" | Should -Exist
+}
+```
+
+**Recommendation:** Use subprocess invocation for install.ps1 and uninstall.ps1 (they are installers -- testing their observable behavior, not internal functions). Use `Mock` only for notify-play.ps1 where we can intercept `Add-Type`, `New-Object`, and `Get-Item`.
+
+#### notify-play.ps1 Mocking
+
+```powershell
+Describe "notify-play.ps1" {
+    Context "cooldown" {
+        It "skips playback when within cooldown" {
+            # Create a recent lock file
+            $lockFile = Join-Path $env:TEMP "claude-notify-test.lock"
+            Set-Content -Path $lockFile -Value (Get-Date).ToString() -NoNewline
+
+            Mock Get-Item -MockWith {
+                [PSCustomObject]@{ LastWriteTime = (Get-Date).AddSeconds(-2) }
+            } -ParameterFilter { $Path -like "*test.lock" }
+
+            $result = pwsh -File "$PSScriptRoot/../../scripts/notify-play.ps1" `
+                -Type test -AudioFile "fake.mp3"
+            $LASTEXITCODE | Should -Be 0
+        }
+    }
+
+    Context "audio playback" {
+        It "calls MediaPlayer when not in cooldown" {
+            Mock Add-Type {}  # No-op the assembly load
+            Mock New-Object -MockWith {
+                [PSCustomObject]@{
+                    Open = { param($u) }
+                    Play = {}
+                    Close = {}
+                    Position = [TimeSpan]::Zero
+                    NaturalDuration = [PSCustomObject]@{
+                        HasTimeSpan = $false
+                    }
+                }
+            } -ParameterFilter { $TypeName -like "*MediaPlayer*" }
+
+            pwsh -File "$PSScriptRoot/../../scripts/notify-play.ps1" `
+                -Type test -AudioFile "fake.mp3"
+            $LASTEXITCODE | Should -Be 0
+        }
+    }
+}
+```
+
+**Confidence: MEDIUM** -- Pester's `Mock` for `New-Object` with complex type names can be tricky. The exact mock syntax may need adjustment. This is a known Pester limitation when mocking constructor calls.
+
+## Static Analysis Configuration
+
+### ShellCheck (.shellcheckrc)
+
+```bash
+# .shellcheckrc
+# Exclude rules that are acceptable for this project
+exclude=SC2312  # Invoke command as 'command ...' -- intentional direct invocations
+shell=bash
+severity=warning
+source-path=scripts
+```
+
+**Why severity=warning:** Start with warnings. Errors (severity=error) are too permissive for a small project -- would miss real issues like unquoted variables. Info (severity=info) is too noisy for initial adoption.
+
+**Recommendation for install.sh:** The script uses `[ "$1" = "$2" ]` in `version_gte()` which ShellCheck flags as SC3010 (not POSIX). Since the shebang is `#!/usr/bin/env bash`, this is fine. Add `# shellcheck disable=SC3010` inline or configure in `.shellcheckrc`.
+
+### PSScriptAnalyzer (PSScriptAnalyzerSettings.psd1)
+
+```powershell
+# PSScriptAnalyzerSettings.psd1
+@{
+    Severity = @('Error', 'Warning')
+    Rules    = @{
+        PSUseShouldProcessForStateChangingFunctions = @{
+            Enable = $false
+        }
+        PSUseApprovedVerbs = @{
+            Enable = $false
+        }
+    }
+}
+```
+
+**Why disable PSUseShouldProcessForStateChangingFunctions:** install.ps1 and uninstall.ps1 modify settings.json (state change) but are scripts, not functions. They don't need `-WhatIf`/`-Confirm`. This rule is designed for PowerShell modules/cmdlets, not standalone scripts.
+
+**Confidence: HIGH** -- PSScriptAnalyzer settings are documented at [GitHub](https://github.com/PowerShell/PSScriptAnalyzer).
+
+## Component Responsibilities
+
+| Component | Responsibility | Communicates With |
+|-----------|----------------|-------------------|
+| `test.sh` | Top-level orchestrator; builds Docker images if needed; selects test tracks | Docker CLI, bats-core, Pester, ShellCheck |
+| `Dockerfile.test-bash` | Builds Linux container with shellcheck + bats + jq | Host filesystem (mounts project via COPY) |
+| `Dockerfile.test-powershell` | Builds Windows container with Pester + PSScriptAnalyzer | Host filesystem (mounts project via COPY) |
+| `tests/bash/*.bats` | Unit tests for bash scripts; temp dir isolation | bats-support, bats-assert, scripts/*.sh |
+| `tests/powershell/*.Tests.ps1` | Unit tests for PowerShell scripts; TestDrive + Mock | Pester framework, scripts/*.ps1 |
+| `tests/test_helpers/fixtures/` | Shared test data (fake JSON, fake MP3) | Both bash and PowerShell test tracks |
+| `.shellcheckrc` | ShellCheck rule configuration | ShellCheck binary |
+| `PSScriptAnalyzerSettings.psd1` | PSScriptAnalyzer rule configuration | Invoke-ScriptAnalyzer cmdlet |
+
+## Data Flow: Test Execution
+
+```
+Developer runs: ./test.sh --all
+    |
+    v
+test.sh checks: Docker available?
+    |           |
+    | Yes       | No
+    v           v
+Docker path   Local path
+    |           |
+    v           v
++-- Bash Track --+
+|  shellcheck    |     shellcheck scripts/*.sh
+|  scripts/*.sh  |     bats tests/bash/*.bats
+|  bats          |
+|  tests/bash/   |
++----------------+
+    |
+    v
++-- PowerShell Track --+
+|  Invoke-ScriptAnalyzer |     pwsh -c "Invoke-ScriptAnalyzer ..."
+|  scripts/*.ps1         |     pwsh -c "Invoke-Pester ..."
+|  Invoke-Pester         |
+|  tests/powershell/     |
++------------------------+
+    |
+    v
+Exit 0 = all passed
+Exit 1 = any failure
+```
+
+## Architectural Patterns
+
+### Pattern 1: HOME Override for Filesystem Isolation
+
+**What:** Override `$HOME` environment variable when invoking scripts to redirect all `$HOME/.claude/` operations to a temp directory.
+**When:** Testing install.sh and uninstall.sh (both use `$HOME` for path resolution).
+**Trade-offs:** Works because scripts use `$HOME` directly. Breaks if scripts ever resolve `$HOME` via `getent` or other indirection. Safe for this project because all scripts use `$HOME` as a simple variable.
+
+### Pattern 2: PATH Prepend for Command Mocking
+
+**What:** Create a fake command (e.g., fake `paplay`) in a temp directory, prepend that directory to `$PATH`. The script calls the fake instead of the real command.
+**When:** Mocking `paplay`, `afplay`, `jq`, `claude` in bash tests. Equivalent to Pester's `Mock` for PowerShell.
+**Trade-offs:** Only works for commands invoked without absolute path. notify-play.sh uses `/usr/bin/paplay` (absolute path), so PATH prepend does NOT work there -- must use a different approach (temp directory override or minor script refactor).
+
+### Pattern 3: TestDrive for PowerShell File I/O
+
+**What:** Use Pester's built-in `TestDrive:` PSDrive for file operations in tests. Files are automatically cleaned up.
+**When:** Creating fake settings.json, fake MP3 files, fake lock files in PowerShell tests.
+**Trade-offs:** TestDrive paths are different from real paths, so scripts that hardcode paths need the path to be parameterized or the script must be invoked with overridden environment variables.
+
+### Pattern 4: Dual Dockerfile Test Matrix
+
+**What:** Separate Dockerfiles for each platform track, orchestrated by a shell script.
+**When:** Testing cross-platform scripts on a single host. Avoids needing a macOS machine or Windows machine for CI.
+**Trade-offs:** Windows containers require Docker Desktop with Windows containers enabled (not available on Linux without emulation). PowerShell tests in Docker use Nano Server which lacks presentationCore. Some tests must be skipped or mocked in Docker.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Using `SoundPlayer` on Windows
+### Anti-Pattern 1: Sourcing Scripts Instead of Invoking Them
 
-**What:** Using `System.Media.SoundPlayer` instead of `MediaPlayer`.
+**What:** Using `source scripts/install.sh` or `. scripts/install.sh` in tests instead of running them as subprocesses.
 
-**Why wrong:** `SoundPlayer` only supports WAV files. The project distributes MP3 files.
+**Why wrong:** install.sh has top-level side effects (copies files, modifies settings.json). Sourcing executes all side effects immediately in the test process. Also, `set -euo pipefail` in the script will kill the test runner on any error.
 
-**Do instead:** Use `System.Windows.Media.MediaPlayer` (from `presentationCore` assembly) which supports MP3 natively.
+**Do instead:** Always invoke scripts as subprocesses: `run bash scripts/install.sh` (bats) or `pwsh -File scripts/install.ps1` (Pester). Capture exit code and output.
 
-### Anti-Pattern 2: Trying to Make One Script Work Everywhere
+### Anti-Pattern 2: Testing Against Real ~/.claude/settings.json
 
-**What:** Writing a single `notify-play.sh` that somehow works on Windows via Git Bash or WSL.
+**What:** Running install.sh without mocking and letting it modify the developer's actual settings.json.
 
-**Why wrong:** Windows hooks support `"shell": "powershell"` natively. Mixing bash and PowerShell creates fragile, hard-to-debug setups. Git Bash on Windows has path translation issues (`/c/Users/...`) that cause subtle bugs.
+**Why wrong:** Destructive. Every test run modifies real settings. Non-reproducible (depends on developer's current settings).
 
-**Do instead:** Separate scripts per platform. Bash for Linux/macOS, PowerShell for Windows. This is what Claude Code's official documentation demonstrates.
+**Do instead:** Always override `$HOME` to a temp directory. Never test against real user data.
 
-### Anti-Pattern 3: Using `ConvertTo-Json` Without `-Depth 100`
+### Anti-Pattern 3: Relying on Docker for macOS Testing
 
-**What:** Writing PowerShell install.ps1 without specifying `-Depth 100`.
+**What:** Trying to run macOS-specific tests (afplay, BSD stat) in a Docker container.
 
-**Why wrong:** PowerShell 5.x defaults to `-Depth 2`, which silently truncates nested objects. The hook structure is 4 levels deep (`hooks.Stop[0].hooks[0].command`), so default depth would corrupt the JSON.
+**Why wrong:** Docker on Linux cannot run macOS binaries. There is no macOS Docker image that runs on Linux hosts.
 
-**Do instead:** Always use `-Depth 100` (or a sufficiently high number) when writing settings.json.
+**Do instead:** macOS tests in Docker test Linux behavior only (paplay, GNU stat). Test the `Darwin` code path via environment variable overrides (set `OS=Darwin` before sourcing the OS detection logic, or test the stat command selection separately).
 
-### Anti-Pattern 4: BOM in settings.json
+### Anti-Pattern 4: Installing bats-core from npm
 
-**What:** Using `Set-Content` in PowerShell 5.x without specifying encoding, which writes UTF-16 with BOM.
+**What:** Using `npm install @bats-core/bats` in Docker.
 
-**Why wrong:** Claude Code's JSON parser may fail on UTF-16 BOM (`\xEF\xBB\xBF` or `\xFF\xFE` prefix).
+**Why wrong:** The npm package is a repackaging of the shell script. It adds Node.js as a dependency just to install a bash test runner. The `install.sh` method from the GitHub repo is the canonical and lighter approach.
 
-**Do instead:** Use `Set-Content -Encoding UTF8` (PS 5.x) or consider `[System.IO.File]::WriteAllText($path, $content)` (PS 7+ defaults to UTF-8 without BOM).
+**Do instead:** `git clone && install.sh /usr/local` in the Dockerfile. Pin to a specific tag for reproducibility.
 
-### Anti-Pattern 5: Installing jq on Windows
+### Anti-Pattern 5: Git Submodules for bats-support/bats-assert
 
-**What:** Requiring jq as a prerequisite on Windows for settings.json manipulation.
+**What:** Using git submodules to track bats-support and bats-assert.
 
-**Why wrong:** PowerShell has built-in JSON cmdlets (`ConvertFrom-Json`, `ConvertTo-Json`). Adding jq creates an unnecessary dependency.
+**Why wrong:** Submodules add complexity (detached HEAD state, submodule init/update). For 2-3 small files, submodules are overkill. They also require `.gitmodules` management.
 
-**Do instead:** Use PowerShell's native JSON cmdlets for Windows scripts.
+**Do instead:** Vendor the files directly into `tests/bash/test_helper/`. Update by copying from upstream when needed. For a project with 6 scripts under test, the maintenance cost of submodules exceeds the benefit.
 
 ## Build Order and Dependencies
 
 ```
-Phase 1: Modify notify-play.sh for OS detection
-    |-- Add uname check for Darwin
-    |-- Select afplay vs paplay
-    |-- Test on Linux (must not break existing behavior)
-    Depends on: Nothing (standalone modification)
-    Blocks: Phase 2
+Phase 1: Create test directory structure and fixtures
+    |-- Create tests/bash/, tests/powershell/, tests/test_helpers/fixtures/
+    |-- Create fake-audio.mp3, settings-empty.json, settings-with-hooks.json
+    Depends on: Nothing
+    Blocks: All subsequent phases
 
-Phase 2: Modify install.sh for macOS support
-    |-- Remove paplay from prerequisite check (make it conditional)
-    |-- Add afplay/paplay detection
-    |-- Update user-facing messages
-    Depends on: Phase 1 (notify-play.sh handles OS detection)
-    Blocks: Phase 3
+Phase 2: Configure static analysis tools
+    |-- Create .shellcheckrc, PSScriptAnalyzerSettings.psd1
+    |-- Run shellcheck and PSScriptAnalyzer against existing scripts
+    |-- Fix or suppress legitimate findings
+    Depends on: Nothing (independent of Phase 1)
+    Blocks: Phase 4, Phase 5
 
-Phase 3: Create notify-play.ps1 (Windows cooldown wrapper)
-    |-- Implement cooldown logic in PowerShell
-    |-- Implement MediaPlayer playback
-    |-- Test MP3 playback on Windows
-    Depends on: Nothing (independent of Phase 1-2)
-    Blocks: Phase 4
+Phase 3: Write bash unit tests (bats-core)
+    |-- tests/bash/notify_play.bats (simplest, test cooldown logic first)
+    |-- tests/bash/uninstall.bats (test jq hook removal)
+    |-- tests/bash/install.bats (most complex, full integration test)
+    Depends on: Phase 1 (fixtures), Phase 2 (shellcheck clean)
+    Blocks: Phase 6
 
-Phase 4: Create install.ps1 (Windows install script)
-    |-- Copy audio files to ~/.claude/
-    |-- Inject hooks with ConvertFrom-Json / ConvertTo-Json
-    |-- Set shell: "powershell" on hook entries
-    Depends on: Phase 3 (notify-play.ps1 must exist)
-    Blocks: Phase 5
+Phase 4: Write PowerShell unit tests (Pester)
+    |-- tests/powershell/notify_play.Tests.ps1 (mock MediaPlayer)
+    |-- tests/powershell/uninstall.Tests.ps1 (test JSON removal)
+    |-- tests/powershell/install.Tests.ps1 (most complex)
+    Depends on: Phase 1 (fixtures), Phase 2 (PSScriptAnalyzer clean)
+    Blocks: Phase 6
 
-Phase 5: Create uninstall.ps1 (Windows uninstall script)
-    |-- Remove hook entries from settings.json
-    |-- Delete audio files from ~/.claude/
-    Depends on: Phase 4 (must understand install.ps1 structure)
-    Blocks: Nothing
+Phase 5: Create Docker test images
+    |-- Dockerfile.test-bash
+    |-- Dockerfile.test-powershell
+    Depends on: Phase 3 (bash tests exist), Phase 4 (PowerShell tests exist)
+    Blocks: Phase 6
 
-Phase 6: Documentation and README updates
-    |-- Installation instructions for each platform
-    |-- Troubleshooting section
-    Depends on: All previous phases
+Phase 6: Create test.sh orchestrator
+    |-- Wire up all tracks
+    |-- Verify ./test.sh --all works end-to-end
+    Depends on: Phase 3, Phase 4, Phase 5
     Blocks: Nothing
 ```
 
-**Parallelism opportunity:** Phase 1-2 (Linux/macOS) and Phase 3-5 (Windows) are independent and can be developed in parallel.
+**Parallelism:** Phase 2 and Phase 3 can run in parallel. Phase 3 and Phase 4 can run in parallel (bash and PowerShell tests are independent).
 
-## Pitfalls and Mitigations
+## Integration Points with Existing Code
 
-| Pitfall | Severity | Mitigation |
-|---------|----------|------------|
-| `ConvertTo-Json -Depth` truncation | High | Always use `-Depth 100`. Add test that reads back settings.json and verifies hook structure. |
-| UTF-8 BOM corruption on Windows | High | Use `Set-Content -Encoding UTF8`. Test that Claude Code reads the modified settings.json correctly. |
-| `MediaPlayer` assembly not available | Low | `presentationCore` is part of .NET Framework 4+ and .NET Core/5+, available on all modern Windows. No mitigation needed. |
-| `afplay` path on macOS | Low | `/usr/bin/afplay` is at a fixed path on all macOS versions. No mitigation needed. |
-| PowerShell 5.x vs 7+ differences | Medium | Test on both. Use `-Depth 100` for both (PS 7+ defaults to 100 but explicit is safer). Avoid PS 7-only features. |
-| `stat -c %Y` not available on macOS | Medium | `notify-play.sh` current code uses `stat -c %Y` which is GNU-only. macOS uses `stat -f %m`. Must fix. |
-| Path separator differences | Low | Each platform's script uses its native separator. No cross-platform path issues. |
-| `$HOME` vs `$USERPROFILE` | Low | Bash uses `$HOME`, PowerShell uses `$env:USERPROFILE`. Each script uses its platform's convention. |
+### What Gets Modified
 
-## Pre-Submission Checklist
+| Existing File | Modification | Reason |
+|---------------|-------------|--------|
+| `scripts/notify-play.sh` | Add env var override for LOCK_FILE path | Allows tests to control lock file location. One-line change: `LOCK_FILE="${NOTIFY_LOCK_DIR:-/tmp}/claude-notify-${TYPE}.lock"` |
+| `.gitignore` | Add `__pycache__/`, test artifacts | Already has `__pycache__/`. May need no changes. |
 
-- [x] Platform-specific vs shared code clearly separated
-- [x] Data flow direction explicit per platform
-- [x] Build order implications noted
-- [x] All findings have confidence levels
-- [x] Sources verified (official docs for Claude Code hooks)
-- [x] Anti-patterns documented
-- [x] install.ps1 mirrors install.sh behavior described
+### What Stays Unchanged
+
+| Existing File | Why No Changes |
+|---------------|---------------|
+| `scripts/install.sh` | Tested as black box via HOME override. No source changes needed. |
+| `scripts/uninstall.sh` | Same as install.sh. |
+| `scripts/install.ps1` | Tested as black box. No source changes needed. |
+| `scripts/uninstall.ps1` | Same. |
+| `scripts/notify-play.ps1` | MediaPlayer mocked via Pester Mock. No source changes needed. |
+| `Dockerfile` | TTS generation is a separate concern. Not involved in testing. |
+| `audio/notify-*.mp3` | Binary files. Tests use fake audio from fixtures. |
+
+### New Files Created
+
+| File | Purpose |
+|------|---------|
+| `tests/bash/install.bats` | bats tests for install.sh |
+| `tests/bash/uninstall.bats` | bats tests for uninstall.sh |
+| `tests/bash/notify_play.bats` | bats tests for notify-play.sh |
+| `tests/bash/test_helper/bats-support/` | Vendored bats-support library |
+| `tests/bash/test_helper/bats-assert/` | Vendored bats-assert library |
+| `tests/powershell/install.Tests.ps1` | Pester tests for install.ps1 |
+| `tests/powershell/uninstall.Tests.ps1` | Pester tests for uninstall.ps1 |
+| `tests/powershell/notify_play.Tests.ps1` | Pester tests for notify-play.ps1 |
+| `tests/test_helpers/fixtures/settings-empty.json` | Empty settings.json for tests |
+| `tests/test_helpers/fixtures/settings-with-hooks.json` | Settings with pre-existing hooks |
+| `tests/test_helpers/fixtures/fake-audio.mp3` | Minimal valid MP3 for file copy tests |
+| `Dockerfile.test-bash` | Docker image for bash test track |
+| `Dockerfile.test-powershell` | Docker image for PowerShell test track |
+| `test.sh` | Top-level test orchestrator |
+| `.shellcheckrc` | ShellCheck configuration |
+| `PSScriptAnalyzerSettings.psd1` | PSScriptAnalyzer configuration |
 
 ## Sources
 
-- [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks) -- `"shell": "powershell"` field, async hooks, command hook schema (HIGH confidence, verified 2026-03-30)
-- [Claude Code Hooks Guide](https://code.claude.com/docs/en/hooks-guide) -- Windows PowerShell notification example, cross-platform hook patterns (HIGH confidence, verified 2026-03-30)
-- [afplay man page (macOS)](https://community.unix.com/t/osx-afplay-command-line-audio-player-manual/362074) -- MP3 support, blocking behavior (HIGH confidence)
-- [PowerShell MediaPlayer for MP3 (Stack Overflow)](https://stackoverflow.com/questions/25895428/how-to-play-mp3-with-powershell-simple) -- System.Windows.Media.MediaPlayer for MP3 playback (HIGH confidence)
-- [PowerShell SoundPlayer WAV limitation (Microsoft DevBlogs)](https://devblogs.microsoft.com/scripting/powertip-use-powershell-to-play-wav-files/) -- SoundPlayer only supports WAV (HIGH confidence)
-- [PowerShell JSON manipulation patterns](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/convertto-json) -- ConvertTo-Json -Depth parameter (HIGH confidence)
-- Existing codebase: `scripts/install.sh`, `scripts/uninstall.sh`, `scripts/notify-play.sh` -- analyzed for v1.0 architecture (HIGH confidence, read 2026-03-30)
+- [bats-core GitHub](https://github.com/bats-core/bats-core) -- installation, usage, TAP output format (HIGH confidence)
+- [bats-core documentation (ReadTheDocs)](https://bats-core.readthedocs.io/) -- setup/teardown, $BATS_TMPDIR, helper libraries (HIGH confidence)
+- [bats-support GitHub](https://github.com/bats-core/bats-support) -- foundational helper library (HIGH confidence)
+- [bats-assert GitHub](https://github.com/bats-core/bats-assert) -- assertion functions (HIGH confidence)
+- [bats-file GitHub](https://github.com/ztombol/bats-file) -- filesystem assertions, temp dir helpers (HIGH confidence)
+- [Pester official docs -- Test file structure](https://pester.dev/docs/usage/test-file-structure) -- Describe/Context/It blocks (HIGH confidence)
+- [Pester official docs -- Mocking](https://pester.dev/docs/usage/mocking) -- Mock cmdlets and functions (HIGH confidence)
+- [Pester official docs -- TestDrive](https://pester.dev/docs/usage/testdrive) -- temporary file isolation (HIGH confidence)
+- [PSScriptAnalyzer GitHub](https://github.com/PowerShell/PSScriptAnalyzer) -- installation, configuration (HIGH confidence)
+- [ShellCheck GitHub](https://github.com/koalaman/shellcheck) -- configuration, severity levels (HIGH confidence)
+- [Bats Testing Patterns (GitHub)](https://github.com/wshobson/agents/blob/main/plugins/shell-scripting/skills/bats-testing-patterns/SKILL.md) -- setup/teardown, temp directory patterns (MEDIUM confidence)
+- [PowerShell Docker Hub](https://hub.docker.com/_/microsoft-powershell) -- available images (MEDIUM confidence)
+- [Existing codebase](file:///home/huanglin/code/claude-config/notify-research/) -- all 6 scripts analyzed for testability (HIGH confidence, read 2026-03-30)
 
 ---
-*Architecture research for: Claude Code voice notification system v1.1 cross-platform support*
+*Architecture research for: Claude Code voice notification system v1.2 test infrastructure*
 *Researched: 2026-03-30*
