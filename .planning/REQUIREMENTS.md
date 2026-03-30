@@ -12,15 +12,15 @@
 
 ### Windows 播放
 
-- [ ] **WIN-01**: notify-play.ps1 使用 MediaPlayer 播放 MP3，不弹出窗口
-- [ ] **WIN-02**: notify-play.ps1 实现与 Linux 相同的 5 秒冷却防抖机制
+- [x] **WIN-01**: notify-play.ps1 使用 MediaPlayer 播放 MP3，不弹出窗口
+- [x] **WIN-02**: notify-play.ps1 实现与 Linux 相同的 5 秒冷却防抖机制
 
 ### Windows 安装
 
-- [ ] **WIN-03**: install.ps1 将 hooks 注入 Claude Code settings.json
-- [ ] **WIN-04**: install.ps1 使用 `shell: powershell` 标记 Windows hooks
-- [ ] **WIN-05**: install.ps1 中所有路径使用正斜杠（避免 #26759 bug）
-- [ ] **WIN-06**: uninstall.ps1 从 settings.json 中移除 hooks
+- [x] **WIN-03**: install.ps1 将 hooks 注入 Claude Code settings.json
+- [x] **WIN-04**: install.ps1 使用 `shell: powershell` 标记 Windows hooks
+- [x] **WIN-05**: install.ps1 中所有路径使用正斜杠（避免 #26759 bug）
+- [x] **WIN-06**: uninstall.ps1 从 settings.json 中移除 hooks
 
 ### 安装脚本兼容
 
@@ -64,12 +64,12 @@
 | MAC-02 | Phase 4 | Complete |
 | INST-01 | Phase 4 | Complete |
 | INST-02 | Phase 4 | Complete |
-| WIN-01 | Phase 5 | Pending |
-| WIN-02 | Phase 5 | Pending |
-| WIN-03 | Phase 5 | Pending |
-| WIN-04 | Phase 5 | Pending |
-| WIN-05 | Phase 5 | Pending |
-| WIN-06 | Phase 5 | Pending |
+| WIN-01 | Phase 5 | Complete |
+| WIN-02 | Phase 5 | Complete |
+| WIN-03 | Phase 5 | Complete |
+| WIN-04 | Phase 5 | Complete |
+| WIN-05 | Phase 5 | Complete |
+| WIN-06 | Phase 5 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 10 total

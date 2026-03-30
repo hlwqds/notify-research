@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 语音通知** — Phases 1-3 (shipped 2026-03-30)
-- 🚧 **v1.1 跨平台兼容** — Phases 4-5 (in progress)
+- ✅ **v1.1 跨平台兼容** — Phases 4-5 (shipped 2026-03-30)
 
 ## Phases
 
@@ -16,12 +16,12 @@
 
 </details>
 
-### 🚧 v1.1 跨平台兼容 (In Progress)
+### ✅ v1.1 跨平台兼容 (Shipped 2026-03-30)
 
 **Milestone Goal:** 语音通知系统在 macOS 和 Windows 上开箱即用，保持一键安装体验。
 
-- [ ] **Phase 4: macOS 兼容** — 扩展现有 bash 脚本支持 macOS (afplay + BSD stat 兼容)
-- [ ] **Phase 5: Windows 兼容** — 新建 PowerShell 脚本实现 Windows 播放和安装
+- [x] **Phase 4: macOS 兼容** — 扩展现有 bash 脚本支持 macOS (afplay + BSD stat 兼容)
+- [x] **Phase 5: Windows 兼容** — 新建 PowerShell 脚本实现 Windows 播放和安装
 
 ## Phase Details
 
@@ -80,7 +80,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 05-01-PLAN.md — Create notify-play.ps1 + install.ps1 + uninstall.ps1 (MediaPlayer, hooks, BOM-free JSON)
+- [x] 05-01-PLAN.md — Create notify-play.ps1 + install.ps1 + uninstall.ps1 (MediaPlayer, hooks, BOM-free JSON)
 
 ## Progress
 
@@ -93,8 +93,8 @@ Phases execute in numeric order: 4 → 5
 | 2. 生成脚本 | v1.0 | 1/1 | Complete | 2026-03-30 |
 | 3. Hooks 集成 | v1.0 | 1/1 | Complete | 2026-03-30 |
 | 4. macOS 兼容 | v1.1 | 1/1 | Complete   | 2026-03-30 |
-| 5. Windows 兼容 | v1.1 | 0/1 | Planning | - |
+| 5. Windows 兼容 | v1.1 | 1/1 | Complete | 2026-03-30 |
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-30 after Phase 5 planning*
+*Last updated: 2026-03-30 after Phase 5 completion*
