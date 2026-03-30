@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: 跨平台测试
 current_phase: 07
-status: executing
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-03-30T12:53:18.308Z"
+status: verifying
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-03-30T12:56:32.583Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 62
 ---
 
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 07 (bash) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
 Progress: [████████░░] 62% (5/8 phases shipped in v1.0+v1.1)
@@ -57,6 +57,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 06]: Pinned bats/bats:1.11.0 and mcr.microsoft.com/powershell:7.4 Docker images
 - [Phase 07]: Absolute-path stubs via /usr/bin write in container (notify-play.sh uses hardcoded /usr/bin/paplay and /usr/bin/afplay)
 - [Phase 07]: BusyBox-safe touch -t with date -d @epoch for cooldown timestamp manipulation in bats Alpine container
+- [Phase 07]: HOME override via mktemp -d for install/uninstall test isolation
+- [Phase 07]: jq -S sorted JSON comparison for idempotency verification
 
 ### Pending Todos
 
@@ -69,8 +71,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T12:53:18.305Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-03-30T12:56:32.581Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -83,3 +85,4 @@ Resume file: None
 ---
 *State updated: 2026-03-30 after completing plan 06-02 (phase 6 complete)*
 | Phase 07 P01 | 1min | 2 tasks | 5 files |
+| Phase 07 P02 | 1min | 2 tasks | 2 files |

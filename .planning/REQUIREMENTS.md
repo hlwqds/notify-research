@@ -16,12 +16,12 @@
 - [x] **BASH-02**: bats-core 测试 notify-play.sh 冷却通过（lock file 旧于 5 秒）
 - [x] **BASH-03**: bats-core 测试 notify-play.sh 平台分支（Darwin afplay vs Linux paplay）
 - [x] **BASH-04**: bats-core 测试 notify-play.sh 始终 exit 0（即使播放器失败）
-- [ ] **BASH-05**: bats-core 测试 install.sh 4 个 hook 事件注入到 settings.json
-- [ ] **BASH-06**: bats-core 测试 install.sh 幂等重跑（不重复添加 hooks）
-- [ ] **BASH-07**: bats-core 测试 install.sh 前置检查（缺少 jq/paplay/settings.json/mp3 报错）
-- [ ] **BASH-08**: bats-core 测试 uninstall.sh 4 个 hook 事件移除
-- [ ] **BASH-09**: bats-core 测试 uninstall.sh mp3 文件删除
-- [ ] **BASH-10**: bats-core 测试 uninstall.sh 幂等重跑（无 hooks 不报错）
+- [x] **BASH-05**: bats-core 测试 install.sh 4 个 hook 事件注入到 settings.json
+- [x] **BASH-06**: bats-core 测试 install.sh 幂等重跑（不重复添加 hooks）
+- [x] **BASH-07**: bats-core 测试 install.sh 前置检查（缺少 jq/paplay/settings.json/mp3 报错）
+- [x] **BASH-08**: bats-core 测试 uninstall.sh 4 个 hook 事件移除
+- [x] **BASH-09**: bats-core 测试 uninstall.sh mp3 文件删除
+- [x] **BASH-10**: bats-core 测试 uninstall.sh 幂等重跑（无 hooks 不报错）
 
 ### PowerShell 单元测试
 
@@ -69,12 +69,12 @@
 | BASH-02 | Phase 7 | Complete |
 | BASH-03 | Phase 7 | Complete |
 | BASH-04 | Phase 7 | Complete |
-| BASH-05 | Phase 7 | Pending |
-| BASH-06 | Phase 7 | Pending |
-| BASH-07 | Phase 7 | Pending |
-| BASH-08 | Phase 7 | Pending |
-| BASH-09 | Phase 7 | Pending |
-| BASH-10 | Phase 7 | Pending |
+| BASH-05 | Phase 7 | Complete |
+| BASH-06 | Phase 7 | Complete |
+| BASH-07 | Phase 7 | Complete |
+| BASH-08 | Phase 7 | Complete |
+| BASH-09 | Phase 7 | Complete |
+| BASH-10 | Phase 7 | Complete |
 | PS-01 | Phase 8 | Pending |
 | PS-02 | Phase 8 | Pending |
 | PS-03 | Phase 8 | Pending |
