@@ -7,8 +7,8 @@
 
 ### 静态分析
 
-- [ ] **LINT-01**: ShellCheck 对 3 个 bash 脚本运行静态分析（install.sh, uninstall.sh, notify-play.sh）
-- [ ] **LINT-02**: PSScriptAnalyzer 对 3 个 PowerShell 脚本运行静态分析（install.ps1, uninstall.ps1, notify-play.ps1）
+- [x] **LINT-01**: ShellCheck 对 3 个 bash 脚本运行静态分析（install.sh, uninstall.sh, notify-play.sh）
+- [x] **LINT-02**: PSScriptAnalyzer 对 3 个 PowerShell 脚本运行静态分析（install.ps1, uninstall.ps1, notify-play.ps1）
 
 ### Bash 单元测试
 
@@ -40,9 +40,9 @@
 
 ### 测试基础设施
 
-- [ ] **INFRA-01**: 统一测试入口脚本 test.sh（运行 ShellCheck + bats + Pester）
+- [x] **INFRA-01**: 统一测试入口脚本 test.sh（运行 ShellCheck + bats + Pester）
 - [x] **INFRA-02**: 测试目录结构（tests/bash/, tests/powershell/, tests/fixtures/）
-- [ ] **INFRA-03**: Docker 测试矩阵（Linux 容器运行 bats，pwsh 容器运行 Pester）
+- [x] **INFRA-03**: Docker 测试矩阵（Linux 容器运行 bats，pwsh 容器运行 Pester）
 - [x] **INFRA-04**: notify-play.sh 可测试性改造（lock file 路径支持环境变量覆盖）
 
 ## Out of Scope
@@ -59,12 +59,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 6 | Pending |
+| INFRA-01 | Phase 6 | Complete |
 | INFRA-02 | Phase 6 | Complete |
-| INFRA-03 | Phase 6 | Pending |
+| INFRA-03 | Phase 6 | Complete |
 | INFRA-04 | Phase 6 | Complete |
-| LINT-01 | Phase 6 | Pending |
-| LINT-02 | Phase 6 | Pending |
+| LINT-01 | Phase 6 | Complete |
+| LINT-02 | Phase 6 | Complete |
 | BASH-01 | Phase 7 | Complete |
 | BASH-02 | Phase 7 | Complete |
 | BASH-03 | Phase 7 | Complete |
