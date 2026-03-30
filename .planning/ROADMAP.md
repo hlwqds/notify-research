@@ -90,7 +90,11 @@ Plans:
   2. `tests/bash/`, `tests/powershell/`, `tests/fixtures/` directories exist with shared fixture files (fake settings.json, fake MP3)
   3. Docker containers for bash testing (bats-core) and PowerShell testing (Pester) build and run successfully
   4. notify-play.sh supports `NOTIFY_LOCK_DIR` environment variable to override lock file path (backward-compatible, defaults to /tmp)
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Test directory structure, fixtures, notify-play.sh/ps1 testability refactor
+- [ ] 06-02-PLAN.md — test.sh entry point with ShellCheck + PSScriptAnalyzer + Docker test matrix
 
 ### Phase 7: Bash 单元测试
 **Goal**: bats-core 测试覆盖 3 个 bash 脚本全部核心逻辑（notify-play.sh 冷却/平台分支、install.sh hook 注入/幂等/前置检查、uninstall.sh hook 移除/文件删除/幂等）
