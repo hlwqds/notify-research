@@ -70,8 +70,8 @@ run_lint() {
 
 run_bash_tests() {
     echo "=== bats-core tests (Docker) ==="
-    docker run --rm -v "$REPO_ROOT:/app" "$BATS_IMAGE" \
-        sh -c "apk add --no-cache jq > /dev/null 2>&1 && bats /app/tests/bash"
+    docker run --rm --entrypoint /bin/sh -v "$REPO_ROOT:/app" "$BATS_IMAGE" \
+        -c "apk add --no-cache jq > /dev/null 2>&1 && bats /app/tests/bash"
 }
 
 run_powershell_tests() {
