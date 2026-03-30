@@ -38,9 +38,9 @@
 <details>
 <summary>🔄 v1.3 GitHub Actions CI (Phases 9-11) — IN PROGRESS</summary>
 
-- [ ] Phase 9: 测试路径适配 — Adapt test files from Docker `/app/` paths to CI-compatible variable paths
-- [ ] Phase 10: CI workflow — Create `.github/workflows/ci.yml` with matrix, triggers, lint, and test steps
-- [ ] Phase 11: README + CI badge — Project documentation with CI status badge
+- [ ] Phase 9: 测试路径适配 (1/1 plans)
+- [ ] Phase 10: CI workflow
+- [ ] Phase 11: README + CI badge
 
 </details>
 
@@ -51,6 +51,11 @@
 **Goal:** Make all test files work without Docker by replacing hardcoded `/app/` paths with CI-compatible variable/relative paths.
 
 **Requirement mapping:** CI-09 (test files use CI-compatible paths)
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 09-01-PLAN.md — Adapt bats/Pester test paths from /app/ to $REPO_ROOT/$RepoRoot, convert stubs to PATH-prepend, fix notify-play.sh bare commands
 
 **Success criteria:**
 1. `./test.sh --bash` and `./test.sh --powershell` pass locally (Docker still works, backward compatible)
@@ -104,7 +109,7 @@
 | 6. 测试基础设施 + 静态分析 | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 7. Bash 单元测试 | v1.2 | 3/3 | Complete | 2026-03-30 |
 | 8. PowerShell 单元测试 | v1.2 | 2/2 | Complete | 2026-03-30 |
-| 9. 测试路径适配 | v1.3 | 0/? | Planned | — |
+| 9. 测试路径适配 | v1.3 | 0/1 | Planned | — |
 | 10. CI workflow | v1.3 | 0/? | Planned | — |
 | 11. README + CI badge | v1.3 | 0/? | Planned | — |
 
