@@ -1,179 +1,181 @@
 # Project Research Summary
 
-**Project:** Claude Code Environment Replay
-**Domain:** Dotfiles Management / Environment Replication
+**Project:** Claude Code Voice Notification System
+**Domain:** Cross-platform audio notification hooks for Claude Code
 **Researched:** 2026-03-30
-**Confidence:** MEDIUM
+**Confidence:** MEDIUM-HIGH
 
 ## Executive Summary
 
-This project is a shell-script-based dotfiles manager specialized for Claude Code environments. It replicates a complete Claude Code configuration (settings, skills, workflows, memory, MCP servers) on a fresh Linux machine in one command. The research across three of four files (FEATURES, ARCHITECTURE, PITFALLS) converges on a consistent approach: a modular shell script (`setup.sh`) with numbered sync modules, symlink-first file deployment with automatic backup, dry-run mode for safety, and runtime secret prompting. The architecture follows established patterns from GNU Stow (symlink-based sync) combined with elements from chezmoi (secrets templating) and yadm (bootstrap patterns).
+This project is a Claude Code hook-based voice notification system that plays pre-generated Chinese MP3 audio files when tasks complete, fail, or need user interaction. v1.0 shipped with Linux-only support using `paplay` for audio playback and bash scripts for install/uninstall/cooldown logic. v1.1 extends this to macOS and Windows.
 
-The recommended approach is a layered shell script architecture with four distinct layers: entry point (argument parsing), discovery (environment detection), sync (modular per-domain file deployment), and validation (post-install smoke tests). Idempotency and safety are non-negotiable -- every operation must be safe to run multiple times, and every overwrite must produce a timestamped backup. The key risks are accidentally destroying an existing Claude Code environment (mitigated by backup-before-overwrite), symlink breakage when the source directory moves (mitigated by validation and re-link commands), and secrets leaking into version control (mitigated by gitignore, pre-commit hooks, and template placeholders).
+The recommended approach is a **dual-script strategy**: extend existing bash scripts for macOS compatibility (macOS shares bash with Linux, differing only in the audio player command) and create separate PowerShell scripts for Windows. This avoids the fragile pattern of cross-platform bash on Windows, where 10+ open Claude Code GitHub issues document broken `.sh` hook execution. Claude Code provides a first-class `"shell": "powershell"` field on command hooks, which enables native PowerShell hook execution on Windows without any bash translation layer.
 
-**Important note on STACK.md:** The STACK.md research file (updated 2026-03-30) covers a Docker-containerized Spark-TTS notification audio system, which is a separate subproject located in the `notify-research/` directory. It does not pertain to the core "Claude Code Environment Replay" project. The technology stack for the environment replay project itself is straightforward: Bash 4.x+, standard GNU coreutils, Docker (for testing only), and optionally `rsync` for directory sync. No exotic dependencies are needed.
+The key risks are concentrated on Windows: the Windows hooks subsystem is unstable with many open bugs, backslash paths in hook commands are silently stripped by Claude Code (confirmed bug #26759), and PowerShell's `ConvertTo-Json` truncates nested JSON by default. All three have well-documented mitigations (forward-slash paths, `-Depth 100`, and `MediaPlayer` for audio playback). macOS support is low-risk -- it requires only switching from `paplay` to `afplay` and fixing one GNU-only `stat` command.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The Claude Code Environment Replay project requires minimal technology. The core stack is Bash shell scripting with standard Linux utilities. Docker is used solely as a testing environment, not as a runtime dependency. No external language runtimes, frameworks, or package managers are needed.
+The stack additions are minimal because audio files are pre-generated and platform-agnostic. The changes are confined to OS-specific playback commands and install scripts.
 
-**Core technologies:**
-- **Bash 4.x+:** Core runtime -- every sync module, validation script, and the main entry point are shell scripts
-- **GNU coreutils (cp, ln, mkdir, readlink, date):** File operations for sync, backup, and symlink management
-- **rsync 3.2+ (optional):** Directory sync for skills/ and memory/ with delete mode for clean replication; efficient delta transfers and permission preservation
-- **Docker 24.x+:** Isolated test environment to verify setup.sh without touching the host machine; enforce Docker-only development workflow
-- **jq (optional):** JSON validation for settings.json schema checking in the validation layer
+**Core platform technologies:**
+- **`afplay` (macOS):** Built-in Apple CLI audio player, supports MP3 natively, zero install required -- the obvious choice for macOS playback
+- **`System.Windows.Media.MediaPlayer` (Windows):** .NET PresentationCore assembly for MP3 playback. Avoid `SoundPlayer` (WAV-only) and `WMPlayer.OCX` (orphan processes). PowerShell built-in JSON cmdlets replace `jq` on Windows
+- **Extended `install.sh` (Linux + macOS):** Single bash script with `uname` detection handles both Unix platforms. No separate macOS script needed
+- **New `install.ps1` + `notify-play.ps1` (Windows):** Separate PowerShell scripts avoid the unreliable bash-on-Windows layer entirely
 
-**What to avoid:** Puppet/Ansible (overkill for personal tool), Docker as runtime (wrong abstraction -- Docker is for testing only), cloud sync services (no Git history), configuration management tools (enterprise scale mismatch).
-
-**For the separate notify-research subproject (Spark-TTS):** Python 3.12, PyTorch 2.5.1+cpu, Spark-TTS 0.5B model (~3.95 GB), multi-stage Docker build on python:3.12-slim. Fully documented in STACK.md but out of scope for the environment replay project.
+**Critical version constraints:**
+- PowerShell `ConvertTo-Json -Depth 100` is mandatory (default depth 2 silently corrupts the nested hook JSON)
+- macOS Bash 3.2 has no associative arrays -- current scripts do not use them, so no issue
+- Backslash paths in `settings.json` hook commands fail silently on Windows -- always use forward slashes
 
 ### Expected Features
 
 **Must have (table stakes):**
-- **File synchronization (symlink)** -- Core purpose; symlink from `~/.claude/` to `$CLAUDE_DOTS/.claude/`. Symlinks preferred because changes in source immediately reflect in destination.
-- **Idempotency** -- Safe to run multiple times without breaking existing setups. Check-if-exists, backup-before-overwrite patterns.
-- **Dry-run mode** -- `--dry-run` flag to preview changes before applying. Essential for user trust; every major dotfiles tool supports this.
-- **Source location config** -- `$CLAUDE_DOTS` environment variable with sensible default (`~/dots/claude-config/`).
-- **Selective sync** -- Glob patterns or manifest file to control which files get synced.
+- T1: OS detection in install script (`uname -s`) -- root dependency for everything
+- T2: macOS audio playback via `afplay` -- zero install, built into macOS
+- T3: Windows audio playback via PowerShell `MediaPlayer` -- no third-party tools
+- T4: Platform-specific hook commands in `settings.json` with `shell` field
+- T5: Forward-slash paths in Windows hook commands (bug #26759 workaround)
+- T6: Cross-platform cooldown in `notify-play.sh` (fix GNU-only `stat`)
+- T7: Windows `install.ps1` with JSON manipulation
+- T8: Windows `uninstall.ps1`
+- T9: macOS support in `install.sh` (conditional prerequisite check)
 
-**Should have (competitive differentiators):**
-- **Secrets templating** -- Runtime prompts for API keys, template files with placeholder values. Differentiator vs. Stow (which has no secrets handling) and yadm (which requires external tools like git-crypt).
-- **Backup before overwrite** -- Automatic timestamped backups. Differentiator vs. all competitors (Stow, chezmoi, yadm all require manual backup).
-- **Verification** -- Post-install smoke tests confirming key files exist and symlinks resolve. No competitor offers this.
-- **Atomic operations** -- All-or-nothing sync with rollback on failure.
+**Should have (competitive):**
+- D1: Unified install.sh with OS auto-detection (naturally falls out of T1)
+- D2: Audio player fallback chain (`paplay` -> `aplay` on Linux)
+- D3: Hook verification smoke test after install
 
 **Defer (v2+):**
-- **Per-machine overrides** -- Hostname-based conditionals for different settings on different machines
-- **Shell compatibility checks** -- Detect and warn about incompatible shell configurations
-- **MCP server detection/reinstallation** -- Parse mcp-servers.json and reinstall; high complexity, uncertain ROI, sparse documentation
-- **Drift detection** -- Alert when local config diverges from source
-
-**Our differentiator:** Combine Stow-style symlinks with chezmoi-style templating and automatic backups. No existing tool offers this combination.
+- D4: pwsh.exe auto-detection in install.ps1 (Claude Code handles this automatically)
+- Volume control per notification (system volume controls suffice)
+- Cross-platform Node.js rewrite of `notify-play.sh` (unnecessary complexity for 27-line scripts)
 
 ### Architecture Approach
 
-The recommended architecture is a modular shell script with four layers: entry point (`setup.sh` for orchestration and argument parsing), discovery layer (environment detection and source file location), sync layer (numbered per-domain modules: 01-cfg.sh through 06-plugins.sh), and validation layer (post-install checks). Shared utilities live in `lib/` (logging, sync primitives, detection functions). Configuration constants live in `config/defaults.sh`. Secrets prompting is isolated in `prompt/secrets.sh` so it can be skipped in CI or dry-run mode.
-
-The architecture is stateless -- state is derived from source directory contents and target directory current state. Rollback is via timestamped backup files. Key patterns include: modular sync modules with consistent interfaces (each can run standalone or be sourced), symlink-first with automatic backup, dry-run via global flag propagation (`DRY_RUN` variable checked before every filesystem write), and strict idempotency (check-if-exists, skip-if-correct before every operation).
-
-**Build order is strict:** lib/ -> config/defaults.sh -> sync/ modules -> prompt/ -> validate/ -> setup.sh orchestration
+The architecture splits cleanly into three layers: (1) a platform detection layer in install scripts that selects the correct audio player and writes platform-appropriate hook commands, (2) a shared layer of pre-generated MP3 files and identical cooldown semantics, and (3) a platform-specific playback layer using native OS audio commands.
 
 **Major components:**
-1. **setup.sh** -- Entry point, argument parsing, orchestrates sync modules in numbered order
-2. **lib/ (logging.sh, detect.sh, sync.sh)** -- Shared primitives: logging, environment detection, sync/backup functions
-3. **sync/ (01-cfg through 06-plugins)** -- One file per sync domain; numbered for execution order; each can run standalone
-4. **validate/ (01-files, 02-symlinks, 03-config)** -- Post-install verification; runs independently after sync
-5. **prompt/secrets.sh** -- Interactive API key collection; isolated for CI/dry-run skip
-6. **config/defaults.sh** -- Constants and default paths in one place
+1. **`notify-play.sh` (modified)** -- Cooldown wrapper + audio playback for Linux and macOS. OS detection via `uname` selects `paplay` or `afplay`. Must fix `stat -c %Y` to work on macOS.
+2. **`notify-play.ps1` (new)** -- Windows cooldown wrapper using `$env:TEMP` lock files and `MediaPlayer` for MP3 playback. Parallels bash version structure.
+3. **`install.sh` (modified)** -- Linux + macOS install. Adds OS-conditional prerequisite check (`afplay` vs `paplay`). Hook commands unchanged since `notify-play.sh` handles player selection internally.
+4. **`install.ps1` (new)** -- Windows install. Uses PowerShell `ConvertFrom-Json`/`ConvertTo-Json` with `-Depth 100`. Sets `"shell": "powershell"` on all hook entries. No `jq` dependency.
+5. **`uninstall.sh` / `uninstall.ps1`** -- Remove hook entries and delete audio files. Mirror the install scripts per platform.
+
+**Key architectural decision:** Keep bash for Linux/macOS, add separate PowerShell for Windows. Do NOT try to make one script work on all three platforms -- the three OSes have fundamentally different audio subsystems.
 
 ### Critical Pitfalls
 
-Eight pitfalls were identified, ordered by severity:
+1. **Windows backslash paths silently fail in hook commands** -- Claude Code >= 2.1.47 strips backslashes as escape characters. All Windows hook commands must use forward slashes (`C:/Users/...` not `C:\Users\...`). This is the highest-priority pitfall because it causes silent failures with no visible error.
 
-1. **Overwriting existing configurations without backup** -- Running on a machine with existing Claude Code setup silently destroys customizations. Prevention: rename existing file to `.bak.timestamp` before any write; add `--force` flag to require explicit opt-in to overwrite.
+2. **PowerShell `ConvertTo-Json` truncates nested objects at depth 2** -- The hook structure is 5 levels deep. Without `-Depth 100`, `install.ps1` silently corrupts `settings.json`. Always use `-Depth 100`.
 
-2. **Symlink breaks when source directory moves** -- Symlinks store absolute paths; if `$CLAUDE_DOTS` moves, all links break and Claude Code appears broken. Prevention: validate source existence before linking; provide `verify-links` command for detection and recovery; consider a manifest file tracking what should exist where.
+3. **`stat -c %Y` is GNU-only and crashes on macOS** -- The existing cooldown mechanism in `notify-play.sh` uses Linux-specific `stat` flags. Fix with OS detection or use `date -r file +%s` (works on both BSD and GNU).
 
-3. **Hardcoded secrets leak into committed files** -- API keys in `settings.json` or `secrets.yaml` committed to git. Prevention: never commit `secrets.yaml`; use clearly invalid placeholder values (`YOUR_API_KEY_HERE`); add pre-commit hook scanning for API key patterns (`sk-`, `ghp_`, `Bearer`).
+4. **`WMPlayer.OCX` leaves orphan processes** -- The COM-based Windows Media Player creates zombie processes (~30MB each) if not cleaned up. Use `System.Windows.Media.MediaPlayer` from PresentationCore instead, which is lighter and does not have this problem.
 
-4. **Idempotency violation -- running twice breaks things** -- Second run accumulates backup files, duplicates entries, or corrupts state. Prevention: check if target already matches source before writing; use atomic write-to-temp-then-rename; test explicitly by running setup twice and diffing results.
-
-5. **Breaking existing Claude Code state** -- Sync overwrites user's runtime state (new MCP servers, custom commands, conversation context). Prevention: never sync memory/ by default (user-generated at runtime); only sync keys explicitly in template for settings.json; preserve user-added keys.
-
-6. **Permission errors break installation silently** -- Script assumes user-writable paths; fails on distribution-specific paths. Prevention: query environment for actual config directory; never hardcode paths; detect and report permission errors clearly.
-
-7. **No store/deploy separation** -- All changes are live with no rollback path. Prevention: snapshot existing state before any sync; add `--revert` command to restore from backups.
-
-8. **Testing on production** -- Development on host machine risks destroying live Claude Code environment. Prevention: enforce Docker-only testing via `docker compose run test`; document explicitly: never run setup.sh directly on host during development.
+5. **Claude Code Windows hooks are unstable** -- 10+ open GitHub issues document broken `.sh` execution, path resolution failures, and hangs. The `"shell": "powershell"` field provides a clean workaround. Test on Windows early and monitor Claude Code updates for breaking changes.
 
 ## Implications for Roadmap
 
-Based on combined research, the following phase structure addresses dependencies, architecture patterns, and pitfall prevention:
+Based on research, suggested phase structure:
 
-### Phase 1: Foundation and Core Sync
-**Rationale:** The lib/ primitives (logging, sync, detection) and config/defaults.sh must exist before any sync module can function. The Docker-based testing workflow must be established from the start to prevent the critical "testing on production" pitfall (Pitfall 8). This phase delivers the project skeleton and the first sync module, proving the core pattern works.
-**Delivers:** Project structure (`lib/`, `sync/`, `validate/`, `prompt/`, `config/` directories), lib/ primitives (logging.sh, detect.sh, sync.sh), config/defaults.sh, Docker test environment (docker-compose.yml with test target), first sync module (01-cfg.sh for settings.json and commands.md), basic setup.sh entry point with argument parsing and `--dry-run` flag
-**Addresses:** File synchronization (symlink), Source location config ($CLAUDE_DOTS), basic dry-run mode from FEATURES.md
-**Avoids:** Pitfall 3 (secrets -- via .gitignore), Pitfall 4 (permissions -- Docker testing catches distribution-specific issues), Pitfall 8 (testing on production -- Docker-first workflow enforced)
+### Phase 1: macOS Support (Extend Existing Scripts)
 
-### Phase 2: Idempotency and Safety
-**Rationale:** This is the most critical phase for user trust. Without idempotency and backup, the tool is dangerous to run on any machine with an existing Claude Code setup. This phase addresses 5 of 8 identified pitfalls (1, 2, 4, 5, 7). It should come immediately after core sync works because every subsequent sync module inherits these safety guarantees from lib/.
-**Delivers:** Backup-before-overwrite system (`.bak.timestamp` files), idempotent operations (check-before-write, skip-if-identical), atomic file operations (write-to-temp-then-rename), selective sync via manifest, `--force` flag, all remaining sync modules (02-skills.sh through 06-plugins.sh), `--revert` rollback command
-**Addresses:** Idempotency, Backup before overwrite, Selective sync, Atomic operations from FEATURES.md. Avoids Pitfalls 1, 2, 4, 5, 7 from PITFALLS.md.
-**Research flag:** Standard patterns -- backup-and-symlink, idempotent file operations, and manifest-based sync are well-established in Stow/chezmoi/yadm. Skip `/gsd:research-phase`.
+**Rationale:** macOS shares bash with Linux. This is the lowest-risk cross-platform extension -- it requires only changing the audio player command and fixing one `stat` incompatibility. It proves the OS-detection pattern before tackling the more complex Windows story.
 
-### Phase 3: Secrets and Validation
-**Rationale:** Secrets handling benefits from having the sync framework solid first. Validation confirms everything installed correctly. These are the "should have" features that make the tool feel complete and safe for real-world use.
-**Delivers:** Secrets templating (prompt-secrets.sh with interactive API key collection), pre-commit hook for secret scanning, secrets-template.yaml with placeholder structure, post-install validation layer (validate/01-files.sh, 02-symlinks.sh, 03-config.sh), verification that critical files exist and symlinks resolve
-**Addresses:** Secrets templating, Verification from FEATURES.md. Avoids Pitfall 3 (secrets leak) and Pitfall 5 (breaking existing state via selective sync).
-**Research flag:** Standard patterns -- secret prompting in shell scripts and post-install validation are straightforward. Skip `/gsd:research-phase`.
+**Delivers:** Working `install.sh` / `uninstall.sh` / `notify-play.sh` on both Linux and macOS.
 
-### Phase 4: Polish and Edge Cases
-**Rationale:** Only after the core is solid and safe should effort go into edge cases and user experience improvements. This phase handles things that make the tool robust in daily usage but are not blockers for initial deployment.
-**Delivers:** `verify-links` command, progress messages during install, clear error codes and messages, shell compatibility detection, handling of per-machine overrides
-**Addresses:** Per-machine overrides, Shell compatibility from FEATURES.md. Addresses UX pitfalls (no feedback, silent failures) from PITFALLS.md.
-**Research flag:** May need `/gsd:research-phase` for per-machine override patterns and shell compatibility detection -- niche topic with less community documentation.
+**Addresses:** T1 (OS detection), T2 (afplay), T6 (cross-platform cooldown), T9 (macOS install.sh), D1 (unified install.sh)
+
+**Avoids:** Pitfall 3 (stat incompatibility), Pitfall 4 (TMPDIR)
+
+**Research flag:** SKIP -- macOS support is well-documented with high-confidence sources. `afplay` is a standard Apple tool, and the stat fix is a well-known bash portability pattern.
+
+### Phase 2: Windows Playback Wrapper
+
+**Rationale:** The Windows audio playback script (`notify-play.ps1`) is independent of the install scripts and can be developed and tested in isolation. Getting MediaPlayer working correctly on Windows is the highest-risk technical piece, so it should be validated before building the install/uninstall tooling around it.
+
+**Delivers:** `notify-play.ps1` that plays MP3 via `MediaPlayer` with 5-second cooldown using `$env:TEMP` lock files.
+
+**Addresses:** T3 (Windows MediaPlayer), T5 (forward-slash paths in hook commands)
+
+**Avoids:** Pitfall 5 (orphan processes), Pitfall 12 (SoundPlayer WAV-only)
+
+**Research flag:** NEEDS VALIDATION -- `MediaPlayer` approach for MP3 from PowerShell is community-documented but not verified against latest .NET on actual Windows hardware during this research session. The Claude Code `"shell": "powershell"` field is officially documented but Windows hooks have many open bugs.
+
+### Phase 3: Windows Install/Uninstall Scripts
+
+**Rationale:** Once the playback wrapper works, build the install scripts that wire everything together. This phase has the most pitfalls (JSON depth, BOM encoding, path normalization, idempotency) but they are all well-understood with clear mitigations.
+
+**Delivers:** `install.ps1` and `uninstall.ps1` that copy audio files, inject hooks with `"shell": "powershell"`, and handle all JSON manipulation correctly.
+
+**Addresses:** T4 (platform-specific hooks), T7 (install.ps1), T8 (uninstall.ps1)
+
+**Avoids:** Pitfall 1 (backslash paths), Pitfall 2 (JSON depth truncation), Pitfall 7 (shell field), Pitfall 14 (cross-platform idempotency)
+
+**Research flag:** STANDARD PATTERNS -- PowerShell JSON manipulation is well-documented. The main risk is the interaction between Claude Code's hook execution on Windows and PowerShell, which can only be validated by testing on actual Windows.
 
 ### Phase Ordering Rationale
 
-- **Foundation first** -- lib/ and config/ are dependencies for all sync modules; must build in strict order per ARCHITECTURE.md build order
-- **Docker testing established immediately** -- prevents the most insidious pitfall (Pitfall 8: testing on production) from day one
-- **Safety before features** -- idempotency and backup must work before adding more sync domains; overwriting existing configs is the top critical pitfall
-- **Secrets after sync framework** -- secrets prompt needs the config infrastructure to know which secrets to prompt for
-- **Validation after sync** -- validation verifies what sync created; cannot run before sync modules exist
-- **Polish last** -- edge cases only matter once the happy path works flawlessly
+- macOS first because it is a 2-hour modification to existing scripts with near-zero risk
+- Windows playback second because it is the highest-risk technical component and needs validation before investing in install scripts
+- Windows install third because it depends on the playback wrapper being correct, but once that is validated, the install scripts are straightforward PowerShell with well-known patterns
+- Linux/macOS (Phase 1) and Windows (Phases 2-3) are independent tracks and can be developed in parallel
+- Windows Desktop App compatibility (issue #29560) should be checked early but is not a blocker for CLI users
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 4 (Polish):** Per-machine override patterns and shell compatibility detection are niche topics with sparse documentation. Consider `/gsd:research-phase` if these features are prioritized.
-- **Phase 2 (Safety):** Memory/ directory handling -- PITFALLS.md strongly recommends never syncing memory/ by default (user-generated runtime data), but PROJECT.md lists it as a requirement. This tension needs resolution during requirements definition or Phase 2 planning.
+- **Phase 2:** Windows MediaPlayer behavior when invoked from Claude Code hook context -- community-documented but not verified on actual Windows. Claude Code Windows Desktop App hook support is unknown.
+- **Phase 3:** PowerShell 5.1 vs PowerShell 7 JSON handling differences (minor, `-Depth 100` works on both). UTF-8 BOM handling in PS 5.1 `Set-Content -Encoding UTF8` (PS 5.x writes UTF-8 with BOM, PS 7 does not).
 
-Phases with standard patterns (skip `/gsd:research-phase`):
-- **Phase 1 (Foundation):** Shell script structure, argument parsing, Docker testing, symlink creation -- well-documented, established patterns from Stow/dotbot/chezmoi.
-- **Phase 2 (Safety):** Backup-before-overwrite, idempotent operations, manifest-based sync -- the research file provides sufficient code patterns to implement directly.
-- **Phase 3 (Secrets/Validation):** Secret prompting in shell, pre-commit hooks, post-install smoke tests -- straightforward with clear patterns from the research.
+Phases with standard patterns (skip research-phase):
+- **Phase 1:** macOS support is well-understood. `afplay` is a standard Apple utility. `stat` portability is a classic bash problem with established solutions. High confidence across all sources.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM-HIGH | STACK.md covers a different subproject (Spark-TTS notifications). The actual stack for environment replay (Bash, coreutils, Docker for testing) is simple and well-understood, giving HIGH practical confidence despite the STACK.md misalignment. |
-| Features | MEDIUM | Thorough competitor analysis (Stow, yadm, chezmoi, dotbot) with clear feature dependency mapping and prioritization matrix. No web search available for verification. |
-| Architecture | MEDIUM | Four-layer model (entry, discovery, sync, validate) with strict build order is well-structured and based on established dotfiles manager architectures. Component boundaries are clear. |
-| Pitfalls | MEDIUM | Eight pitfalls identified with concrete prevention strategies and phase mappings. Based on domain knowledge from training data; no web search verification available. The pitfall-to-phase mapping is actionable. |
+| Stack | HIGH | Audio playback tools are OS built-ins with official documentation. Windows approach has multiple viable options with clear tradeoffs documented. |
+| Features | HIGH | 9 table-stakes features identified from official Claude Code hooks docs, existing codebase analysis, and platform documentation. Feature dependencies mapped explicitly. |
+| Architecture | HIGH | Clean three-layer architecture with clear platform boundaries. Build order validated. The `"shell": "powershell"` discovery simplifies Windows support significantly. |
+| Pitfalls | MEDIUM-HIGH | 14 pitfalls identified with clear mitigations. Top 4 are well-documented with verified sources. Windows-specific pitfalls (especially hook execution instability) carry medium confidence because the platform is unstable with many open Claude Code bugs. |
 
-**Overall confidence:** MEDIUM
+**Overall confidence:** MEDIUM-HIGH
+
+The research is high-confidence for the recommended approach and architecture. The medium component comes from Windows: the Claude Code hooks subsystem on Windows has 10+ open bugs, and the `MediaPlayer` approach for audio playback, while community-documented, has not been verified on actual Windows during this research session. macOS support is straightforward and high-confidence throughout.
 
 ### Gaps to Address
 
-- **STACK.md misalignment:** STACK.md documents a Spark-TTS notification system, not the Claude Code Environment Replay. The roadmapper should be aware that no dedicated stack research exists for the core project. This is partially mitigated by the simplicity of the stack (Bash + coreutils), but a dedicated STACK.md for the environment replay project would strengthen the research foundation.
-- **MCP server reinstallation patterns:** The architecture includes sync/05-mcp.sh but the specifics of detecting and reinstalling MCP servers are not well-researched. The mcp-servers.json format and installation procedures should be validated during Phase 2 planning.
-- **Memory/ directory tension:** PITFALLS.md strongly recommends never syncing memory/ by default (user-generated runtime data), but PROJECT.md lists memory sync as an active requirement. This must be resolved during requirements definition -- clarify whether memory sync is opt-in or opt-out, and what subset of memory/ (if any) should sync by default.
-- **No web search verification:** All research was based on training data knowledge rather than live web searches. Official Claude Code documentation on hooks, settings, and directory structure should be verified during implementation.
+- **Windows MediaPlayer in hook context:** The `MediaPlayer` approach needs validation on actual Windows to confirm it works when PowerShell is invoked from Claude Code's hook runner. If it fails, `WMPlayer.OCX` with proper cleanup is the fallback.
+- **Windows Desktop App hook support:** GitHub issue #29560 suggests hooks may not execute on the Claude Code Windows Desktop App. If the target audience uses the Desktop App, this could be a showstopper for Windows support.
+- **PowerShell UTF-8 BOM:** PowerShell 5.1 `Set-Content -Encoding UTF8` writes UTF-8 with BOM, which may confuse Claude Code's JSON parser. Need to test and potentially use `[System.IO.File]::WriteAllText()` instead.
+- **Cross-platform idempotency:** Running `install.sh` and then `install.ps1` on the same `settings.json` (or vice versa) may produce different JSON formatting. The content should be identical but this has not been tested.
+- **PowerShell execution policy:** Windows may block `.ps1` scripts by default. Install instructions need to address `Set-ExecutionPolicy RemoteSigned` or equivalent.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- GNU Stow documentation (https://www.gnu.org/software/stow/) -- symlink-based dotfiles management patterns
-- yadm project (https://yadm.io/) -- bootstrap and encryption patterns
-- chezmoi documentation (https://www.chezmoi.io/) -- template-based dotfiles management, secrets handling
-- dotbot project (https://github.com/anishathalye/dotbot) -- lightweight installer script patterns
-- rcm documentation (https://github.com/thoughtbot/rcm) -- tag-based file synchronization
+- [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks) -- `"shell"` field, async hooks, timeout, hook events
+- [Claude Code Hooks Guide](https://code.claude.com/docs/en/hooks-guide) -- cross-platform hook patterns, Windows PowerShell example
+- [GitHub Issue #26759](https://github.com/anthropics/claude-code/issues/26759) -- Windows backslash path bug confirmed in Claude Code >= 2.1.47
+- [GitHub Issue #32930](https://github.com/anthropics/claude-code/issues/32930) -- Claude Code hooks on Windows always use Git Bash, ignoring `shell` setting
+- Existing codebase: `scripts/install.sh`, `scripts/uninstall.sh`, `scripts/notify-play.sh` -- analyzed for v1.0 architecture and portability issues
 
 ### Secondary (MEDIUM confidence)
-- Spark-TTS Official GitHub (https://github.com/SparkAudio/Spark-TTS) -- for notify-research subproject only; requirements.txt, CLI usage, Docker patterns
-- Spark-TTS Docker PR #40 (breakstring) -- Dockerfile and Docker Compose patterns (notify subproject)
-- Domain knowledge from established dotfiles management practices -- community standard patterns
-- Claude Code hooks documentation (https://code.claude.com/docs/en/hooks) -- hook system and Notification event
+- [Stack Overflow -- Play MP3 with PowerShell](https://stackoverflow.com/questions/25895428) -- `SoundPlayer` WAV-only limitation, `MediaPlayer` for MP3
+- [Stack Overflow -- stat differences macOS vs Linux](https://stackoverflow.com/questions/10666570) -- GNU vs BSD `stat` flag incompatibility
+- [PowerShell `ConvertTo-Json` depth issue](https://stackoverflow.com/questions/53583677) -- default depth 2 truncation
+- [GitHub Issue #29560](https://github.com/anthropics/claude-code/issues/29560) -- Hooks don't execute on Windows Desktop App
+- [claude.fast -- Cross-platform hooks](https://claude.fast/blog/tools/hooks/cross-platform-hooks) -- Node.js cross-platform approach (alternative considered, rejected)
 
 ### Tertiary (LOW confidence)
-- Community dotfiles workflows (various GitHub repos) -- feature expectations and anti-patterns
-- Common community mistakes in dotfiles Reddit/DevOps discussions -- pitfall identification
-- Claude Code audio hooks (ChanMeng666) -- community reference, not directly reviewed
+- `WMPlayer.OCX` orphan process behavior -- based on training data, no specific source verified
+- `System.Windows.Media.MediaPlayer` from PresentationCore -- community-documented but not tested on actual Windows during this research
+- Windows TEMP/TMP environment variables -- standard convention, edge cases not verified
 
 ---
 *Research completed: 2026-03-30*

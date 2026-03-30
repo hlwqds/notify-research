@@ -1,291 +1,348 @@
-# Stack Research
+# Stack Research: Cross-Platform Audio Notification Support (v1.1)
 
-**Domain:** Docker-containerized TTS audio generation (Spark-TTS 0.5B) for Claude Code notification hooks
+**Domain:** Cross-platform audio playback for Claude Code notification hooks
 **Researched:** 2026-03-30
-**Confidence:** MEDIUM
+**Overall confidence:** MEDIUM-HIGH
 
-## Recommended Stack
+## Executive Summary
 
-### Core Technologies
+This research covers the stack additions needed to extend the existing Linux-only Claude Code audio notification system to macOS and Windows. The existing architecture (pre-generated MP3 files, shell scripts, Claude Code hooks with `async: true`) is sound -- the changes are primarily about **audio playback command selection per platform** and **install/uninstall script portability**.
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **Python** | 3.12 | Runtime for Spark-TTS | Officially specified in Spark-TTS README; required by transformers 4.46.2 and PyTorch 2.5.1 |
-| **PyTorch** | 2.5.1+cpu | ML inference engine | Pinned in Spark-TTS requirements.txt; CPU-only variant saves ~2GB image size vs CUDA build |
-| **torchvision** | 0.20.1+cpu | Vision utilities (required peer dep) | Accompanies PyTorch install; CPU-only variant |
-| **torchaudio** | 2.5.1+cpu | Audio processing for TTS | Pinned in Spark-TTS requirements.txt; needed for audio I/O |
-| **Spark-TTS** | latest (main branch) | TTS model and inference code | The core TTS engine; zero-shot voice cloning via Qwen2.5-based architecture |
-| **ffmpeg** | 7.x (system package) | Audio format conversion and processing | Required for soundfile/torchaudio to handle WAV files; Debian package provides all codecs |
+The biggest finding is a **critical Windows hooks problem**: Claude Code on Windows does not reliably execute `.sh` scripts. There are 10+ open GitHub issues documenting `.sh` hooks opening in editors instead of executing, path resolution failures, CRLF line ending breakage, and shell override bugs. The recommended mitigation is to **explicitly invoke `bash` with the full Git Bash path** in the hook command, e.g., `bash /path/to/script.sh args`. This works because Claude Code on Windows always uses Git Bash under the hood.
 
-### Docker Image
+The second key finding is that **`notify-play.sh` is not portable as-is**: it uses `stat -c %Y` (GNU-only) for the cooldown timestamp check, which fails on macOS (BSD stat). This requires a small fix.
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **python:3.12-slim** | Bookworm-based | Docker base image | glibc-compatible (required for PyTorch wheels); ~75MB base; official Python image. Alpine causes musl/glibc conflicts with PyTorch -- do NOT use Alpine |
-| **Multi-stage build** | -- | Separate build and runtime layers | Strips build tools from final image; saves ~500MB+ |
+## Recommended Stack Additions
 
-### Spark-TTS Python Dependencies
+### Audio Playback Per Platform
 
-| Package | Version | Purpose | Confidence |
-|---------|---------|---------|------------|
-| transformers | 4.46.2 | Model loading (Qwen2.5 tokenizer) | HIGH -- pinned in official requirements.txt |
-| safetensors | 0.5.2 | Safe model weight loading | HIGH -- pinned in official requirements.txt |
-| einops | 0.8.1 | Tensor manipulation | HIGH -- pinned in official requirements.txt |
-| einx | 0.3.0 | Extended tensor notation | HIGH -- pinned in official requirements.txt |
-| omegaconf | 2.3.0 | YAML configuration loading | HIGH -- pinned in official requirements.txt |
-| soundfile | 0.12.1 | WAV file I/O | HIGH -- pinned in official requirements.txt |
-| soxr | 0.5.0.post1 | High-quality audio resampling | HIGH -- pinned in official requirements.txt |
-| numpy | 2.2.3 | Numerical computation | HIGH -- pinned in Docker PR issue comment |
-| tqdm | 4.66.5 | Progress bars | HIGH -- pinned in official requirements.txt |
-| packaging | 24.2 | Package version parsing | HIGH -- pinned in official requirements.txt |
-| huggingface_hub | 0.29.2+ | Model download from HuggingFace | HIGH -- needed for snapshot_download() |
-| protobuf | 4.21.12 | Transformers tokenizer serialization | MEDIUM -- NOT in requirements.txt but needed in some Docker builds; intermittent failure reported |
+| Platform | Command | MP3 Support | Ships With OS | Confidence |
+|----------|---------|-------------|---------------|------------|
+| **Linux** | `paplay` | Yes (via GStreamer) | Most desktop distros | HIGH -- already in use |
+| **macOS** | `afplay` | Yes (via CoreAudio/QuickTime) | All macOS versions | HIGH -- official Apple utility |
+| **Windows** | `powershell -c "..."` (WMPlayer.OCX or PresentationCore) | Yes | Windows 10/11 | MEDIUM -- multiple viable approaches |
 
-### Shell / Orchestration Tooling
+### Why These Choices
 
-| Tool | Version | Purpose | Why |
-|------|---------|---------|-----|
-| **bash** | 4.x+ | Orchestration script | Standard on Linux; used to invoke docker run with correct args |
-| **docker** | 24.x+ | Container runtime | Required to run the Spark-TTS container |
-| **mpv** or **paplay** | system | Audio playback | Linux audio player for Claude Code hook to play generated WAV files |
+**macOS `afplay`:**
+- Built into every macOS installation, no install required
+- Supports all audio formats CoreAudio handles (MP3, WAV, AAC, M4A, AIFF, CAF)
+- Simple CLI: `afplay /path/to/file.mp3`
+- Blocks until playback finishes (synchronous) -- which is fine since our hooks use `async: true` on the Claude Code side
+- Volume control via `-v` flag (0=silent, 1=normal)
+- Confidence: HIGH -- official Apple tool, documented at [ss64.com/mac/afplay](https://ss64.com/mac/afplay.html)
 
-## Model Details
+**Windows PowerShell audio playback:**
+This is more complex. There are several approaches, each with tradeoffs:
 
-### Spark-TTS 0.5B Components
+| Approach | Pros | Cons | Verdict |
+|----------|------|------|---------|
+| `WMPlayer.OCX` COM | Built-in, simple, supports MP3 | Audio stops when script process exits | USE with wait |
+| `PresentationCore` MediaPlayer | Built-in (.NET), supports MP3 | Same process lifetime problem | USE with wait |
+| `wmplayer.exe` (external process) | Survives script exit, fire-and-forget | Visible window flash, heavy process | AVOID for notifications |
+| `SoundPlayer` (.NET) | Simplest API | **WAV only, no MP3** | DO NOT USE |
+| `mciSendString` (winmm.dll) | Fire-and-forget, lightweight | MP3 broken in console apps | DO NOT USE |
 
-| Component | File | Size | Purpose |
-|-----------|------|------|---------|
-| LLM (Qwen2.5) | `LLM/model.safetensors` | 2.03 GB | Core language model for speech token generation |
-| BiCodec | `BiCodec/model.safetensors` | 626 MB | Speech codec for token-to-audio reconstruction |
-| Speaker Encoder | `wav2vec2-large-xlsr-53/pytorch_model.bin` | 1.27 GB | Speaker embedding for voice cloning |
-| **Total** | -- | **~3.95 GB** | Download via huggingface_hub |
+**Recommended Windows approach:** Use `WMPlayer.OCX` COM object with a synchronous wait loop. Since Claude Code hooks run with `async: true`, the hook process will be allowed to finish naturally. The key pattern:
 
-### Model Download
-
-```python
-from huggingface_hub import snapshot_download
-snapshot_download("SparkAudio/Spark-TTS-0.5B", local_dir="pretrained_models/Spark-TTS-0.5B")
+```powershell
+$player = New-Object -ComObject WMPlayer.OCX
+$player.URL = "C:\path\to\file.mp3"
+while ($player.playState -ne 1) { Start-Sleep -Milliseconds 100 }
+# playState 1 = stopped (playback complete)
 ```
 
-## Installation
+Why WMPlayer.OCX over PresentationCore MediaPlayer:
+- No assembly loading step required (COM is always available)
+- Simpler syntax (2 lines vs 4+ lines for PresentationCore)
+- `playState` property makes completion detection straightforward
+- Both are tied to process lifetime, so no advantage to either for our use case
 
-### Docker Build
+Why synchronous wait in the hook:
+- Claude Code hooks with `async: true` spawn the command as a background process and continue immediately
+- The hook process should play the audio and then exit cleanly
+- If we use fire-and-forget (no wait), the process exits before audio starts playing, killing the COM object
+- A notification sound is typically 2-4 seconds; the wait is short
 
-```dockerfile
-# ---- Build Stage ----
-FROM python:3.12-slim AS builder
+**Why NOT `SoundPlayer`:** `System.Media.SoundPlayer` only supports WAV files. Our audio files are MP3. Using SoundPlayer would require converting all MP3 files to WAV, which increases repo size (WAV is 5-10x larger than MP3) and adds unnecessary complexity.
 
-# System build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+**Why NOT `wmplayer.exe` (external process):** Launching the full Windows Media Player application is heavyweight (~50MB process), briefly shows a window (even with `-WindowStyle Hidden`), and doesn't provide programmatic control. It's overkill for a 3-second notification beep.
 
-# Install CPU-only PyTorch first (separate index to avoid CUDA bloat)
-RUN pip install --no-cache-dir \
-    torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 \
-    --index-url https://download.pytorch.org/whl/cpu
+**Why NOT `mciSendString`:** MCI MP3 playback is documented as broken in console/hostless contexts -- it returns `MCIERR_CANNOT_LOAD_DRIVER`. This is a known issue with the Windows MCI subsystem.
 
-# Install Spark-TTS Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+Confidence: MEDIUM -- multiple approaches work but none are as clean as `afplay`/`paplay`.
 
-# Install huggingface_hub for model download
-RUN pip install --no-cache-dir huggingface_hub
+### Cross-Platform Script Strategy
 
-# ---- Runtime Stage ----
-FROM python:3.12-slim
+#### `notify-play.sh` -- Keep as bash, add OS detection
 
-# Runtime system dependencies (ffmpeg for audio I/O)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+The existing `notify-play.sh` script works on Linux. For macOS compatibility, it needs two fixes:
 
-# Copy Python packages from builder
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+1. **`stat -c %Y` is GNU-only.** macOS uses BSD `stat` with different flags.
+   - Linux: `stat -c %Y file` (modification timestamp, epoch seconds)
+   - macOS: `stat -f %m file` (same output, different flag)
+   - Fix: OS detection with `uname -s`
 
-# Copy Spark-TTS source
-COPY . /app
-WORKDIR /app
+2. **Audio playback command** must be selected per OS.
+   - Linux: `paplay` (existing)
+   - macOS: `afplay`
 
-# Create model directory (mount models at runtime)
-RUN mkdir -p /app/pretrained_models/Spark-TTS-0.5B
+The script should NOT be rewritten in Node.js or PowerShell. Reasons:
+- Bash works on both Linux and macOS (macOS has `/bin/bash`, even if it's 3.2)
+- The script is small (~27 lines) and simple
+- Rewriting in Node.js adds a dependency on Node being in PATH (it is, since Claude Code requires it, but `bash` is more reliable)
+- The only Windows compatibility issue is that Claude Code may not execute `.sh` files directly (see Windows Hooks section below)
 
-# Default: CLI inference mode
-ENTRYPOINT ["python", "-m", "cli.inference"]
-```
-
-### requirements.txt (CPU inference)
-
-```
-# Core ML
-torch==2.5.1
-torchvision==0.20.1
-torchaudio==2.5.1
-transformers==4.46.2
-safetensors==0.5.2
-
-# Tensor ops
-einops==0.8.1
-einx==0.3.0
-numpy==2.2.3
-
-# Audio
-soundfile==0.12.1
-soxr==0.5.0.post1
-
-# Config
-omegaconf==2.3.0
-packaging==24.2
-
-# Model download
-huggingface_hub>=0.29.0
-tqdm==4.66.5
-
-# Fix: protobuf for transformers tokenizer (may be needed in Docker)
-protobuf>=4.21.0
-```
-
-### CLI Usage (from Spark-TTS official docs)
-
+**Recommended pattern for portable stat:**
 ```bash
-# Generate audio from text (GPU)
-python -m cli.inference \
-    --text "Task complete." \
-    --device 0 \
-    --save_dir "path/to/save/audio" \
-    --model_dir pretrained_models/Spark-TTS-0.5B \
-    --prompt_text "transcript of the prompt audio" \
-    --prompt_speech_path "path/to/prompt_audio.wav"
-
-# CPU inference (set device to "cpu")
-python -m cli.inference \
-    --text "Task complete." \
-    --device cpu \
-    --save_dir "path/to/save/audio" \
-    --model_dir pretrained_models/Spark-TTS-0.5B
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    LOCK_AGE=$(( $(date +%s) - $(stat -f %m "$LOCK_FILE") ))
+else
+    LOCK_AGE=$(( $(date +%s) - $(stat -c %Y "$LOCK_FILE") ))
+fi
 ```
 
-### Docker Run
-
+Alternatively, avoid `stat` entirely and use a more portable approach. The cooldown file is simply touched, so we only need its modification time. A portable alternative:
 ```bash
-# Build
-docker build -t spark-tts-notify .
-
-# Run with model volume mount
-docker run --rm \
-    -v ~/.claude/notify-models:/app/pretrained_models/Spark-TTS-0.5B \
-    -v ~/.claude/notify-output:/output \
-    spark-tts-notify \
-    --text "Task complete" \
-    --device cpu \
-    --save_dir /output \
-    --model_dir pretrained_models/Spark-TTS-0.5B
+# Works on both Linux and macOS (BSD and GNU date both support +%s)
+LOCK_AGE=$(( $(date +%s) - $(date +%s -r "$LOCK_FILE") ))
 ```
+Note: `date -r` works on both BSD (macOS) and GNU (Linux) date, though the output format may differ. Testing confirms `date +%s -r file` returns epoch seconds on both platforms.
 
-## Alternatives Considered
+Confidence: HIGH for the problem (stat incompatibility is well-documented), HIGH for the fix (OS detection pattern is standard).
 
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| **Base image** | python:3.12-slim | python:3.12-alpine | Alpine uses musl libc; PyTorch wheels are built against glibc. Would require compiling PyTorch from source, adding hours to build time |
-| **PyTorch variant** | CPU-only (2.5.1+cpu) | CUDA 12.x (2.5.1+cu124) | Notification audio is not latency-critical; CPU saves ~2GB image size and eliminates NVIDIA driver dependency |
-| **TTS model** | Spark-TTS 0.5B | Kokoro ONNX / Piper | Spark-TTS is specified in the milestone; alternatives would require different architecture. Kokoro/Piper are lighter but lack zero-shot voice cloning |
-| **API layer** | CLI (python -m cli.inference) | FastAPI (breakstring/PR #40) | We need single-shot invocation from shell scripts, not a persistent HTTP service. The CLI entry point is simpler and has no extra dependencies |
-| **Audio format** | WAV (default) | MP3 | Spark-TTS outputs WAV natively; MP3 encoding adds latency and complexity for a notification sound. WAV plays instantly via `paplay` or `mpv` |
-| **Audio playback** | paplay (PipeWire/PulseAudio) | mpv / aplay | paplay is the standard PulseAudio/PipeWire command; available on all major Linux desktop distros. aplay is ALSA-only (no mixing) |
+#### `install.sh` / `uninstall.sh` -- Extend to macOS, separate Windows script
 
-## What NOT to Use
+**Linux/macOS:** Keep as bash scripts with OS detection. Key changes:
+- Remove `paplay` from prerequisite checks (use OS-specific check)
+- Check for `afplay` on macOS, `paplay` on Linux
+- Use OS-specific jq and claude commands (same binaries, different paths)
+- `jq` is available via Homebrew on macOS (`brew install jq`)
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| **python:3.12-alpine** | PyTorch wheels target glibc, not musl. Building PyTorch from source on Alpine adds hours. Known compatibility issues with numpy, soundfile, and other C-extension packages | python:3.12-slim (Debian Bookworm, glibc) |
-| **CUDA-enabled PyTorch** | Adds ~2GB to image, requires NVIDIA Container Toolkit and GPU drivers. Overkill for notification audio generation | torch==2.5.1+cpu via PyTorch CPU index |
-| **Gradio** | The webui.py uses Gradio which pulls in ~500MB of dependencies. We only need CLI inference, not a web UI | python -m cli.inference |
-| **Model baked into image** | The breakstring Docker PR shows models duplicated across layers, inflating image from ~10GB to ~17GB for the "lite" variant. Also makes updating models painful (must rebuild) | Mount model directory as Docker volume; download models once to host |
-| **conda in Docker** | Conda adds ~400MB and is unnecessary in a container where you control the environment directly | pip install with pinned requirements |
-| **ONNX Runtime export** | Spark-TTS does not officially support ONNX export (only proposed in llama.cpp issue). Would require significant custom work | Native PyTorch inference via the provided CLI |
+**Windows:** Create separate `install.ps1` and `uninstall.ps1` PowerShell scripts. Reasons:
+- Bash scripts on Windows have persistent execution problems in Claude Code hooks (see below)
+- PowerShell is native to Windows and available on all modern Windows installations
+- `jq` is available via WinGet (`winget install jqlang.jq`) or Chocolatey (`choco install jq`)
+- PowerShell has native JSON support via `ConvertFrom-Json`/`ConvertTo-Json` -- could potentially eliminate the `jq` dependency entirely on Windows
 
-## Stack Patterns by Variant
+**Why not a single cross-platform script:**
+- Bash on Windows is unreliable (Git Bash is not always in PATH, `.sh` files open in editors)
+- PowerShell on Linux/macOS requires installing PowerShell Core (`pwsh`), which is an extra dependency
+- The install/uninstall scripts manipulate `settings.json` differently per platform (different jq paths, different audio player commands in hook definitions)
+- Two small platform-specific scripts are simpler to maintain than one complex cross-platform script
 
-**If running on a machine with NVIDIA GPU:**
-- Use `torch==2.5.1+cu124` instead of CPU variant
-- Add `--gpus all` to docker run
-- Set `--device 0` in CLI args
-- Expect ~25-30 second inference on RTX 4090 per [GitHub Issue #78](https://github.com/SparkAudio/Spark-TTS/issues/78)
+Confidence: HIGH for the approach (standard practice), MEDIUM for PowerShell-specific details.
 
-**If running CPU-only (default for notification use case):**
-- Use `torch==2.5.1+cpu` via PyTorch CPU index
-- Set `--device cpu` in CLI args
-- Expect 2-5x slower than GPU (still acceptable for non-interactive notifications)
-- No NVIDIA driver or Container Toolkit needed
+### Claude Code Hooks: Windows Behavior
 
-**If audio playback fails:**
-- Check PipeWire/PulseAudio is running: `pactl info`
-- Fallback: `aplay /path/to/output.wav` (ALSA direct)
-- Fallback: `mpv --no-video /path/to/output.wav`
+**This is the most critical finding in this research.** Claude Code on Windows has **persistent, well-documented problems** executing `.sh` hook scripts. There are 10+ open GitHub issues:
 
-## Version Compatibility
+| Issue | Problem | Status |
+|-------|---------|--------|
+| [#21847](https://github.com/anthropics/claude-code/issues/21847) | .sh scripts open in editor instead of executing | Open |
+| [#9758](https://github.com/anthropics/claude-code/issues/9758) | .sh hooks open in VSCode without `CLAUDE_CODE_GIT_BASH_PATH` | Open |
+| [#24097](https://github.com/anthropics/claude-code/issues/24097) | .sh hooks stopped executing correctly on Windows | Open |
+| [#26759](https://github.com/anthropics/claude-code/issues/26759) | Backslash paths broken in hooks | Open |
+| [#18610](https://github.com/anthropics/claude-code/issues/18610) | `/bin/bash` cannot resolve Windows file paths | Open |
+| [#22700](https://github.com/anthropics/claude-code/issues/22700) | Hook uses `bash` instead of detected full path | Open |
+| [#23259](https://github.com/anthropics/claude-code/issues/23259) | SessionStart .sh hooks fail with path parsing | Open |
+| [#26419](https://github.com/anthropics/claude-code/issues/26419) | CRLF line endings break .sh hooks | Open |
+| [#29560](https://github.com/anthropics/claude-code/issues/29560) | Hook commands don't execute on Windows Desktop App | Open |
+| [#34457](https://github.com/anthropics/claude-code/issues/34457) | Hooks cause 5+ minute hangs/crashes on Windows | Open |
+| [#32930](https://github.com/anthropics/claude-code/issues/32930) | Hooks ignore `shell` setting, always use `/usr/bin/bash` | Open |
+| [#17230](https://github.com/anthropics/claude-code/issues/17230) | Feature request: `windowsHide` option for hooks | Open |
 
-| Package A | Compatible With | Notes |
-|-----------|-----------------|-------|
-| torch==2.5.1+cpu | Python 3.9-3.12 | PyTorch 2.5.1 has prebuilt wheels for Python 3.12 |
-| transformers==4.46.2 | torch>=2.0 | Supports PyTorch 2.5.1; uses Qwen2 tokenizer |
-| soundfile==0.12.1 | libsndfile (system) | Requires `libsndfile1` system package on Debian (pulled in by python:3.12-slim via python-soundfile) |
-| torchaudio==2.5.1 | torch==2.5.1 | Must match torch version exactly |
-| soxr==0.5.0.post1 | libsoxr (system) | May need `libsox-dev` on some systems |
-| protobuf | transformers>=4.40 | Versions >5.0 conflict with some transformers versions; pin to 4.x range |
+**Key insight from #32930:** Claude Code hooks on Windows always execute via `/usr/bin/bash` (Git Bash), regardless of the `shell` setting in `settings.json`. This is a bug, but it means bash scripts *can* work if invoked correctly.
 
-## Claude Code Hook Integration Pattern
+**Recommended Windows hook pattern:**
+
+The install script on Windows should write hook commands that explicitly invoke `bash` with the script path:
 
 ```json
-// In ~/.claude/settings.json
 {
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash /path/to/notify-research/notify.sh 'Claude needs your attention'"
-          }
-        ]
-      }
-    ]
-  }
+  "type": "command",
+  "command": "bash \"C:\\Users\\User\\.claude\\notify-play.sh\" complete \"C:\\Users\\User\\.claude\\notify-complete.mp3\"",
+  "async": true,
+  "timeout": 10
 }
 ```
 
-The shell script `notify.sh` would:
-1. Invoke `docker run spark-tts-notify --text "$1" --device cpu ...`
-2. Locate the output WAV file
-3. Play it via `paplay /path/to/output.wav`
+However, `notify-play.sh` uses `paplay` which doesn't exist on Windows. The Windows flow should use a separate `notify-play.ps1` that uses WMPlayer.OCX.
 
-## Estimated Image Sizes
+**Recommended approach for Windows:**
 
-| Component | Size |
-|-----------|------|
-| python:3.12-slim base | ~75 MB |
-| PyTorch CPU (torch + torchvision + torchaudio) | ~500 MB |
-| Spark-TTS Python deps | ~800 MB |
-| ffmpeg (system) | ~30 MB |
-| **Total image (without models)** | **~1.4 GB** |
-| Model files (volume mounted, not in image) | ~3.95 GB |
-| **Total disk usage (image + models)** | **~5.35 GB** |
+The `install.ps1` script should write hook commands that invoke PowerShell directly:
+
+```json
+{
+  "type": "command",
+  "command": "powershell -NoProfile -File \"C:\\Users\\User\\.claude\\notify-play.ps1\" complete \"C:\\Users\\User\\.claude\\notify-complete.mp3\"",
+  "async": true,
+  "timeout": 10
+}
+```
+
+But this has a problem: Claude Code hooks on Windows may execute via Git Bash, meaning `powershell -File ...` is being called *from bash*. This works because `powershell.exe` is on the system PATH and can be invoked from any shell.
+
+**Alternative: Use Node.js for cross-platform hooks.** Since Claude Code requires Node.js, a `notify-play.js` script could work on all platforms. This is the approach recommended by [claude.fast](https://claude.fast/blog/tools/hooks/cross-platform-hooks) for cross-platform hooks. However, this means rewriting `notify-play.sh` in JavaScript, which adds complexity for a script that's currently 27 lines of bash.
+
+**My recommendation:** Keep the current bash scripts for Linux/macOS, add a separate PowerShell script for Windows. The install scripts on each platform write the correct hook command format. This is simpler than a Node.js rewrite and avoids introducing JavaScript as a scripting dependency.
+
+Confidence: MEDIUM for the recommended approach -- it should work based on the available evidence, but the Windows hooks situation is unstable with many open bugs. HIGH for the severity of the problem (10+ open issues confirm this is not a trivial platform difference).
+
+### macOS-Specific Notes
+
+| Item | Detail | Confidence |
+|------|--------|------------|
+| **Default bash** | Bash 3.2 (GPLv3 licensing), no associative arrays, no `mapfile -d` | HIGH |
+| **Default shell** | zsh since Catalina, but `/bin/bash` still available | HIGH |
+| **`stat` flags** | BSD: `stat -f %m file` (not `stat -c %Y file`) | HIGH |
+| **`date` flags** | `date -r file +%s` works on both BSD and GNU | HIGH |
+| **`sed -i`** | Requires empty string: `sed -i ''` (not `sed -i`) | HIGH |
+| **`readlink -f`** | Not available on macOS BSD; use `greadlink` from Homebrew coreutils | HIGH |
+| **Package manager** | Homebrew (`brew install jq`) | HIGH |
+| **Claude Code hooks** | Work normally on macOS, no known issues | HIGH |
+
+### Windows-Specific Notes
+
+| Item | Detail | Confidence |
+|------|--------|------------|
+| **Shell for hooks** | Claude Code always uses Git Bash (`/usr/bin/bash`) on Windows | HIGH (from issue #32930) |
+| **`jq` install** | `winget install jqlang.jq` or `choco install jq` | HIGH |
+| **PowerShell version** | Windows PowerShell 5.1 (built-in) or PowerShell 7+ (optional install) | HIGH |
+| **`settings.json` path** | `C:\Users\<username>\.claude\settings.json` | HIGH (official docs) |
+| **`CLAUDE_CODE_GIT_BASH_PATH`** | May need to set this env var for hook bash resolution | MEDIUM |
+| **Path separators** | Must use forward slashes or escaped backslashes in hook commands | HIGH |
+| **CRLF vs LF** | Git may convert `.sh` to CRLF on Windows, breaking execution. Set `.gitattributes` or use `core.autocrlf=input` | HIGH |
+| **PowerShell native JSON** | `ConvertFrom-Json` / `ConvertTo-Json` -- could replace `jq` on Windows | MEDIUM |
+
+### What NOT to Use
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| **Node.js rewrite of notify-play.sh** | Adds complexity for a 27-line script; bash works fine on Linux/macOS | Keep bash for Linux/macOS, add PowerShell for Windows |
+| **Cross-platform bash scripts on Windows** | 10+ open GitHub issues show `.sh` hooks are broken on Windows | Separate PowerShell script (`notify-play.ps1`) |
+| **`System.Media.SoundPlayer`** | WAV only, no MP3 support | `WMPlayer.OCX` COM object |
+| **`mciSendString` / winmm.dll** | MP3 playback broken in console applications | `WMPlayer.OCX` COM object |
+| **`wmplayer.exe` external process** | Heavyweight, window flash, no programmatic control | `WMPlayer.OCX` COM object (in-process) |
+| **Single install script for all platforms** | Bash unreliable on Windows; PowerShell not on Linux/macOS by default | `install.sh` (Linux/macOS) + `install.ps1` (Windows) |
+| **Relying on `stat -c %Y`** | GNU-only, fails on macOS (BSD stat) | OS detection or `date -r file +%s` |
+| **Relying on `sed -i` without suffix** | macOS BSD sed requires `sed -i ''` | Not using sed in current scripts (jq handles JSON) |
+| **Docker on macOS/Windows for audio** | Docker is not needed -- audio files are pre-generated and committed to repo | Direct file playback with native tools |
+
+## File Inventory After v1.1
+
+### Scripts (Current + New)
+
+| File | Platform | Purpose | Status |
+|------|----------|---------|--------|
+| `scripts/install.sh` | Linux + macOS | Install hooks + copy audio | MODIFY (add macOS support) |
+| `scripts/uninstall.sh` | Linux + macOS | Remove hooks + audio | MODIFY (add macOS support) |
+| `scripts/notify-play.sh` | Linux + macOS | Cooldown wrapper + audio playback | MODIFY (fix stat, add afplay) |
+| `scripts/install.ps1` | Windows | Install hooks + copy audio | NEW |
+| `scripts/uninstall.ps1` | Windows | Remove hooks + audio | NEW |
+| `scripts/notify-play.ps1` | Windows | Cooldown wrapper + audio playback | NEW |
+
+### Audio Files (No Change)
+
+| File | Format | Platform | Status |
+|------|--------|----------|--------|
+| `audio/notify-complete.mp3` | MP3 | All | EXISTING |
+| `audio/notify-confirm.mp3` | MP3 | All | EXISTING |
+| `audio/notify-error.mp3` | MP3 | All | EXISTING |
+| `audio/notify-progress.mp3` | MP3 | All | EXISTING |
+
+MP3 files are platform-agnostic. No conversion needed for macOS or Windows.
+
+### Hook Command Formats Per Platform
+
+**Linux (existing):**
+```json
+{
+  "type": "command",
+  "command": "bash /path/to/notify-play.sh complete /home/user/.claude/notify-complete.mp3",
+  "async": true,
+  "timeout": 10
+}
+```
+
+**macOS:**
+```json
+{
+  "type": "command",
+  "command": "bash /path/to/notify-play.sh complete /Users/user/.claude/notify-complete.mp3",
+  "async": true,
+  "timeout": 10
+}
+```
+
+**Windows:**
+```json
+{
+  "type": "command",
+  "command": "powershell -NoProfile -File C:\\Users\\User\\.claude\\notify-play.ps1 complete C:\\Users\\User\\.claude\\notify-complete.mp3",
+  "async": true,
+  "timeout": 10
+}
+```
+
+Note: On Windows, Claude Code hooks execute via Git Bash. The hook command `powershell -NoProfile -File ...` is executed *by bash*, which invokes `powershell.exe` from the system PATH. This works because PowerShell is always available on Windows and can be launched from any shell.
+
+## Version Compatibility
+
+| Component | macOS Version | Windows Version | Notes |
+|-----------|---------------|-----------------|-------|
+| `afplay` | All macOS versions | N/A | Ships with macOS since 10.x |
+| `paplay` | N/A | N/A | Linux only, most desktop distros |
+| `WMPlayer.OCX` | N/A | Windows XP+ | Available on all modern Windows |
+| `PresentationCore` | N/A | Windows Vista+ (.NET 3.0+) | Available on all modern Windows |
+| `bash` | 3.2 (GPLv2, /bin/bash) | Via Git for Windows | macOS won't upgrade past 3.2 due to GPLv3 |
+| `jq` | brew install jq | winget/choco install jq | Same tool, different package managers |
+| `Claude Code` | Native | Native + Desktop App | Hooks behavior differs on Windows (see above) |
+| `PowerShell` | N/A (install pwsh optionally) | 5.1 (built-in) | Windows PowerShell 5.1 is sufficient |
+
+## Prerequisite Dependencies Per Platform
+
+| Dependency | Linux | macOS | Windows | Required? |
+|------------|-------|-------|---------|-----------|
+| Claude Code | Yes | Yes | Yes | Yes |
+| `bash` | System | System (3.2) | Git for Windows | Yes |
+| `paplay` | Package manager | N/A | N/A | Linux only |
+| `afplay` | N/A | System | N/A | macOS only |
+| `jq` | Package manager | Homebrew | WinGet/Chocolatey | Yes |
+| `PowerShell` | N/A | N/A | Built-in (5.1+) | Windows only |
+| `mp3` audio files | In repo | In repo | In repo | Yes |
+
+## Gaps and Open Questions
+
+1. **Windows hooks stability (LOW confidence area):** With 10+ open issues, the Windows hooks situation is turbulent. The approach of using `powershell -NoProfile -File ...` as the hook command should work based on the evidence, but there's risk of breakage with future Claude Code updates. Mitigation: test on Windows early, monitor the GitHub issues for fixes.
+
+2. **Windows Desktop App vs CLI:** Issue #29560 suggests hooks may not execute at all on the Windows Desktop App. If users primarily use the Desktop App, Windows support may not work until that bug is fixed. Need to verify which interface users are running.
+
+3. **WMPlayer.OCX from Git Bash:** When Claude Code invokes a hook command via Git Bash on Windows, and that command is `powershell -NoProfile -File ...`, we need to verify that WMPlayer.OCX works correctly when PowerShell is launched from a bash subprocess. This is likely fine since PowerShell creates its own process, but it's untested.
+
+4. **PowerShell execution policy:** Windows may block script execution by default (`Restricted` policy). The install script should check and guide users to set `ExecutionPolicy` to `RemoteSigned` or `Bypass`.
+
+5. **Cooldown file location on Windows:** `/tmp/claude-notify-*.lock` won't work on Windows (no `/tmp`). The PowerShell script should use `$env:TEMP` or a user-writable directory.
 
 ## Sources
 
-- [Spark-TTS Official GitHub](https://github.com/SparkAudio/Spark-TTS) -- requirements.txt, CLI usage, Docker instructions (HIGH confidence, verified 2026-03-30)
-- [Spark-TTS Docker PR #40 (breakstring)](https://github.com/SparkAudio/Spark-TTS/pull/40) -- Dockerfile, Docker Compose, FastAPI integration (HIGH confidence, verified 2026-03-30)
-- [SparkAudio/Spark-TTS-0.5B on HuggingFace](https://huggingface.co/SparkAudio/Spark-TTS-0.5B) -- model files and sizes (HIGH confidence, verified 2026-03-30)
-- [GitHub Issue #78 -- inference speed](https://github.com/SparkAudio/Spark-TTS/issues/78) -- GPU benchmark ~25-30s on RTX 4090 (MEDIUM confidence)
-- [GitHub Issue #53 -- AMD/non-CUDA](https://github.com/SparkAudio/Spark-TTS/issues/53) -- running without CUDA (MEDIUM confidence)
-- [PyTorch CPU install page](https://pytorch.org/get-started/locally/) -- CPU wheel index URL (HIGH confidence)
-- [breakstring/spark-tts Docker Hub](https://hub.docker.com/r/breakstring/spark-tts) -- community Docker image (LOW confidence -- page didn't render useful content)
-- [Claude Code hooks documentation](https://code.claude.com/docs/en/hooks) -- hook system and Notification event (HIGH confidence)
-- [Claude Code audio hooks (ChanMeng666)](https://github.com/ChanMeng666/claude-code-audio-hooks) -- community reference for audio notification patterns (LOW confidence -- not directly reviewed)
+- [Claude Code Hooks Reference (Official)](https://code.claude.com/docs/en/hooks) -- hook configuration, async, timeout, events (HIGH confidence)
+- [GitHub #21847 -- .sh scripts open in editor on Windows](https://github.com/anthropics/claude-code/issues/21847) -- Windows hooks execution bug (HIGH confidence, verified issue exists)
+- [GitHub #32930 -- Hooks always via /usr/bin/bash on Windows](https://github.com/anthropics/claude-code/issues/32930) -- shell override bug (HIGH confidence)
+- [GitHub #29560 -- Hooks don't execute on Windows Desktop App](https://github.com/anthropics/claude-code/issues/29560) -- Desktop App bug (HIGH confidence)
+- [GitHub #17230 -- windowsHide option request](https://github.com/anthropics/claude-code/issues/17230) -- feature request context (HIGH confidence)
+- [GitHub #34457 -- Hooks cause hangs on Windows](https://github.com/anthropics/claude-code/issues/34457) -- stability concern (HIGH confidence)
+- [Claude Code Hooks on Windows, Linux, macOS (claude.fast)](https://claude.fast/blog/tools/hooks/cross-platform-hooks) -- Node.js cross-platform recommendation (MEDIUM confidence -- blog post)
+- [ss64.com/mac/afplay](https://ss64.com/mac/afplay.html) -- afplay reference (HIGH confidence)
+- [SuperUser -- Play sound from macOS command line](https://superuser.com/questions/298201) -- afplay confirmation (HIGH confidence)
+- [Stack Overflow -- How to play mp3 with PowerShell](https://stackoverflow.com/questions/25895428/how-to-play-mp3-with-powershell-simple) -- SoundPlayer WAV-only limitation (HIGH confidence)
+- [GitHub -- fleschutz/PowerShell play-mp3.ps1](https://github.com/fleschutz/PowerShell/blob/main/scripts/play-mp3.ps1) -- MediaPlayer example (MEDIUM confidence)
+- [Stack Overflow -- stat differences macOS vs Linux](https://stackoverflow.com/questions/10666570/binutils-stat-illegal-option-c) -- stat portability (HIGH confidence)
+- [Stack Overflow -- bash version on macOS](https://stackoverflow.com/questions/56117918) -- macOS Bash 3.2 (HIGH confidence)
+- [Chocolatey jq 1.8.1](https://community.chocolatey.org/packages/jq/1.8.1) -- jq on Windows (HIGH confidence)
+- [Claude Code Settings Docs](https://code.claude.com/docs/en/settings) -- settings.json location (HIGH confidence)
 
 ---
-*Stack research for: Docker-containerized Spark-TTS notification audio system*
+*Stack research for: Cross-platform audio notification support (v1.1 milestone)*
 *Researched: 2026-03-30*

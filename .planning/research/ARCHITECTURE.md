@@ -1,468 +1,561 @@
-# Architecture Research
+# Architecture Research: Cross-Platform Audio Notification Support (v1.1)
 
-**Domain:** Docker-containerized TTS audio generation CLI tool for Claude Code voice notifications
+**Domain:** Cross-platform integration for existing Claude Code audio notification system
 **Researched:** 2026-03-30
 **Confidence:** HIGH
 
-## Standard Architecture
+## Executive Summary
 
-### System Overview
+This research covers how to extend the v1.0 Linux-only notification system to macOS and Windows. The key architectural discovery is that Claude Code provides a first-class `"shell": "powershell"` field on command hooks, which eliminates the need for bash-to-PowerShell translation at the hook level. The architecture should NOT change the Docker TTS generation pipeline or the pre-generated MP3 files -- those are platform-agnostic already. The changes are confined to three layers: (1) the playback command selection per OS, (2) the install/uninstall scripts, and (3) the cooldown wrapper.
 
-This system has 4 distinct components with clear boundaries. It is NOT a long-running service -- it is a one-shot batch pipeline: build Docker image once, run container to generate audio files, files land on host for hooks to play.
+## Critical Discovery: Claude Code `"shell": "powershell"` Field
 
-```
-+-----------------------------------------------------------+
-|                     Host Machine (Linux/Fedora)              |
-+-----------------------------------------------------------+
-|                                                              |
-|  +-------------------------+    +-------------------------+ |
-|  |  1. Shell Orchestrator  |    |  4. Claude Code Hooks   | |
-|  |  (notify-generate.sh)   |    |  (~/.claude/settings)   | |
-|  |                         |    |                         | |
-|  |  - docker build         |    |  - paplay ~/.claude/    | |
-|  |  - docker run           |    |    notify-*.mp3         | |
-|  |  - ffmpeg conversion    |    |  - PostToolUse trigger  | |
-|  +----------+--------------+    +------------+------------+ |
-|             |                                ^              |
-|             | docker run                     | reads mp3     |
-|             v                                |              |
-|  +----------+-------------------------------++-----------+  |
-|  |               2. Docker Container                        |  |
-|  |                                                        |  |
-|  |  +-------------------+  +----------------------------+ |  |
-|  |  | 2a. TTS Engine    |  | 2b. Python Inference      | |  |
-|  |  | Spark-TTS 0.5B    |  | (cli.SparkTTS wrapper)    | |  |
-|  |  |                   |  |                            | |  |
-|  |  | - Qwen2.5 base   |  | - text -> wav generation   | |  |
-|  |  | - voice creation  |  | - gender/pitch/speed ctrl  | |  |
-|  |  |   mode (no ref)   |  | - batch 4 notifications    | |  |
-|  |  +-------------------+  +----------------------------+ |  |
-|  |                                                        |  |
-|  +----------------------------+---------------------------+ |
-|             |                                            |
-|             | volume mount: /output -> ~/.claude/         |
-|             v                                            |
-|  +----------+----------------------------+              |
-|  |  3. Audio Pipeline                  |              |
-|  |                                     |              |
-|  |  - Spark-TTS outputs .wav (16kHz)  |              |
-|  |  - ffmpeg converts .wav -> .mp3    |              |
-|  |  - files land at ~/.claude/notify-* |              |
-|  +-------------------------------------+              |
-+-----------------------------------------------------------+
+**HIGH confidence** -- verified from official Claude Code hooks reference at code.claude.com/docs/en/hooks.
+
+Claude Code hooks support a `"shell"` field on command hooks that accepts `"bash"` (default) or `"powershell"`. When set to `"powershell"`, Claude Code spawns PowerShell directly (auto-detects `pwsh.exe` for PowerShell 7+ with fallback to `powershell.exe` 5.1). This is independent of the `CLAUDE_CODE_USE_POWERSHELL_TOOL` setting.
+
+This means:
+- On Windows, hooks can run native PowerShell commands without any bash translation layer
+- The same `settings.json` structure works on all platforms -- only the `command` and `shell` fields differ
+- No need for a Windows-compatible bash layer (Git Bash, WSL, etc.)
+
+**Schema:**
+```json
+{
+  "hooks": {
+    "Stop": [{
+      "hooks": [{
+        "type": "command",
+        "shell": "powershell",
+        "command": "powershell-command-here",
+        "async": true,
+        "timeout": 10
+      }]
+    }]
+  }
+}
 ```
 
-### Component Responsibilities
+## Architecture Overview: What Changes vs What Stays
 
-| Component | Responsibility | Location | Communicates With |
-|-----------|----------------|----------|-------------------|
-| **Shell Orchestrator** | Build Docker image, run container, pass params, verify output | `notify-generate.sh` on host | Docker daemon, Claude Code hooks |
-| **Docker Container** | Isolated Python/PyTorch environment with Spark-TTS model | Built from Dockerfile | Host via volume mounts |
-| **TTS Engine** | Spark-TTS 0.5B model inference, voice creation mode | Inside container | Python wrapper script |
-| **Audio Pipeline** | WAV generation (Spark-TTS) -> MP3 conversion (ffmpeg) | Inside container + host | Output directory via volume |
+### Unchanged Components (Platform-Agnostic)
 
-### Key Boundary: Container Isolation
+| Component | Why Unchanged |
+|-----------|---------------|
+| `audio/notify-*.mp3` | MP3 files are platform-independent. Already committed to repo. |
+| `Dockerfile` + `generate.sh` | Docker TTS generation only runs on Linux (for audio creation). Output is MP3. |
+| `settings.json` hook structure | Same 4 events: Stop, Notification, StopFailure, SubagentStop. Same `async: true`. |
+| Hook event mapping | Stop->complete, Notification->confirm, StopFailure->error, SubagentStop->progress. |
+| `~/.claude/` as install target | Claude Code uses `~/.claude/` on all platforms for settings and user data. |
 
-The Docker container is the critical isolation boundary. Spark-TTS requires Python 3.12, PyTorch, and ~8.5GB of model weights. These must NEVER leak onto the host. The host only needs:
-- Docker (already installed)
-- `paplay` (PulseAudio, already available on Fedora)
-- Shell script (bash)
+### Components That Need Platform Variants
 
-Everything else runs inside the container.
+| Component | Linux | macOS | Windows |
+|-----------|-------|-------|---------|
+| **Audio playback command** | `/usr/bin/paplay` | `/usr/bin/afplay` | PowerShell `MediaPlayer` |
+| **Cooldown wrapper** | `scripts/notify-play.sh` (bash) | `scripts/notify-play.sh` (bash, reuse) | `scripts/notify-play.ps1` (PowerShell) |
+| **Install script** | `scripts/install.sh` (bash) | `scripts/install.sh` (bash, reuse) | `scripts/install.ps1` (PowerShell) |
+| **Uninstall script** | `scripts/uninstall.sh` (bash) | `scripts/uninstall.sh` (bash, reuse) | `scripts/uninstall.ps1` (PowerShell) |
+| **Hook `shell` field** | Omitted (default `bash`) | Omitted (default `bash`) | `"shell": "powershell"` |
 
-## Recommended Project Structure
+### Key Insight: macOS Shares Linux Scripts
+
+macOS ships with bash (or zsh with bash compatibility) and `/usr/bin/afplay`. The only difference from Linux is the playback command (`afplay` instead of `paplay`). This means `install.sh`, `uninstall.sh`, and `notify-play.sh` work on macOS with a single change: detect the OS and select the correct player.
+
+Windows requires completely separate scripts in PowerShell.
+
+## Recommended Architecture
+
+```
++------------------------------------------------------------------+
+|                    Platform Detection Layer                       |
+|                                                                  |
+|  install.sh (Linux/macOS)       install.ps1 (Windows)            |
+|  - detect OS via uname           - native PowerShell              |
+|  - select: paplay or afplay      - select: Windows.Media.MediaPlayer |
+|  - inject hooks with jq          - inject hooks with ConvertFrom-Json  |
++------------------------------------------------------------------+
+        |                                    |
+        v                                    v
++------------------------------------------------------------------+
+|                  Shared Layer (All Platforms)                     |
+|                                                                  |
+|  audio/notify-*.mp3  -- pre-generated, committed to repo        |
+|  ~/.claude/           -- install target for all platforms        |
+|  settings.json hooks  -- same 4 events, same event mapping       |
+|  5-second cooldown    -- same debouncing logic per notification  |
++------------------------------------------------------------------+
+        |
+        v
++------------------------------------------------------------------+
+|                Platform-Specific Playback Layer                   |
+|                                                                  |
+|  Linux:   notify-play.sh -> /usr/bin/paplay $AUDIO_FILE         |
+|  macOS:   notify-play.sh -> /usr/bin/afplay $AUDIO_FILE         |
+|  Windows: notify-play.ps1 -> [Windows.Media.MediaPlayer]::Play  |
++------------------------------------------------------------------+
+```
+
+## Component Details
+
+### 1. notify-play.sh (Linux + macOS, Modified)
+
+The existing `notify-play.sh` works on both Linux and macOS with one change: detect the OS and select the playback command.
+
+**Current (Linux-only):**
+```bash
+/usr/bin/paplay "$AUDIO_FILE" 2>/dev/null || true
+```
+
+**Proposed (Linux + macOS):**
+```bash
+detect_player() {
+    if [[ "$(uname)" == "Darwin" ]]; then
+        echo "/usr/bin/afplay"
+    else
+        echo "/usr/bin/paplay"
+    fi
+}
+
+PLAYER=$(detect_player)
+$PLAYER "$AUDIO_FILE" 2>/dev/null || true
+```
+
+**Design decision:** Use `uname` for OS detection rather than checking for command existence. Rationale: `uname` is instant and unambiguous. Checking `command -v afplay` would also work but is unnecessary since we already know the platform at install time.
+
+**Cooldown mechanism:** The existing `/tmp/claude-notify-{type}.lock` timestamp approach works on macOS too (macOS has `/tmp`). No change needed.
+
+### 2. notify-play.ps1 (Windows, New)
+
+Windows needs a PowerShell equivalent of the cooldown wrapper. The cooldown logic must use a file-based timestamp mechanism equivalent to the bash version.
+
+**Proposed structure:**
+```powershell
+# notify-play.ps1 — Windows cooldown wrapper for notification playback
+param(
+    [string]$Type,
+    [string]$AudioFile
+)
+
+$LockFile = "$env:TEMP\claude-notify-$Type.lock"
+$CooldownSec = 5
+
+# Check cooldown
+if (Test-Path $LockFile) {
+    $LockAge = (Get-Date) - (Get-Item $LockFile).LastWriteTime
+    if ($LockAge.TotalSeconds -lt $CooldownSec) {
+        exit 0
+    }
+}
+
+# Update lock and play
+Set-Content -Path $LockFile -Value (Get-Date) -NoNewline
+
+Add-Type -AssemblyName presentationCore
+$player = New-Object System.Windows.Media.MediaPlayer
+$player.Open([System.Uri]::new($AudioFile))
+$player.Play()
+exit 0
+```
+
+**Key considerations for notify-play.ps1:**
+
+| Concern | Approach |
+|---------|----------|
+| **MP3 playback** | `System.Windows.Media.MediaPlayer` via `presentationCore` assembly. Supports MP3 natively. Non-blocking by default (Play() returns immediately). |
+| **Cooldown** | File timestamp in `$env:TEMP`, equivalent to `/tmp` on Linux/macOS. |
+| **Error handling** | Exit 0 always (matches bash behavior). Stop/SubagentStop hooks block on non-zero exit. |
+| **MediaPlayer disposal** | Not needed. The script exits after Play(), and Claude Code's async timeout kills the process if needed. MediaPlayer is a lightweight object. |
+| **No `SoundPlayer`** | `System.Media.SoundPlayer` only supports WAV files, not MP3. Must use MediaPlayer. |
+
+**Confidence: HIGH** for `MediaPlayer` approach -- verified from Stack Overflow, Microsoft docs, and multiple PowerShell sources. `SoundPlayer` WAV-only limitation is well-documented.
+
+### 3. install.sh (Linux + macOS, Modified)
+
+The existing `install.sh` needs two changes:
+
+**Change 1: OS detection for player prerequisite check**
+
+Current:
+```bash
+for cmd in jq paplay; do
+    if ! command -v "$cmd" &>/dev/null; then
+        echo "ERROR: $cmd not found." >&2
+        exit 1
+    fi
+done
+```
+
+Proposed:
+```bash
+for cmd in jq; do
+    if ! command -v "$cmd" &>/dev/null; then
+        echo "ERROR: $cmd not found." >&2
+        exit 1
+    fi
+done
+
+# Check platform-specific audio player
+if [[ "$(uname)" == "Darwin" ]]; then
+    PLAYER="afplay"
+else
+    PLAYER="paplay"
+fi
+
+if ! command -v "$PLAYER" &>/dev/null; then
+    echo "ERROR: $PLAYER not found." >&2
+    exit 1
+fi
+```
+
+**Change 2: None needed for hook injection.** The hooks already reference `notify-play.sh` which now handles OS detection internally. The jq command and hook structure remain identical.
+
+### 4. install.ps1 (Windows, New)
+
+The Windows install script must mirror `install.sh` behavior: copy audio files and inject hooks into `settings.json`. The key difference is using PowerShell's `ConvertFrom-Json` / `ConvertTo-Json` instead of `jq`.
+
+**Proposed structure:**
+```powershell
+# install.ps1 — Install Claude Code notification hooks on Windows
+param()
+
+$ClaudeDir = "$env:USERPROFILE\.claude"
+$SettingsPath = "$ClaudeDir\settings.json"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$RepoRoot = Split-Path -Parent $ScriptDir
+$NotifyPlay = "$RepoRoot\scripts\notify-play.ps1"
+
+# Prerequisite checks
+# - Claude Code version check (optional, same logic as bash)
+# - PowerShell MediaCapability check (presentationCore assembly)
+
+# Copy audio files
+$Types = @("complete", "confirm", "error", "progress")
+foreach ($Type in $Types) {
+    $Src = "$RepoRoot\audio\notify-$Type.mp3"
+    $Dst = "$ClaudeDir\notify-$Type.mp3"
+    if (-not (Test-Path $Src)) {
+        Write-Error "ERROR: $Src not found. Audio files must be pre-generated."
+        exit 1
+    }
+    Copy-Item $Src $Dst -Force
+}
+
+# Read and modify settings.json
+$settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
+
+# Ensure hooks object exists
+if (-not $settings.hooks) {
+    $settings | Add-Member -NotePropertyName "hooks" -NotePropertyValue ([PSCustomObject]@{}) -Force
+}
+
+# Define hook commands
+$hookEvents = @{
+    Stop          = @{ cmd = "$NotifyPlay complete $ClaudeDir\notify-complete.mp3" }
+    Notification  = @{ cmd = "$NotifyPlay confirm $ClaudeDir\notify-confirm.mp3" }
+    StopFailure   = @{ cmd = "$NotifyPlay error $ClaudeDir\notify-error.mp3" }
+    SubagentStop  = @{ cmd = "$NotifyPlay progress $ClaudeDir\notify-progress.mp3" }
+}
+
+foreach ($event in $hookEvents.Keys) {
+    $hookEntry = @(
+        @{
+            hooks = @(
+                @{
+                    type    = "command"
+                    shell   = "powershell"
+                    command = $hookEvents[$event].cmd
+                    async   = $true
+                    timeout = 10
+                }
+            )
+        }
+    )
+    $settings.hooks | Add-Member -NotePropertyName $event -NotePropertyValue $hookEntry -Force
+}
+
+# Write back
+$settings | ConvertTo-Json -Depth 100 | Set-Content $SettingsPath -Encoding UTF8
+```
+
+**Critical considerations for install.ps1:**
+
+| Concern | Approach | Confidence |
+|---------|----------|------------|
+| **JSON manipulation** | `ConvertFrom-Json` / `ConvertTo-Json -Depth 100`. Must use `-Depth 100` because default depth is 2 in PowerShell 5.x. | HIGH -- standard PowerShell pattern |
+| **`shell` field** | Set to `"powershell"` on each hook. This tells Claude Code to spawn PowerShell for these hooks. | HIGH -- official Claude Code feature |
+| **Backslash in paths** | PowerShell handles backslashes natively. `$ClaudeDir\notify-complete.mp3` works correctly. | HIGH |
+| **Idempotency** | `Add-Member -Force` overwrites existing properties, same as jq's `=` assignment. Safe to run multiple times. | HIGH |
+| **UTF-8 encoding** | `Set-Content -Encoding UTF8` ensures settings.json is readable. Without this, PowerShell 5.x may write UTF-16 BOM which breaks JSON parsers. | MEDIUM -- `-Encoding UTF8` in PS 5.x writes UTF-8 with BOM. PS 7+ defaults to UTF-8 without BOM. Consider using `[System.IO.File]::WriteAllText()` if BOM issues arise. |
+| **No `jq` dependency** | PowerShell's built-in JSON cmdlets replace jq entirely on Windows. Do not require jq on Windows. | HIGH -- this is the standard approach |
+
+### 5. uninstall.ps1 (Windows, New)
+
+Mirrors `uninstall.sh`: removes hook entries from `settings.json` and deletes audio files.
+
+```powershell
+# uninstall.ps1 — Remove Claude Code notification hooks on Windows
+$ClaudeDir = "$env:USERPROFILE\.claude"
+$SettingsPath = "$ClaudeDir\settings.json"
+
+$settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
+
+# Remove hook entries
+$eventsToRemove = @("Stop", "Notification", "StopFailure", "SubagentStop")
+foreach ($event in $eventsToRemove) {
+    if ($settings.hooks.PSObject.Properties[$event]) {
+        $settings.hooks.PSObject.Properties.Remove($event)
+    }
+}
+
+# Write back
+$settings | ConvertTo-Json -Depth 100 | Set-Content $SettingsPath -Encoding UTF8
+
+# Remove audio files
+$Types = @("complete", "confirm", "error", "progress")
+foreach ($Type in $Types) {
+    Remove-Item "$ClaudeDir\notify-$Type.mp3" -ErrorAction SilentlyContinue
+}
+```
+
+## Hook Configuration Per Platform
+
+### Linux (Current, No Change)
+```json
+{
+  "hooks": {
+    "Stop": [{"hooks": [{"type": "command", "command": "/path/to/notify-play.sh complete /home/user/.claude/notify-complete.mp3", "async": true, "timeout": 10}]}],
+    "Notification": [{"hooks": [{"type": "command", "command": "/path/to/notify-play.sh confirm /home/user/.claude/notify-confirm.mp3", "async": true, "timeout": 10}]}],
+    "StopFailure": [{"hooks": [{"type": "command", "command": "/path/to/notify-play.sh error /home/user/.claude/notify-error.mp3", "async": true, "timeout": 10}]}],
+    "SubagentStop": [{"hooks": [{"type": "command", "command": "/path/to/notify-play.sh progress /home/user/.claude/notify-progress.mp3", "async": true, "timeout": 10}]}]
+  }
+}
+```
+
+### macOS (Same as Linux, `shell` omitted = default `bash`)
+```json
+{
+  "hooks": {
+    "Stop": [{"hooks": [{"type": "command", "command": "/path/to/notify-play.sh complete /Users/user/.claude/notify-complete.mp3", "async": true, "timeout": 10}]}]
+  }
+}
+```
+
+Identical structure. Only difference: `~` expands to `/Users/user` instead of `/home/user`. `notify-play.sh` auto-detects `afplay` vs `paplay`.
+
+### Windows (New: `shell: "powershell"`)
+```json
+{
+  "hooks": {
+    "Stop": [{"hooks": [{"type": "command", "shell": "powershell", "command": "C:\\path\\to\\notify-play.ps1 -Type complete -AudioFile C:\\Users\\user\\.claude\\notify-complete.mp3", "async": true, "timeout": 10}]}]
+  }
+}
+```
+
+Key differences:
+1. `"shell": "powershell"` -- tells Claude Code to invoke PowerShell
+2. Script is `.ps1` not `.sh`
+3. Uses PowerShell parameter syntax (`-Type`, `-AudioFile`)
+4. Windows paths use backslashes
+
+## Data Flow Per Platform
+
+### Linux Data Flow (Unchanged)
+```
+Claude Code fires Stop event
+  -> Hook command: /path/to/notify-play.sh complete ~/.claude/notify-complete.mp3
+  -> notify-play.sh checks /tmp/claude-notify-complete.lock (cooldown)
+  -> Within cooldown? -> exit 0 (skip)
+  -> Touch lock file
+  -> /usr/bin/paplay ~/.claude/notify-complete.mp3
+  -> PulseAudio plays audio
+  -> exit 0
+```
+
+### macOS Data Flow
+```
+Claude Code fires Stop event
+  -> Hook command: /path/to/notify-play.sh complete ~/.claude/notify-complete.mp3
+  -> notify-play.sh uname == "Darwin" -> PLAYER=/usr/bin/afplay
+  -> notify-play.sh checks /tmp/claude-notify-complete.lock (cooldown)
+  -> Within cooldown? -> exit 0 (skip)
+  -> Touch lock file
+  -> /usr/bin/afplay ~/.claude/notify-complete.mp3
+  -> CoreAudio plays audio
+  -> exit 0
+```
+
+### Windows Data Flow
+```
+Claude Code fires Stop event
+  -> Hook command (shell=powershell): C:\path\to\notify-play.ps1 -Type complete -AudioFile C:\Users\user\.claude\notify-complete.mp3
+  -> notify-play.ps1 checks $env:TEMP\claude-notify-complete.lock (cooldown)
+  -> Within cooldown? -> exit 0 (skip)
+  -> Write timestamp to lock file
+  -> Add-Type -AssemblyName presentationCore
+  -> New-Object System.Windows.Media.MediaPlayer
+  -> $player.Open(mp3 file)
+  -> $player.Play()
+  -> exit 0
+  -> Windows audio subsystem plays audio
+```
+
+## Audio Playback Comparison
+
+| Property | `paplay` (Linux) | `afplay` (macOS) | `MediaPlayer` (Windows) |
+|----------|------------------|------------------|------------------------|
+| **Format support** | MP3, WAV, OGG, FLAC | MP3, WAV, AAC, M4A, AIFC | MP3, WAV, WMA, AAC |
+| **Blocking behavior** | Blocks until playback finishes | Blocks until playback finishes | Non-blocking (Play() returns immediately) |
+| **Installation** | Pre-installed (PipeWire/PulseAudio) | Pre-installed (macOS) | Pre-installed (Windows .NET Framework) |
+| **Dependencies** | libpulse | CoreAudio | `presentationCore` assembly |
+| **In async hook** | Works fine (async: true handles blocking) | Works fine (async: true handles blocking) | Works fine (already non-blocking) |
+| **Error on missing** | Exits non-zero | Exits non-zero | Assembly load error |
+
+**Important:** All three commands block (or not) but since hooks use `async: true`, Claude Code does not wait. The `timeout: 10` kills any runaway process.
+
+## Project Structure After v1.1
 
 ```
 notify-research/
-├── Dockerfile                  # Multi-stage: build Python deps + runtime
-├── docker-compose.yml          # Optional: convenience wrapper
-├── requirements.txt            # Python deps for TTS inference
-├── generate.py                 # Main TTS generation script (runs inside container)
-├── notify-generate.sh          # Host-side orchestration script (entry point for user)
-├── notify-config.yaml          # Notification text definitions (4 notifications)
-├── output/                     # Generated audio files (gitignored)
+├── audio/                      # (UNCHANGED) Pre-generated MP3 files
 │   ├── notify-complete.mp3
 │   ├── notify-confirm.mp3
 │   ├── notify-error.mp3
 │   └── notify-progress.mp3
-└── pretrained_models/          # Model weights (downloaded on first build)
-    └── Spark-TTS-0.5B/
+├── scripts/
+│   ├── install.sh              # (MODIFIED) Linux + macOS install
+│   ├── uninstall.sh            # (MODIFIED) Linux + macOS uninstall
+│   ├── notify-play.sh          # (MODIFIED) Linux + macOS cooldown wrapper
+│   ├── install.ps1             # (NEW) Windows install
+│   ├── uninstall.ps1           # (NEW) Windows uninstall
+│   └── notify-play.ps1         # (NEW) Windows cooldown wrapper
+├── Dockerfile                  # (UNCHANGED) TTS generation only
+├── generate.sh                 # (UNCHANGED) TTS generation only
+├── requirements.txt            # (UNCHANGED)
+└── generate.py                 # (UNCHANGED)
 ```
 
-### Structure Rationale
+## Anti-Patterns to Avoid
 
-- **`Dockerfile` at root**: Standard Docker convention; `docker build .` works from project root
-- **`generate.py`**: Single Python script that runs inside the container. Calls Spark-TTS API in voice creation mode, handles batch generation of 4 notifications, converts WAV to MP3
-- **`notify-generate.sh`**: User-facing entry point. Hides Docker complexity. One command: `./notify-generate.sh`
-- **`notify-config.yaml`**: Declarative notification definitions. Each notification has: text (Chinese), filename, voice parameters. Easy to add/modify without touching code
-- **`requirements.txt`**: Pinned Python dependencies for reproducibility inside Docker
-- **`pretrained_models/`**: Model weights downloaded during Docker build (via huggingface_hub). Could alternatively use a Docker volume for model caching across builds
+### Anti-Pattern 1: Using `SoundPlayer` on Windows
 
-## Architectural Patterns
+**What:** Using `System.Media.SoundPlayer` instead of `MediaPlayer`.
 
-### Pattern 1: Voice Creation Mode (No Reference Audio)
+**Why wrong:** `SoundPlayer` only supports WAV files. The project distributes MP3 files.
 
-**What:** Spark-TTS has two modes: voice cloning (requires reference audio) and voice creation (generates a voice from parameters). This project uses voice creation mode exclusively because there is no reference audio -- the goal is to generate notification sounds, not clone a specific speaker.
+**Do instead:** Use `System.Windows.Media.MediaPlayer` (from `presentationCore` assembly) which supports MP3 natively.
 
-**When to use:** Always for this project. Voice creation mode is simpler and does not require a reference audio file.
+### Anti-Pattern 2: Trying to Make One Script Work Everywhere
 
-**Trade-offs:**
-- Pro: No reference audio needed, simpler pipeline
-- Con: Voice is less controllable than cloning; `--gender female --pitch low --speed low` gives a "gentle, low-pitched, relaxed" voice but results may vary between runs
-- Con: Each invocation may produce a slightly different voice (unless `--seed` is specified)
+**What:** Writing a single `notify-play.sh` that somehow works on Windows via Git Bash or WSL.
 
-**Key API parameters for voice creation:**
+**Why wrong:** Windows hooks support `"shell": "powershell"` natively. Mixing bash and PowerShell creates fragile, hard-to-debug setups. Git Bash on Windows has path translation issues (`/c/Users/...`) that cause subtle bugs.
 
-```python
-# From Spark-TTS issue #10 and HuggingFace docs
-model.inference(
-    text="notification text here",
-    prompt_speech_path=None,  # None = voice creation mode
-    prompt_text=None,          # None = voice creation mode
-    gender="female",           # "male" or "female"
-    pitch="low",               # "very_low", "low", "moderate", "high", "very_high"
-    speed="low",               # "very_low", "low", "moderate", "high", "very_high"
-)
-```
+**Do instead:** Separate scripts per platform. Bash for Linux/macOS, PowerShell for Windows. This is what Claude Code's official documentation demonstrates.
 
-**Parameter values confirmed from GitHub issue #10 (AcTePuKc's code):**
-- `pitch_map = ["very_low", "low", "moderate", "high", "very_high"]`
-- `speed_map = ["very_low", "low", "moderate", "high", "very_high"]`
-- `gender`: `"male"` or `"female"` (NOT `"auto"` -- auto causes failure in creation mode)
+### Anti-Pattern 3: Using `ConvertTo-Json` Without `-Depth 100`
 
-**Confidence:** HIGH -- verified from official GitHub issue #10 and HuggingFace model card
+**What:** Writing PowerShell install.ps1 without specifying `-Depth 100`.
 
-### Pattern 2: Batch Pipeline (Not a Service)
+**Why wrong:** PowerShell 5.x defaults to `-Depth 2`, which silently truncates nested objects. The hook structure is 4 levels deep (`hooks.Stop[0].hooks[0].command`), so default depth would corrupt the JSON.
 
-**What:** This is a batch pipeline that runs once to generate all notification audio files. It is NOT a long-running TTS service or API server.
+**Do instead:** Always use `-Depth 100` (or a sufficiently high number) when writing settings.json.
 
-**When to use:** Always for this project. Spark-TTS CPU inference takes ~8 minutes per sentence on CPU (per PROJECT.md constraint). Running as an on-demand API service is not viable.
+### Anti-Pattern 4: BOM in settings.json
 
-**Trade-offs:**
-- Pro: Simple, no server management, no GPU requirements (can run on CPU)
-- Pro: Audio files are static -- notification text does not change between runs
-- Con: Generating audio takes ~32 minutes total (4 notifications x ~8 min each on CPU)
-- Con: If notification text changes, must re-run the pipeline
+**What:** Using `Set-Content` in PowerShell 5.x without specifying encoding, which writes UTF-16 with BOM.
 
-**Example pipeline:**
-```bash
-# User runs once to generate all notifications
-./notify-generate.sh
+**Why wrong:** Claude Code's JSON parser may fail on UTF-16 BOM (`\xEF\xBB\xBF` or `\xFF\xFE` prefix).
 
-# Script does:
-# 1. docker build -t spark-tts-notify .
-# 2. docker run spark-tts-notify python generate.py --config notify-config.yaml
-# 3. Copies output/notify-*.mp3 to ~/.claude/
-```
+**Do instead:** Use `Set-Content -Encoding UTF8` (PS 5.x) or consider `[System.IO.File]::WriteAllText($path, $content)` (PS 7+ defaults to UTF-8 without BOM).
 
-### Pattern 3: Multi-Stage Docker Build
+### Anti-Pattern 5: Installing jq on Windows
 
-**What:** Use Docker multi-stage builds to separate the heavy build environment (compilers, full PyTorch) from the lean runtime. Since Spark-TTS needs PyTorch for inference (not compilation), a multi-stage build mainly helps with image hygiene and layer caching.
+**What:** Requiring jq as a prerequisite on Windows for settings.json manipulation.
 
-**When to use:** Recommended for this project. PyTorch + model weights create large images. Multi-stage helps control this.
+**Why wrong:** PowerShell has built-in JSON cmdlets (`ConvertFrom-Json`, `ConvertTo-Json`). Adding jq creates an unnecessary dependency.
 
-**Trade-offs:**
-- Pro: Smaller final image if build-time-only deps can be separated
-- Pro: Better Docker layer caching (requirements.txt changes don't invalidate everything)
-- Con: PyTorch runtime is large regardless (~4GB with CUDA libs) -- savings from multi-stage are modest
-- Con: Adds Dockerfile complexity
-
-**Recommended approach:** Single-stage is pragmatic here. PyTorch is needed at runtime, and the model weights (~1.6GB for 0.5B) are the dominant size factor, not build deps. Multi-stage is worth doing if:
-1. You want to cache pip installs separately from model downloads
-2. You want to strip down to CPU-only PyTorch at runtime (save ~2GB vs CUDA)
-
-```dockerfile
-# Stage 1: Download model (cached separately)
-FROM python:3.12-slim AS model-fetch
-RUN pip install --no-cache-dir huggingface_hub
-RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('SparkAudio/Spark-TTS-0.5B', local_dir='/models/Spark-TTS-0.5B')"
-
-# Stage 2: Runtime
-FROM python:3.12-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
-COPY --from=model-fetch /models /app/pretrained_models
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r /app/requirements.txt
-COPY generate.py /app/
-WORKDIR /app
-ENTRYPOINT ["python", "generate.py"]
-```
-
-### Pattern 4: Volume Mount for Output
-
-**What:** Mount the host's `~/.claude/` directory into the container's `/output/` directory. Generated MP3 files are written directly to the host filesystem without needing `docker cp`.
-
-**When to use:** Always. This is the standard pattern for getting batch output from containers to host.
-
-**Trade-offs:**
-- Pro: Simple, no post-processing step needed
-- Pro: Files land directly where Claude Code hooks expect them
-- Con: Container has write access to `~/.claude/` (mitigated: container is ephemeral, runs only when user explicitly invokes)
-
-```bash
-docker run -v ~/.claude:/output spark-tts-notify
-# Container writes /output/notify-complete.mp3
-# Which appears as ~/.claude/notify-complete.mp3 on host
-```
-
-## Data Flow
-
-### Generation Pipeline Flow
-
-```
-User runs: ./notify-generate.sh
-    |
-    v
-[1. Shell Orchestrator]
-    |-- Checks Docker is installed
-    |-- Checks ~/.claude/ directory exists
-    |-- Reads notify-config.yaml
-    |
-    v
-[2. Docker Build]
-    |-- Stage 1: Download Spark-TTS 0.5B model weights (~1.6GB)
-    |-- Stage 2: Install Python 3.12 + PyTorch + Spark-TTS deps + ffmpeg
-    |   (Cached after first build -- subsequent builds are fast)
-    |
-    v
-[3. Docker Run]
-    |-- Mount ~/.claude/ -> /output/
-    |-- Pass notification config as arguments or mounted file
-    |-- Container starts, runs generate.py
-    |
-    v
-[4. TTS Generation (inside container)]
-    |
-    For each notification in config:
-    |
-    [4a. Load Model]
-    |   |-- Load Spark-TTS 0.5B from /app/pretrained_models/
-    |   |-- Move to CPU device (no GPU required)
-    |   (Load once, reuse for all notifications)
-    |
-    [4b. Generate WAV]
-    |   |-- Call model.inference(text, gender="female", pitch="low", speed="low")
-    |   |-- Output: numpy array at 16kHz sample rate
-    |   |-- Save to temp .wav file
-    |   (Takes ~8 min per notification on CPU)
-    |
-    [4c. Convert to MP3]
-    |   |-- ffmpeg -i temp.wav -q:a 2 /output/notify-{name}.mp3
-    |   |-- MP3 appears at ~/.claude/notify-{name}.mp3 on host
-    |
-    v
-[5. Post-Generation Verification]
-    |-- Shell script checks: ~/.claude/notify-*.mp3 files exist
-    |-- Optionally plays each file to verify audio quality
-    |-- Reports success/failure
-    |
-    v
-[6. Claude Code Hooks (at runtime)]
-    |-- Hooks trigger on PostToolUse/Notification events
-    |-- Execute: paplay ~/.claude/notify-confirm.mp3 2>/dev/null &
-    |-- PulseAudio plays the MP3 through speakers
-```
-
-### Key Data Transformations
-
-```
-Notification Text (Chinese string)
-    |
-    v [Spark-TTS model.inference()]
-Raw Audio (numpy float32 array, 16kHz)
-    |
-    v [soundfile.write()]
-WAV File (16-bit PCM, 16kHz, mono)
-    |
-    v [ffmpeg -i wav -q:a 2]
-MP3 File (compressed, ~30-100KB for 2-3 second notification)
-    |
-    v [paplay]
-Audio Output (speakers via PulseAudio)
-```
-
-### Volume Mount Points
-
-| Host Path | Container Path | Purpose | Direction |
-|-----------|---------------|---------|-----------|
-| `~/.claude/` | `/output/` | MP3 output files | Write (container -> host) |
-| `./notify-config.yaml` | `/app/notify-config.yaml` | Notification definitions | Read (host -> container) |
-| `./pretrained_models/` (optional) | `/app/pretrained_models/` | Cached model weights | Read (host -> container) |
-
-**Alternative for model caching:** Use a Docker named volume for model weights so they persist across `docker build` runs:
-```bash
-docker volume create spark-tts-models
-docker run -v spark-tts-models:/app/pretrained_models -v ~/.claude:/output spark-tts-notify
-```
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| **Single user, 4 notifications** | Single container, CPU-only, batch generation. No scaling needed. |
-| **Multiple notification sets** | Parameterize notify-config.yaml. Add `--set` flag to orchestrator script. |
-| **Shared across machines** | Publish Docker image to registry. `notify-generate.sh` pulls image instead of building. |
-| **Faster generation needed** | Add GPU support: `docker run --gpus all`. Inference drops from ~8 min to ~1 sec per notification (0.136 RTF on L20 GPU per official benchmarks). |
-
-### Scaling Priorities
-
-1. **First bottleneck:** CPU inference time (~8 min per notification). Mitigation: use `--seed` for reproducibility so regeneration is only needed when text changes. With GPU, this disappears entirely.
-2. **Second bottleneck:** Model download time (~1.6GB). Mitigation: Docker named volume for model caching; only download once.
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Running TTS as a Long-Running Service
-
-**What people do:** Wrap Spark-TTS in a Flask/FastAPI server for on-demand TTS generation.
-
-**Why it's wrong:** Spark-TTS takes ~8 minutes per sentence on CPU. An on-demand API is unusably slow without GPU. The notification text is fixed (4 predefined strings), so there is no need for on-demand generation.
-
-**Do this instead:** Pre-generate all audio files in a batch run. Play static MP3 files from hooks. This is simple, reliable, and fast at runtime (MP3 playback is instant).
-
-### Anti-Pattern 2: Baking Model Weights into Docker Image
-
-**What people do:** `COPY pretrained_models/ /app/pretrained_models/` in Dockerfile, then commit the ~1.6GB model directory to the repo.
-
-**Why it's wrong:** 1.6GB of model weights in git makes clones painful. Docker image layers bloat. Every `docker build` re-copies weights.
-
-**Do this instead:** Download model weights in a separate Docker build stage (cached layer) or use a Docker volume for model storage. Keep model weights out of the git repo (`.gitignore`).
-
-### Anti-Pattern 3: Generating Real-Time TTS in Hooks
-
-**What people do:** Hook triggers TTS generation directly: `python generate_tts.py "Task complete"` inside a PostToolUse hook.
-
-**Why it's wrong:** The hook has a timeout. Spark-TTS takes ~8 minutes on CPU. The hook would time out or block Claude Code for an unacceptable duration.
-
-**Do this instead:** Pre-generate audio files. Hooks only play back static MP3 files with `paplay` (instant, <1 second).
-
-### Anti-Pattern 4: Using Voice Cloning Mode Without Reference Audio
-
-**What people do:** Pass `--prompt_speech_path=""` or omit it entirely and expect voice cloning to work.
-
-**Why it's wrong:** Voice cloning requires a 5-20 second reference audio clip. Without it, the model either fails or produces random/chaotic voice output. The `--gender` parameter alone (without reference audio) activates "voice creation" mode, which is what this project needs.
-
-**Do this instead:** Explicitly use voice creation mode by passing `gender="female"` (or `"male"`) with `pitch` and `speed` parameters, and leaving `prompt_speech_path=None`. Do not pass a prompt_speech_path if you have no reference audio.
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| **Hugging Face Hub** | Model download during Docker build | `huggingface_hub.snapshot_download("SparkAudio/Spark-TTS-0.5B")`. Requires internet during build. Cache with Docker volume or build stage. |
-| **PulseAudio** | Host-side audio playback via `paplay` | Already available on Fedora. Hooks use `paplay ~/.claude/notify-*.mp3 2>/dev/null &` (backgrounded, errors suppressed). |
-| **Claude Code Hooks** | Reads static MP3 files from `~/.claude/` | Hooks already configured in `~/.claude/settings.json`. No code changes needed in hooks -- just ensure MP3 files exist. |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|------------|
-| **Shell script -> Docker** | `docker build` and `docker run` CLI | Script orchestrates container lifecycle |
-| **Host filesystem -> Container** | Docker volume mounts | Output directory mounted for file transfer |
-| **generate.py -> Spark-TTS** | Python API call (`model.inference()`) | Direct function call, no HTTP needed |
-| **Spark-TTS -> ffmpeg** | Filesystem (temp WAV) | generate.py writes WAV, calls ffmpeg subprocess to convert |
+**Do instead:** Use PowerShell's native JSON cmdlets for Windows scripts.
 
 ## Build Order and Dependencies
 
 ```
-Phase 1: Dockerfile + Base Environment
-    |-- Python 3.12 base image
-    |-- ffmpeg installation
-    |-- requirements.txt (PyTorch, transformers, soundfile, etc.)
-    Depends on: Nothing
-    Blocks: Everything else
+Phase 1: Modify notify-play.sh for OS detection
+    |-- Add uname check for Darwin
+    |-- Select afplay vs paplay
+    |-- Test on Linux (must not break existing behavior)
+    Depends on: Nothing (standalone modification)
+    Blocks: Phase 2
 
-Phase 2: Model Acquisition
-    |-- Download Spark-TTS 0.5B model weights
-    |-- Verify model integrity
-    Depends on: Phase 1 (Docker build environment)
+Phase 2: Modify install.sh for macOS support
+    |-- Remove paplay from prerequisite check (make it conditional)
+    |-- Add afplay/paplay detection
+    |-- Update user-facing messages
+    Depends on: Phase 1 (notify-play.sh handles OS detection)
     Blocks: Phase 3
 
-Phase 3: TTS Generation Script (generate.py)
-    |-- Load model
-    |-- Voice creation API call
-    |-- WAV output
-    |-- MP3 conversion via ffmpeg
-    Depends on: Phase 1 (Python deps), Phase 2 (model weights)
+Phase 3: Create notify-play.ps1 (Windows cooldown wrapper)
+    |-- Implement cooldown logic in PowerShell
+    |-- Implement MediaPlayer playback
+    |-- Test MP3 playback on Windows
+    Depends on: Nothing (independent of Phase 1-2)
     Blocks: Phase 4
 
-Phase 4: Shell Orchestration (notify-generate.sh)
-    |-- Docker build
-    |-- Docker run with volume mounts
-    |-- Post-generation verification
-    Depends on: Phase 3 (generate.py exists in image)
-    Blocks: Nothing (this is the user entry point)
+Phase 4: Create install.ps1 (Windows install script)
+    |-- Copy audio files to ~/.claude/
+    |-- Inject hooks with ConvertFrom-Json / ConvertTo-Json
+    |-- Set shell: "powershell" on hook entries
+    Depends on: Phase 3 (notify-play.ps1 must exist)
+    Blocks: Phase 5
 
-Phase 5: Claude Code Hooks Integration
-    |-- Verify hooks in ~/.claude/settings.json
-    |-- Verify MP3 files in ~/.claude/
-    Depends on: Phase 4 (audio files generated)
+Phase 5: Create uninstall.ps1 (Windows uninstall script)
+    |-- Remove hook entries from settings.json
+    |-- Delete audio files from ~/.claude/
+    Depends on: Phase 4 (must understand install.ps1 structure)
+    Blocks: Nothing
+
+Phase 6: Documentation and README updates
+    |-- Installation instructions for each platform
+    |-- Troubleshooting section
+    Depends on: All previous phases
     Blocks: Nothing
 ```
 
-**Recommended implementation order:** 1 -> 2 -> 3 -> 4 -> 5
+**Parallelism opportunity:** Phase 1-2 (Linux/macOS) and Phase 3-5 (Windows) are independent and can be developed in parallel.
 
-**Note on Phase 1-3:** These all happen inside the Docker container. The user does not interact with them directly. Phase 4 is the only user-facing component.
+## Pitfalls and Mitigations
 
-## Notification Configuration Schema
+| Pitfall | Severity | Mitigation |
+|---------|----------|------------|
+| `ConvertTo-Json -Depth` truncation | High | Always use `-Depth 100`. Add test that reads back settings.json and verifies hook structure. |
+| UTF-8 BOM corruption on Windows | High | Use `Set-Content -Encoding UTF8`. Test that Claude Code reads the modified settings.json correctly. |
+| `MediaPlayer` assembly not available | Low | `presentationCore` is part of .NET Framework 4+ and .NET Core/5+, available on all modern Windows. No mitigation needed. |
+| `afplay` path on macOS | Low | `/usr/bin/afplay` is at a fixed path on all macOS versions. No mitigation needed. |
+| PowerShell 5.x vs 7+ differences | Medium | Test on both. Use `-Depth 100` for both (PS 7+ defaults to 100 but explicit is safer). Avoid PS 7-only features. |
+| `stat -c %Y` not available on macOS | Medium | `notify-play.sh` current code uses `stat -c %Y` which is GNU-only. macOS uses `stat -f %m`. Must fix. |
+| Path separator differences | Low | Each platform's script uses its native separator. No cross-platform path issues. |
+| `$HOME` vs `$USERPROFILE` | Low | Bash uses `$HOME`, PowerShell uses `$env:USERPROFILE`. Each script uses its platform's convention. |
 
-```yaml
-# notify-config.yaml
-notifications:
-  - name: complete
-    text: "任务已完成，请查看结果"  # Task complete, please check results
-    filename: "notify-complete.mp3"
-    voice:
-      gender: female
-      pitch: low
-      speed: low
+## Pre-Submission Checklist
 
-  - name: confirm
-    text: "需要您确认操作"  # Needs your confirmation
-    filename: "notify-confirm.mp3"
-    voice:
-      gender: female
-      pitch: low
-      speed: low
-
-  - name: error
-    text: "执行出错，请检查"  # Error occurred, please check
-    filename: "notify-error.mp3"
-    voice:
-      gender: female
-      pitch: low
-      speed: low
-
-  - name: progress
-    text: "正在处理中"  # Processing
-    filename: "notify-progress.mp3"
-    voice:
-      gender: female
-      pitch: low
-      speed: low
-```
-
-## License Consideration
-
-**Important:** Spark-TTS model weights are licensed under **CC BY-NC-SA 4.0** (changed from Apache 2.0 in 2025 due to training data licensing). The inference code on GitHub remains Apache 2.0.
-
-For this project (personal use, non-commercial voice notifications), CC BY-NC-SA 4.0 is compatible. But this must be documented and the LICENSE file should note:
-- Code (generate.py, Dockerfile, shell script): Apache 2.0 (own code)
-- Model weights (Spark-TTS 0.5B): CC BY-NC-SA 4.0 (third-party, non-commercial)
-
-**Confidence:** HIGH -- verified from HuggingFace model card license notice and ModelScope page.
+- [x] Platform-specific vs shared code clearly separated
+- [x] Data flow direction explicit per platform
+- [x] Build order implications noted
+- [x] All findings have confidence levels
+- [x] Sources verified (official docs for Claude Code hooks)
+- [x] Anti-patterns documented
+- [x] install.ps1 mirrors install.sh behavior described
 
 ## Sources
 
-- [Spark-TTS Official GitHub Repository](https://github.com/SparkAudio/Spark-Tts) -- Official inference code, installation instructions, voice creation mode documentation (HIGH confidence)
-- [Spark-TTS 0.5B HuggingFace Model Card](https://huggingface.co/SparkAudio/Spark-TTS-0.5B) -- Model download instructions, CLI usage, license update notice (HIGH confidence)
-- [Spark-TTS CLI Voice Creation Discussion (Issue #10)](https://github.com/SparkAudio/Spark-TTS/issues/10) -- Exact voice creation API parameters: gender, pitch, speed values (HIGH confidence)
-- [Spark-TTS-cli-api Fork](https://github.com/dogarrowtype/Spark-TTS-cli-api) -- Alternative CLI implementation, confirms 8.5GB VRAM requirement and voice creation pattern (MEDIUM confidence)
-- [claude-code-audio-hooks](https://github.com/ChanMeng666/claude-code-audio-hooks) -- Reference implementation for Claude Code audio notification hooks (MEDIUM confidence)
-- [Spark-TTS License Change (ModelScope)](https://modelscope.cn/models/AI-ModelScope/Spark-TTS-0.5B) -- Confirms CC BY-NC-SA 4.0 license for model weights (HIGH confidence)
-- Docker multi-stage build best practices -- [Python Speed](https://pythonspeed.com/articles/multi-stage-docker-python/), [StackOverflow](https://stackoverflow.com/questions/77712265) (MEDIUM confidence)
+- [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks) -- `"shell": "powershell"` field, async hooks, command hook schema (HIGH confidence, verified 2026-03-30)
+- [Claude Code Hooks Guide](https://code.claude.com/docs/en/hooks-guide) -- Windows PowerShell notification example, cross-platform hook patterns (HIGH confidence, verified 2026-03-30)
+- [afplay man page (macOS)](https://community.unix.com/t/osx-afplay-command-line-audio-player-manual/362074) -- MP3 support, blocking behavior (HIGH confidence)
+- [PowerShell MediaPlayer for MP3 (Stack Overflow)](https://stackoverflow.com/questions/25895428/how-to-play-mp3-with-powershell-simple) -- System.Windows.Media.MediaPlayer for MP3 playback (HIGH confidence)
+- [PowerShell SoundPlayer WAV limitation (Microsoft DevBlogs)](https://devblogs.microsoft.com/scripting/powertip-use-powershell-to-play-wav-files/) -- SoundPlayer only supports WAV (HIGH confidence)
+- [PowerShell JSON manipulation patterns](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/convertto-json) -- ConvertTo-Json -Depth parameter (HIGH confidence)
+- Existing codebase: `scripts/install.sh`, `scripts/uninstall.sh`, `scripts/notify-play.sh` -- analyzed for v1.0 architecture (HIGH confidence, read 2026-03-30)
 
 ---
-*Architecture research for: Claude Code voice notification TTS system*
+*Architecture research for: Claude Code voice notification system v1.1 cross-platform support*
 *Researched: 2026-03-30*
