@@ -15,8 +15,8 @@ $ErrorActionPreference = "Stop"
 $CooldownSec = 5
 
 # Fallback temp path if $env:TEMP is empty
-$TempDir = if ($env:TEMP) { $env:TEMP } else { [System.IO.Path]::GetTempPath() }
-$LockFile = Join-Path $TempDir "claude-notify-$Type.lock"
+$LockDir = if ($env:NOTIFY_LOCK_DIR) { $env:NOTIFY_LOCK_DIR } elseif ($env:TEMP) { $env:TEMP } else { [System.IO.Path]::GetTempPath() }
+$LockFile = Join-Path $LockDir "claude-notify-$Type.lock"
 
 try {
     # Cooldown check: if lock file exists and is younger than CooldownSec, skip

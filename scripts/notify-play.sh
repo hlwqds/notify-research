@@ -11,7 +11,8 @@ set -euo pipefail
 
 TYPE="$1"
 AUDIO_FILE="$2"
-LOCK_FILE="/tmp/claude-notify-${TYPE}.lock"
+LOCK_DIR="${NOTIFY_LOCK_DIR:-/tmp}"
+LOCK_FILE="$LOCK_DIR/claude-notify-${TYPE}.lock"
 COOLDOWN_SEC=5
 OS="$(uname -s)"
 
