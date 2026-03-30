@@ -3,6 +3,8 @@
 #         PS-07 (BOM-free JSON), PS-08 (idempotent re-run)
 
 Describe "install.ps1 hook injection and configuration" {
+    $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+
     BeforeEach {
         # Isolate USERPROFILE to temp directory (per D-02, D-06)
         $TestHome = Join-Path ([System.IO.Path]::GetTempPath()) "pester-install-$(Get-Random)"
@@ -12,7 +14,7 @@ Describe "install.ps1 hook injection and configuration" {
         # Create .claude directory and copy fixture settings.json
         $ClaudeDir = Join-Path $TestHome ".claude"
         New-Item -ItemType Directory -Path $ClaudeDir -Force | Out-Null
-        Copy-Item /app/tests/fixtures/settings.json (Join-Path $ClaudeDir "settings.json")
+        Copy-Item "$RepoRoot/tests/fixtures/settings.json" (Join-Path $ClaudeDir "settings.json")
     }
 
     AfterEach {
@@ -24,7 +26,7 @@ Describe "install.ps1 hook injection and configuration" {
         $settingsPath = Join-Path $env:USERPROFILE ".claude" "settings.json"
 
         # Run install as child process (pwsh -File sets $LASTEXITCODE)
-        pwsh -File /app/scripts/install.ps1 -RepoPath /app
+        pwsh -File "$RepoRoot/scripts/install.ps1" -RepoPath $RepoRoot
         $LASTEXITCODE | Should -Be 0
 
         # Parse output settings
@@ -52,7 +54,7 @@ Describe "install.ps1 hook injection and configuration" {
     It "uses forward slashes in hook command paths (PS-06)" {
         $settingsPath = Join-Path $env:USERPROFILE ".claude" "settings.json"
 
-        pwsh -File /app/scripts/install.ps1 -RepoPath /app
+        pwsh -File "$RepoRoot/scripts/install.ps1" -RepoPath $RepoRoot
         $LASTEXITCODE | Should -Be 0
 
         $settings = Get-Content -Path $settingsPath -Raw | ConvertFrom-Json
@@ -71,7 +73,7 @@ Describe "install.ps1 hook injection and configuration" {
     It "writes settings.json without UTF-8 BOM (PS-07)" {
         $settingsPath = Join-Path $env:USERPROFILE ".claude" "settings.json"
 
-        pwsh -File /app/scripts/install.ps1 -RepoPath /app
+        pwsh -File "$RepoRoot/scripts/install.ps1" -RepoPath $RepoRoot
         $LASTEXITCODE | Should -Be 0
 
         # Read first 3 bytes and verify not BOM signature (per D-03)
@@ -86,12 +88,12 @@ Describe "install.ps1 hook injection and configuration" {
         $settingsPath = Join-Path $env:USERPROFILE ".claude" "settings.json"
 
         # First run
-        pwsh -File /app/scripts/install.ps1 -RepoPath /app
+        pwsh -File "$RepoRoot/scripts/install.ps1" -RepoPath $RepoRoot
         $LASTEXITCODE | Should -Be 0
         $firstContent = Get-Content -Path $settingsPath -Raw
 
         # Second run
-        pwsh -File /app/scripts/install.ps1 -RepoPath /app
+        pwsh -File "$RepoRoot/scripts/install.ps1" -RepoPath $RepoRoot
         $LASTEXITCODE | Should -Be 0
         $secondContent = Get-Content -Path $settingsPath -Raw
 

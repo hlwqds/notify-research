@@ -71,7 +71,7 @@ run_lint() {
 run_bash_tests() {
     echo "=== bats-core tests (Docker) ==="
     docker run --rm --entrypoint /bin/sh -v "$REPO_ROOT:/app" "$BATS_IMAGE" \
-        -c "apk add --no-cache jq > /dev/null 2>&1 && bats /app/tests/bash"
+        -c "apk add --no-cache jq > /dev/null 2>&1 && REPO_ROOT=/app bats /app/tests/bash"
 }
 
 run_powershell_tests() {
@@ -82,6 +82,7 @@ run_powershell_tests() {
                 Install-Module -Name Pester -RequiredVersion 5.6.1 -Force -Scope CurrentUser
             }
             Import-Module Pester
+            `$env:REPO_ROOT = '/app'
             Invoke-Pester -Path /app/tests/powershell -Output Detailed
         "
 }

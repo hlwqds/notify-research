@@ -3,6 +3,8 @@
 #         PS-11 (mp3 deletion), PS-12 (idempotent re-run)
 
 Describe "uninstall.ps1 hook removal and cleanup" {
+    $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+
     BeforeEach {
         # Isolate USERPROFILE to temp directory (per D-02, D-06)
         $TestHome = Join-Path ([System.IO.Path]::GetTempPath()) "pester-uninstall-$(Get-Random)"
@@ -12,10 +14,10 @@ Describe "uninstall.ps1 hook removal and cleanup" {
         # Create .claude directory with fixture settings.json
         $ClaudeDir = Join-Path $TestHome ".claude"
         New-Item -ItemType Directory -Path $ClaudeDir -Force | Out-Null
-        Copy-Item /app/tests/fixtures/settings.json (Join-Path $ClaudeDir "settings.json")
+        Copy-Item "$RepoRoot/tests/fixtures/settings.json" (Join-Path $ClaudeDir "settings.json")
 
         # Run install to populate hooks before testing uninstall (child process)
-        pwsh -File /app/scripts/install.ps1 -RepoPath /app
+        pwsh -File "$RepoRoot/scripts/install.ps1" -RepoPath $RepoRoot
     }
 
     AfterEach {
@@ -31,7 +33,7 @@ Describe "uninstall.ps1 hook removal and cleanup" {
         $before.hooks.PSObject.Properties["Stop"] | Should -Not -BeNullOrEmpty
 
         # Run uninstall
-        pwsh -File /app/scripts/uninstall.ps1
+        pwsh -File "$RepoRoot/scripts/uninstall.ps1"
         $LASTEXITCODE | Should -Be 0
 
         # Verify all 4 notification hooks are removed
@@ -67,7 +69,7 @@ Describe "uninstall.ps1 hook removal and cleanup" {
         [System.IO.File]::WriteAllText($settingsPath, $jsonSettings, $utf8NoBom)
 
         # Run uninstall
-        pwsh -File /app/scripts/uninstall.ps1
+        pwsh -File "$RepoRoot/scripts/uninstall.ps1"
         $LASTEXITCODE | Should -Be 0
 
         # Verify hooks object is completely removed (not just empty)
@@ -85,7 +87,7 @@ Describe "uninstall.ps1 hook removal and cleanup" {
         Test-Path (Join-Path $ClaudeDir "notify-progress.mp3") | Should -BeTrue
 
         # Run uninstall
-        pwsh -File /app/scripts/uninstall.ps1
+        pwsh -File "$RepoRoot/scripts/uninstall.ps1"
         $LASTEXITCODE | Should -Be 0
 
         # Verify all 4 MP3 files are deleted
@@ -99,14 +101,14 @@ Describe "uninstall.ps1 hook removal and cleanup" {
         $settingsPath = Join-Path $env:USERPROFILE ".claude" "settings.json"
 
         # First uninstall
-        pwsh -File /app/scripts/uninstall.ps1
+        pwsh -File "$RepoRoot/scripts/uninstall.ps1"
         $LASTEXITCODE | Should -Be 0
 
         # Capture settings after first uninstall
         $firstContent = Get-Content -Path $settingsPath -Raw
 
         # Second uninstall (no hooks to remove, but should not error)
-        pwsh -File /app/scripts/uninstall.ps1
+        pwsh -File "$RepoRoot/scripts/uninstall.ps1"
         $LASTEXITCODE | Should -Be 0
 
         # Verify settings unchanged by second run
