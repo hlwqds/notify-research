@@ -59,40 +59,43 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LINT-01 | TBD | Planned |
-| LINT-02 | TBD | Planned |
-| BASH-01 | TBD | Planned |
-| BASH-02 | TBD | Planned |
-| BASH-03 | TBD | Planned |
-| BASH-04 | TBD | Planned |
-| BASH-05 | TBD | Planned |
-| BASH-06 | TBD | Planned |
-| BASH-07 | TBD | Planned |
-| BASH-08 | TBD | Planned |
-| BASH-09 | TBD | Planned |
-| BASH-10 | TBD | Planned |
-| PS-01 | TBD | Planned |
-| PS-02 | TBD | Planned |
-| PS-03 | TBD | Planned |
-| PS-04 | TBD | Planned |
-| PS-05 | TBD | Planned |
-| PS-06 | TBD | Planned |
-| PS-07 | TBD | Planned |
-| PS-08 | TBD | Planned |
-| PS-09 | TBD | Planned |
-| PS-10 | TBD | Planned |
-| PS-11 | TBD | Planned |
-| PS-12 | TBD | Planned |
-| INFRA-01 | TBD | Planned |
-| INFRA-02 | TBD | Planned |
-| INFRA-03 | TBD | Planned |
-| INFRA-04 | TBD | Planned |
+| INFRA-01 | Phase 6 | Pending |
+| INFRA-02 | Phase 6 | Pending |
+| INFRA-03 | Phase 6 | Pending |
+| INFRA-04 | Phase 6 | Pending |
+| LINT-01 | Phase 6 | Pending |
+| LINT-02 | Phase 6 | Pending |
+| BASH-01 | Phase 7 | Pending |
+| BASH-02 | Phase 7 | Pending |
+| BASH-03 | Phase 7 | Pending |
+| BASH-04 | Phase 7 | Pending |
+| BASH-05 | Phase 7 | Pending |
+| BASH-06 | Phase 7 | Pending |
+| BASH-07 | Phase 7 | Pending |
+| BASH-08 | Phase 7 | Pending |
+| BASH-09 | Phase 7 | Pending |
+| BASH-10 | Phase 7 | Pending |
+| PS-01 | Phase 8 | Pending |
+| PS-02 | Phase 8 | Pending |
+| PS-03 | Phase 8 | Pending |
+| PS-04 | Phase 8 | Pending |
+| PS-05 | Phase 8 | Pending |
+| PS-06 | Phase 8 | Pending |
+| PS-07 | Phase 8 | Pending |
+| PS-08 | Phase 8 | Pending |
+| PS-09 | Phase 8 | Pending |
+| PS-10 | Phase 8 | Pending |
+| PS-11 | Phase 8 | Pending |
+| PS-12 | Phase 8 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 28 total
-- Mapped to phases: 0 (pending roadmap)
+- Mapped to phases: 28/28 (100%)
+- Phase 6: 6 requirements (INFRA-01~04, LINT-01~02)
+- Phase 7: 10 requirements (BASH-01~10)
+- Phase 8: 12 requirements (PS-01~12)
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30*
+*Last updated: 2026-03-30 (traceability added after roadmap creation)*
