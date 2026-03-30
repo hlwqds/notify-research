@@ -2,7 +2,7 @@
 
 ## What This Is
 
-为 Claude Code 提供跨平台语音通知的系统。使用 Spark-TTS 0.5B 预生成中文语音通知音频，通过 Claude Code hooks 在任务完成、需要用户交互、执行出错、子 agent 完成等场景自动播放提醒用户。Linux/macOS/Windows 三平台一键安装，无需手动配置。
+为 Claude Code 提供跨平台语音通知的系统。使用 Spark-TTS 0.5B 预生成中文语音通知音频，通过 Claude Code hooks 在任务完成、需要用户交互、执行出错、子 agent 完成等场景自动播放提醒用户。三平台一键安装，22 个自动化测试覆盖全部核心逻辑。
 
 ## Core Value
 
@@ -10,35 +10,18 @@
 
 ## Current State
 
-v1.2 complete — all phases done (06 test infra, 07 bash tests, 08 PowerShell tests). 12/12 PS requirements verified, 3 pre-existing notify-play test failures noted.
+v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system with full test coverage:
+- 4 pre-generated mp3 notification sounds
+- 6 scripts (install/uninstall/notify-play × bash/PowerShell)
+- 22 automated tests (10 bats-core + 12 Pester)
+- ShellCheck + PSScriptAnalyzer static analysis
+- Docker test matrix (Linux bats, pwsh Pester)
 
 ### Shipped Versions
 
-## Current Milestone: v1.2 跨平台测试
-
-**Goal:** 为通知脚本建立跨平台测试体系，Docker 测试矩阵覆盖 Linux/macOS/Windows，静态分析 + 单元测试。
-
-**Target features:**
-- ShellCheck 静态分析 bash 脚本
-- PowerShell PSScriptAnalyzer 分析 ps1 脚本
-- bats 单元测试 shell 脚本核心逻辑
-- Pester 单元测试 PowerShell 脚本核心逻辑
-- Docker 测试矩阵（Linux/macOS/Windows 容器，仅本地运行）
-- 测试范围：仅通知脚本（6个：install/uninstall/notify-play × bash/ps1）
-
-<details>
-<summary>v1.0 语音通知</summary>
-
-Docker 化 Spark-TTS 推理环境，预生成 4 种中文通知音频，通过 Claude Code hooks 实现非阻塞语音提醒。
-
-</details>
-
-<details>
-<summary>v1.1 跨平台兼容</summary>
-
-macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + BOM-free JSON 操作。三平台一键安装/卸载。
-
-</details>
+- **v1.2 跨平台测试** — 22 automated tests, Docker test matrix, static analysis
+- **v1.1 跨平台兼容** — macOS afplay + Windows PowerShell, 三平台一键安装
+- **v1.0 语音通知** — Docker TTS + 4 mp3 + Claude Code hooks
 
 ## Requirements
 
@@ -54,17 +37,15 @@ macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + 
 - ✓ Windows notify-play.ps1 MediaPlayer + 冷却防抖 — v1.1
 - ✓ Windows install.ps1 shell:powershell + forward-slash 路径 — v1.1
 - ✓ Windows uninstall.ps1 hook 清理 + 文件删除 — v1.1
+- ✓ ShellCheck 静态分析 bash 脚本 — v1.2
+- ✓ PowerShell PSScriptAnalyzer 分析 ps1 脚本 — v1.2
+- ✓ bats 单元测试 shell 脚本核心逻辑（10 tests）— v1.2
+- ✓ Pester 单元测试 PowerShell 脚本核心逻辑（12 tests）— v1.2
+- ✓ Docker 测试矩阵覆盖 Linux/macOS/Windows — v1.2
 
 ### Active
 
-- [ ] bats 单元测试 shell 脚本核心逻辑
-- [ ] Pester 单元测试 PowerShell 脚本核心逻辑
-
-### Validated in Phase 6: test-infra-static-analysis
-
-- ✓ ShellCheck 静态分析 bash 脚本 — Phase 6
-- ✓ PowerShell PSScriptAnalyzer 分析 ps1 脚本 — Phase 6
-- ✓ Docker 测试矩阵覆盖 Linux/macOS/Windows — Phase 6
+(None — all requirements shipped)
 
 ### Out of Scope
 
@@ -73,6 +54,10 @@ macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + 
 - GUI 界面 — 音频通知已足够，保持简单
 - 多语言支持 — 中文即可
 - 音量控制 — 用户通过系统音量控制即可
+- macOS Docker 容器测试 — 不可容器化，mock 测试覆盖
+- Windows Docker 容器测试 — 3-11 GB 镜像过大
+- GitHub Actions CI — 仅本地运行
+- bash 代码覆盖率 — kcov 停止维护，无成熟工具
 
 ## Context
 
@@ -83,6 +68,11 @@ macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + 
 - `scripts/install.ps1` — Windows 一键安装（PowerShell hooks 注入）
 - `scripts/uninstall.ps1` — Windows 一键卸载
 - `audio/notify-*.mp3` — 4 个预生成音频，提交到仓库
+- `tests/bash/*.bats` — 10 bats-core 测试
+- `tests/powershell/*.Tests.ps1` — 12 Pester 测试
+- `tests/stubs/` — mock stubs（paplay, afplay, claude CLI）
+- `tests/fixtures/` — 共享测试 fixture（settings.json, dummy.mp3）
+- `test.sh` — 统一测试入口（lint + bash + powershell + Docker 矩阵）
 - `Dockerfile` + `requirements.txt` — Spark-TTS Docker 构建环境（仅预生成用）
 - `generate.sh` — 音频重新生成编排脚本
 
@@ -92,6 +82,7 @@ macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + 
 - **环境**：Docker 容器化 Spark-TTS，仅用于音频预生成，运行时无需 Docker
 - **平台**：Linux (paplay)、macOS (afplay)、Windows (MediaPlayer)
 - **许可**：Spark-TTS 使用 Apache 2.0 许可证
+- **测试**：Docker Linux-only 容器测试，macOS/Windows 代码路径通过 mock 覆盖
 
 ## Key Decisions
 
@@ -108,10 +99,14 @@ macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + 
 | Windows 单独 PowerShell | PS 5.1 兼容，.NET MediaPlayer 无 GUI | ✓ v1.1 validated |
 | BOM-free JSON 写入 | PS Set-Content 带 BOM，用 WriteAllText 替代 | ✓ v1.1 validated |
 | forward-slash 路径 | Claude Code Windows hooks 反斜杠 bug #26759 | ✓ v1.1 validated |
+| NOTIFY_LOCK_DIR 环境变量 | 测试可覆盖 lock file 路径，/tmp 默认值兼容 | ✓ v1.2 validated |
+| Docker Linux-only 测试 | Windows 容器 3-11 GB，Pester 在 pwsh 容器运行 | ✓ v1.2 validated |
+| Invoke-MediaPlayer 包装函数 | Pester Mock 兼容性（裸 New-Object 无法 Mock） | ✓ v1.2 validated |
+| Pester 5.6.1 pinned | 避免 Pester 6.x beta 不兼容 | ✓ v1.2 validated |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after Phase 6 completion*
+*Last updated: 2026-03-30 after v1.2 milestone completion*

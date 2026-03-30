@@ -1,5 +1,20 @@
 # Milestones
 
+## v1.2 跨平台测试 (Shipped: 2026-03-30)
+
+**Phases completed:** 3 phases, 7 plans, 14 tasks
+
+**Key accomplishments:**
+
+- Test directory scaffold (bash/powershell/fixtures) with shared settings.json fixture and NOTIFY_LOCK_DIR env var override for lock file path testability
+- test.sh unified test runner with ShellCheck + PSScriptAnalyzer lint pipeline and Docker-based bats-core/Pester test matrix
+- 10 bats-core tests for 3 bash scripts: notify-play.sh cooldown/platform/exit-0, install.sh injection/idempotency/prerequisites, uninstall.sh removal/deletion/idempotency
+- 12 Pester tests for 3 PowerShell scripts: notify-play.ps1 cooldown/MediaPlayer-mock/exit-0, install.ps1 injection/paths/BOM-free/idempotency, uninstall.ps1 removal/empty-hooks-cleanup/deletion/idempotency
+- Invoke-MediaPlayer wrapper extraction enabling Pester Mock without real .NET audio dependencies
+- Gap closure: test.sh Docker ENTRYPOINT fix, Alpine PATH fix, notify-play.ps1 dot-source safety
+
+---
+
 ## v1.1 跨平台兼容 (Shipped: 2026-03-30)
 
 **Phases completed:** 2 phases, 2 plans, 6 tasks
