@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: 跨平台测试
 current_phase: 08
-status: executing
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-03-30T14:07:44.713Z"
+status: verifying
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-03-30T14:20:22.782Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
   percent: 62
 ---
 
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 08 (powershell) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
 Progress: [████████░░] 62% (5/8 phases shipped in v1.0+v1.1)
@@ -62,6 +62,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 08]: Invoke-MediaPlayer wrapper function extracted for Pester Mock compatibility (D-01)
 - [Phase 08]: Bare exit 0 replaced with return for dot-source safety (Pitfall 2)
 - [Phase 08]: Pester 5.6.1 pinned to avoid Pester 6.x beta (RESEARCH Open Question 2)
+- [Phase 08]: pwsh -File for child-process invocation sets $LASTEXITCODE; & operator does not
+- [Phase 08]: Array-wrapped @($collection).Count for PSMemberInfoIntegratingCollection empty-count quirk
+- [Phase 08]: Sorted line-by-line JSON comparison mitigates ConvertTo-Json non-deterministic property ordering (Pitfall 3)
 
 ### Pending Todos
 
@@ -74,8 +77,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T14:07:44.710Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-03-30T14:20:22.779Z
+Stopped at: Completed 08-02-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -90,3 +93,4 @@ Resume file: None
 | Phase 07 P01 | 1min | 2 tasks | 5 files |
 | Phase 07 P02 | 1min | 2 tasks | 2 files |
 | Phase 08 P01 | 2min | 2 tasks | 3 files |
+| Phase 08 P02 | 9min | 2 tasks | 3 files |

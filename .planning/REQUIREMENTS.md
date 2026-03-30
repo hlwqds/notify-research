@@ -29,14 +29,14 @@
 - [x] **PS-02**: Pester 测试 notify-play.ps1 冷却通过（lock file 旧于 5 秒）
 - [x] **PS-03**: Pester 测试 notify-play.ps1 MediaPlayer mock（不调用真实音频）
 - [x] **PS-04**: Pester 测试 notify-play.ps1 始终 exit 0
-- [ ] **PS-05**: Pester 测试 install.ps1 4 个 hook 事件注入且 shell 为 powershell
-- [ ] **PS-06**: Pester 测试 install.ps1 forward-slash 路径转换
-- [ ] **PS-07**: Pester 测试 install.ps1 BOM-free JSON 输出（无 UTF-8 BOM）
-- [ ] **PS-08**: Pester 测试 install.ps1 幂等重跑
-- [ ] **PS-09**: Pester 测试 uninstall.ps1 4 个 hook 事件移除
-- [ ] **PS-10**: Pester 测试 uninstall.ps1 空 hooks 对象清理
-- [ ] **PS-11**: Pester 测试 uninstall.ps1 mp3 文件删除
-- [ ] **PS-12**: Pester 测试 uninstall.ps1 幂等重跑
+- [x] **PS-05**: Pester 测试 install.ps1 4 个 hook 事件注入且 shell 为 powershell
+- [x] **PS-06**: Pester 测试 install.ps1 forward-slash 路径转换
+- [x] **PS-07**: Pester 测试 install.ps1 BOM-free JSON 输出（无 UTF-8 BOM）
+- [x] **PS-08**: Pester 测试 install.ps1 幂等重跑
+- [x] **PS-09**: Pester 测试 uninstall.ps1 4 个 hook 事件移除
+- [x] **PS-10**: Pester 测试 uninstall.ps1 空 hooks 对象清理
+- [x] **PS-11**: Pester 测试 uninstall.ps1 mp3 文件删除
+- [x] **PS-12**: Pester 测试 uninstall.ps1 幂等重跑
 
 ### 测试基础设施
 
@@ -79,14 +79,14 @@
 | PS-02 | Phase 8 | Complete |
 | PS-03 | Phase 8 | Complete |
 | PS-04 | Phase 8 | Complete |
-| PS-05 | Phase 8 | Pending |
-| PS-06 | Phase 8 | Pending |
-| PS-07 | Phase 8 | Pending |
-| PS-08 | Phase 8 | Pending |
-| PS-09 | Phase 8 | Pending |
-| PS-10 | Phase 8 | Pending |
-| PS-11 | Phase 8 | Pending |
-| PS-12 | Phase 8 | Pending |
+| PS-05 | Phase 8 | Complete |
+| PS-06 | Phase 8 | Complete |
+| PS-07 | Phase 8 | Complete |
+| PS-08 | Phase 8 | Complete |
+| PS-09 | Phase 8 | Complete |
+| PS-10 | Phase 8 | Complete |
+| PS-11 | Phase 8 | Complete |
+| PS-12 | Phase 8 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 28 total
