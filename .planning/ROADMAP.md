@@ -65,7 +65,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 04-01-PLAN.md — Fix notify-play.sh + install.sh for macOS (stat, player, portable commands)
+- [x] 04-01-PLAN.md — Fix notify-play.sh + install.sh for macOS (stat, player, portable commands)
 
 ### Phase 5: Windows 兼容
 **Goal**: Windows 用户通过 PowerShell 脚本实现一键安装和语音通知播放
@@ -89,7 +89,7 @@ Phases execute in numeric order: 4 → 5
 | 1. Docker TTS 环境 | v1.0 | 2/2 | Complete | 2026-03-30 |
 | 2. 生成脚本 | v1.0 | 1/1 | Complete | 2026-03-30 |
 | 3. Hooks 集成 | v1.0 | 1/1 | Complete | 2026-03-30 |
-| 4. macOS 兼容 | v1.1 | 0/1 | Not started | - |
+| 4. macOS 兼容 | v1.1 | 1/1 | Complete   | 2026-03-30 |
 | 5. Windows 兼容 | v1.1 | 0/? | Not started | - |
 
 ---

@@ -7,8 +7,8 @@
 
 ### macOS 播放
 
-- [ ] **MAC-01**: notify-play.sh 在 macOS 上使用 `afplay` 播放音频
-- [ ] **MAC-02**: notify-play.sh 的 `stat` 调用兼容 BSD (macOS)
+- [x] **MAC-01**: notify-play.sh 在 macOS 上使用 `afplay` 播放音频
+- [x] **MAC-02**: notify-play.sh 的 `stat` 调用兼容 BSD (macOS)
 
 ### Windows 播放
 
@@ -24,8 +24,8 @@
 
 ### 安装脚本兼容
 
-- [ ] **INST-01**: install.sh 支持 macOS（`uname -s` 检测，复制到 macOS 路径）
-- [ ] **INST-02**: uninstall.sh 支持 macOS
+- [x] **INST-01**: install.sh 支持 macOS（`uname -s` 检测，复制到 macOS 路径）
+- [x] **INST-02**: uninstall.sh 支持 macOS
 
 ## v1.0 Requirements (Shipped)
 
@@ -60,10 +60,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MAC-01 | Phase 4 | Pending |
-| MAC-02 | Phase 4 | Pending |
-| INST-01 | Phase 4 | Pending |
-| INST-02 | Phase 4 | Pending |
+| MAC-01 | Phase 4 | Complete |
+| MAC-02 | Phase 4 | Complete |
+| INST-01 | Phase 4 | Complete |
+| INST-02 | Phase 4 | Complete |
 | WIN-01 | Phase 5 | Pending |
 | WIN-02 | Phase 5 | Pending |
 | WIN-03 | Phase 5 | Pending |
