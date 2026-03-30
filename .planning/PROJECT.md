@@ -10,7 +10,7 @@
 
 ## Current State
 
-Phase 4 complete — macOS 兼容已实现（notify-play.sh afplay + BSD stat，install.sh 便携命令）。Windows 兼容待开发。
+Phase 5 complete — v1.1 跨平台兼容已完成。Linux/macOS/Windows 三平台均支持一键安装。
 
 ## Current Milestone: v1.1 跨平台兼容
 
@@ -39,9 +39,11 @@ Phase 4 complete — macOS 兼容已实现（notify-play.sh afplay + BSD stat，
 - ✓ Claude Code hooks 4 种事件通知（Stop/Notification/StopFailure/SubagentStop）— v1.0
 - ✓ 非阻塞播放（async: true）+ 5 秒冷却防抖 — v1.0
 
-### Active
+### Validated (v1.1)
 
-- [ ] Windows 兼容：notify-play.ps1 + install.ps1 + uninstall.ps1
+- ✓ Windows notify-play.ps1 MediaPlayer + 冷却防抖 — Phase 5
+- ✓ Windows install.ps1 shell:powershell + forward-slash 路径 — Phase 5
+- ✓ Windows uninstall.ps1 hook 清理 + 文件删除 — Phase 5
 
 ### Out of Scope
 
@@ -56,6 +58,9 @@ Phase 4 complete — macOS 兼容已实现（notify-play.sh afplay + BSD stat，
 - `scripts/install.sh` — 一键安装（复制 mp3 + 注入 hooks 到 settings.json）
 - `scripts/uninstall.sh` — 一键卸载
 - `scripts/notify-play.sh` — 冷却包装器（5 秒防抖）
+- `scripts/notify-play.ps1` — Windows 音频播放（MediaPlayer + 5 秒冷却）
+- `scripts/install.ps1` — Windows 一键安装（PowerShell hooks 注入）
+- `scripts/uninstall.ps1` — Windows 一键卸载
 - `audio/notify-*.mp3` — 4 个预生成音频，提交到仓库
 - `Dockerfile` + `requirements.txt` — Spark-TTS Docker 构建环境
 - `generate.sh` — 音频重新生成编排脚本
@@ -86,4 +91,4 @@ Phase 4 complete — macOS 兼容已实现（notify-play.sh afplay + BSD stat，
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after starting v1.1 milestone*
+*Last updated: 2026-03-30 after Phase 5 (Windows support) completion*
