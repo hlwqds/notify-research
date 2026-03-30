@@ -3,38 +3,46 @@
 **Defined:** 2026-03-30
 **Core Value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
 
-## v1 Requirements
+## v1.1 Requirements (跨平台兼容)
 
-### Docker 环境
+### macOS 播放
 
-- [x] **DOCKER-01**: Dockerfile 基于 python:3.12-slim 构建 Spark-TTS 运行环境（PyTorch CPU + Spark-TTS + ffmpeg）
-- [x] **DOCKER-02**: 模型权重（Spark-TTS-0.5B, ~3.95GB）通过 volume mount 加载，不打入镜像层
-- [x] **DOCKER-03**: Docker 镜像可正常执行 Spark-TTS 推理并输出 WAV 文件
+- [ ] **MAC-01**: notify-play.sh 在 macOS 上使用 `afplay` 播放音频
+- [ ] **MAC-02**: notify-play.sh 的 `stat` 调用兼容 BSD (macOS)
+
+### Windows 播放
+
+- [ ] **WIN-01**: notify-play.ps1 使用 MediaPlayer 播放 MP3，不弹出窗口
+- [ ] **WIN-02**: notify-play.ps1 实现与 Linux 相同的 5 秒冷却防抖机制
+
+### Windows 安装
+
+- [ ] **WIN-03**: install.ps1 将 hooks 注入 Claude Code settings.json
+- [ ] **WIN-04**: install.ps1 使用 `shell: powershell` 标记 Windows hooks
+- [ ] **WIN-05**: install.ps1 中所有路径使用正斜杠（避免 #26759 bug）
+- [ ] **WIN-06**: uninstall.ps1 从 settings.json 中移除 hooks
+
+### 安装脚本兼容
+
+- [ ] **INST-01**: install.sh 支持 macOS（`uname -s` 检测，复制到 macOS 路径）
+- [ ] **INST-02**: uninstall.sh 支持 macOS
+
+## v1.0 Requirements (Shipped)
+
+### Docker TTS 环境
+
+- ✓ **TTS-01**: Docker 化 Spark-TTS 环境
+- ✓ **TTS-02**: 批量生成中文通知音频
 
 ### 音频生成
 
-- [x] **AUDIO-01**: 生成 4 种通知语音：任务完成（"主人，任务完成了"）、请确认（"主人，请确认一下"）、出错（"主人，出错了"）、进行中（"主人，还在进行中"）
-- [x] **AUDIO-02**: WAV 输出转换为 mp3 格式（ffmpeg）
-- [x] **AUDIO-03**: 音频文件输出到 `~/.claude/notify-complete.mp3`、`notify-confirm.mp3`、`notify-error.mp3`、`notify-progress.mp3`
-- [x] **AUDIO-04**: 语音风格为温柔低沉慵懒（`--gender female --pitch low --speed low`）
-
-### 编排脚本
-
-- [x] **SCRIPT-01**: 一键脚本执行完整流程：docker build → 模型下载 → TTS 推理 → 转换 → 放置文件
-- [x] **SCRIPT-02**: 生成后验证音频文件存在且可播放（paplay 验证）
-- [x] **SCRIPT-03**: 支持单独重新生成指定类型的通知音频
+- ✓ **GEN-01**: 4 种通知语音（任务完成、请确认、出错、进行中）
+- ✓ **GEN-02**: 一键脚本生成所有音频文件
 
 ### Hooks 集成
 
-- [x] **HOOKS-01**: Claude Code hooks 配置 4 种事件对应不同音频：Stop → notify-complete.mp3、Notification → notify-confirm.mp3、StopFailure → notify-error.mp3、SubagentStop → notify-progress.mp3
-
-## v2 Requirements
-
-### 增强
-
-- **AUDIO-05**: 自定义通知文案（用户指定文本重新生成）
-- **AUDIO-06**: 更多语音风格参数可调（语速、音调微调）
-- **HOOKS-02**: 通知冷却/防抖（避免快速连续播放）
+- ✓ **HOOK-01**: Claude Code hooks 4 种事件通知
+- ✓ **HOOK-02**: 非阻塞播放 + 5 秒冷却防抖
 
 ## Out of Scope
 
@@ -42,32 +50,32 @@
 |---------|--------|
 | 实时语音合成 | CPU 推理 8 分钟/句，性能不可接受 |
 | 动态文案通知 | 需要实时 TTS，超出预生成架构 |
-| GUI 桌面通知 | 音频通知已足够，保持简单 |
-| 多语言支持 | 中文即可，v1 不做 i18n |
-| 通知队列/调度 | Claude Code 事件天然串行，PulseAudio 自动混音 |
+| GUI 界面 | 音频通知已足够，保持简单 |
+| 多语言支持 | 中文即可 |
 | 音量控制 | 用户通过系统音量控制即可 |
+| Homebrew paplay fallback | afplay 已内置，无必要 |
+| jq.exe for Windows | PowerShell ConvertFrom-Json 即可，减少依赖 |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DOCKER-01 | Phase 1 | Complete |
-| DOCKER-02 | Phase 1 | Complete |
-| DOCKER-03 | Phase 1 | Complete |
-| AUDIO-01 | Phase 1 | Complete |
-| AUDIO-02 | Phase 1 | Complete |
-| AUDIO-03 | Phase 1 | Complete |
-| AUDIO-04 | Phase 1 | Complete |
-| SCRIPT-01 | Phase 2 | Complete |
-| SCRIPT-02 | Phase 2 | Complete |
-| SCRIPT-03 | Phase 2 | Complete |
-| HOOKS-01 | Phase 3 | Complete |
+| MAC-01 | TBD | Pending |
+| MAC-02 | TBD | Pending |
+| WIN-01 | TBD | Pending |
+| WIN-02 | TBD | Pending |
+| WIN-03 | TBD | Pending |
+| WIN-04 | TBD | Pending |
+| WIN-05 | TBD | Pending |
+| WIN-06 | TBD | Pending |
+| INST-01 | TBD | Pending |
+| INST-02 | TBD | Pending |
 
 **Coverage:**
-- v1 requirements: 11 total
-- Mapped to phases: 11
-- Unmapped: 0
+- v1.1 requirements: 10 total
+- Mapped to phases: 0
+- Unmapped: 10 ⚠️
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 — updated HOOKS-01 to include SubagentStop event (4 events total)*
+*Last updated: 2026-03-30 after v1.1 milestone definition*
