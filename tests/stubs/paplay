@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "paplay $*" >> "${CALLED_LOG:-/dev/null}"
+exit 0
