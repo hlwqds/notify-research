@@ -77,7 +77,10 @@ Plans:
   3. Claude Code triggers a notification on Windows and the correct mp3 plays via MediaPlayer with no visible window
   4. The 5-second cooldown prevents duplicate playback on Windows (rapid successive events only play once)
   5. User runs `uninstall.ps1` on Windows and all hook entries are cleanly removed from settings.json
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 05-01-PLAN.md — Create notify-play.ps1 + install.ps1 + uninstall.ps1 (MediaPlayer, hooks, BOM-free JSON)
 
 ## Progress
 
@@ -90,8 +93,8 @@ Phases execute in numeric order: 4 → 5
 | 2. 生成脚本 | v1.0 | 1/1 | Complete | 2026-03-30 |
 | 3. Hooks 集成 | v1.0 | 1/1 | Complete | 2026-03-30 |
 | 4. macOS 兼容 | v1.1 | 1/1 | Complete   | 2026-03-30 |
-| 5. Windows 兼容 | v1.1 | 0/? | Not started | - |
+| 5. Windows 兼容 | v1.1 | 0/1 | Planning | - |
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-30 after Phase 4 planning*
+*Last updated: 2026-03-30 after Phase 5 planning*
