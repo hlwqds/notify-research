@@ -16,7 +16,9 @@ NOTIFY_PLAY="$REPO_ROOT/scripts/notify-play.sh"
 version_gte() {
     [ "$1" = "$2" ] && return 0
     local IFS=.
-    local i a=($1) b=($2)
+    local i
+    # shellcheck disable=SC2206 # Intentional version string splitting for numeric comparison
+    local a=($1) b=($2)
     for ((i=0; i<${#b[@]}; i++)); do
         ((10#${a[i]:-0} < 10#${b[i]})) && return 1
         ((10#${a[i]:-0} > 10#${b[i]})) && return 0
@@ -92,7 +94,8 @@ done
 echo "Configuring hooks in $SETTINGS ..."
 
 TMPFILE=$(mktemp)
-trap "rm -f $TMPFILE" EXIT
+cleanup() { rm -f "$TMPFILE"; }
+trap cleanup EXIT
 
 jq \
   --arg complete_cmd "$NOTIFY_PLAY complete $CLAUDE_DIR/notify-complete.mp3" \

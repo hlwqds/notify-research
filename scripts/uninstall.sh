@@ -14,7 +14,8 @@ fi
 
 # Remove hook entries via jq (per D-08, D-09)
 TMPFILE=$(mktemp)
-trap "rm -f $TMPFILE" EXIT
+cleanup() { rm -f "$TMPFILE"; }
+trap cleanup EXIT
 
 jq 'del(.hooks.Stop, .hooks.Notification, .hooks.StopFailure, .hooks.SubagentStop)' "$SETTINGS" > "$TMPFILE"
 
