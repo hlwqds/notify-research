@@ -31,8 +31,8 @@ fi
 # Update lock timestamp and play audio
 touch "$LOCK_FILE"
 if [[ "$OS" == "Darwin" ]]; then
-    /usr/bin/afplay "$AUDIO_FILE" 2>/dev/null || true
+    afplay "$AUDIO_FILE" 2>/dev/null || true
 else
-    /usr/bin/paplay "$AUDIO_FILE" 2>/dev/null || true
+    paplay "$AUDIO_FILE" 2>/dev/null || true
 fi
 exit 0

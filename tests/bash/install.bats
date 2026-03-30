@@ -2,45 +2,37 @@
 # tests/bash/install.bats — Tests for install.sh
 # Covers: BASH-05 (hook injection), BASH-06 (idempotent), BASH-07 (prerequisite checks)
 
-ORIGINAL_PAPLAY=""
-
 setup() {
+    load test_helper
+
     # Create isolated HOME directory (per D-01)
     export HOME="$(mktemp -d)"
     CLAUDE_DIR="$HOME/.claude"
     mkdir -p "$CLAUDE_DIR"
 
     # Copy fixture settings.json (has PreToolUse hook, per D-07)
-    cp /app/tests/fixtures/settings.json "$CLAUDE_DIR/settings.json"
+    cp "$REPO_ROOT/tests/fixtures/settings.json" "$CLAUDE_DIR/settings.json"
 
     # Copy real MP3 files (per D-06: install.sh checks they exist)
     for type in complete confirm error progress; do
-        cp "/app/audio/notify-${type}.mp3" "$CLAUDE_DIR/notify-${type}.mp3"
+        cp "$REPO_ROOT/audio/notify-${type}.mp3" "$CLAUDE_DIR/notify-${type}.mp3"
     done
 
-    # Install paplay stub so install.sh prerequisite check passes
-    ORIGINAL_PAPLAY=""
-    if [ -f /usr/bin/paplay ]; then
-        ORIGINAL_PAPLAY=$(cat /usr/bin/paplay)
-    fi
-    cat > /usr/bin/paplay << 'STUB'
+    # Install paplay stub via PATH-prepend (no root needed)
+    STUB_DIR="$(mktemp -d)"
+    cat > "$STUB_DIR/paplay" << 'STUB'
 #!/usr/bin/env bash
 exit 0
 STUB
-    chmod +x /usr/bin/paplay
+    chmod +x "$STUB_DIR/paplay"
+    export PATH="$STUB_DIR:$PATH"
 
     # Add stubs to PATH for claude command mock
-    export PATH="/app/tests/stubs:$PATH"
+    export PATH="$REPO_ROOT/tests/stubs:$PATH"
 }
 
 teardown() {
-    # Restore original paplay
-    if [ -n "$ORIGINAL_PAPLAY" ]; then
-        printf '%s' "$ORIGINAL_PAPLAY" > /usr/bin/paplay
-    else
-        rm -f /usr/bin/paplay
-    fi
-
+    rm -rf "$STUB_DIR"
     rm -rf "$HOME"
 }
 
@@ -48,7 +40,7 @@ teardown() {
 @test "install injects 4 hook events into settings.json" {
     local settings="$HOME/.claude/settings.json"
 
-    run /app/scripts/install.sh
+    run "$REPO_ROOT/scripts/install.sh"
     [ "$status" -eq 0 ]
 
     # Verify all 4 notification hooks exist
@@ -86,7 +78,7 @@ teardown() {
     local settings="$HOME/.claude/settings.json"
 
     # First run
-    run /app/scripts/install.sh
+    run "$REPO_ROOT/scripts/install.sh"
     [ "$status" -eq 0 ]
 
     # Capture settings after first install
@@ -94,7 +86,7 @@ teardown() {
     first_run=$(jq -S . "$settings")
 
     # Second run
-    run /app/scripts/install.sh
+    run "$REPO_ROOT/scripts/install.sh"
     [ "$status" -eq 0 ]
 
     # Capture settings after second install
@@ -111,32 +103,32 @@ teardown() {
 
     # Test: missing settings.json
     rm "$settings"
-    run /app/scripts/install.sh
+    run "$REPO_ROOT/scripts/install.sh"
     [ "$status" -ne 0 ]
     [[ "$output" == *"not found"* ]]
 
     # Restore settings.json for next checks
-    cp /app/tests/fixtures/settings.json "$settings"
+    cp "$REPO_ROOT/tests/fixtures/settings.json" "$settings"
 
     # Test: missing paplay (remove stub AND ensure no real paplay elsewhere)
-    rm -f /usr/bin/paplay
+    rm -f "$STUB_DIR/paplay"
     PATH_BACKUP="$PATH"
-    export PATH="/app/tests/stubs:/usr/local/bin:/usr/bin:/bin"  # minimal PATH: has bash but no paplay
-    run /app/scripts/install.sh
+    export PATH="/usr/local/bin:/usr/bin:/bin"
+    run "$REPO_ROOT/scripts/install.sh"
     [ "$status" -ne 0 ]
     [[ "$output" == *"paplay not found"* ]]
     export PATH="$PATH_BACKUP"
 
     # Reinstall paplay stub for subsequent tests
-    cat > /usr/bin/paplay << 'STUB'
+    cat > "$STUB_DIR/paplay" << 'STUB'
 #!/usr/bin/env bash
 exit 0
 STUB
-    chmod +x /usr/bin/paplay
+    chmod +x "$STUB_DIR/paplay"
 
     # Test: missing MP3 file (remove one of the 4 required files)
     rm "$HOME/.claude/notify-complete.mp3"
-    run /app/scripts/install.sh
+    run "$REPO_ROOT/scripts/install.sh"
     [ "$status" -ne 0 ]
     [[ "$output" == *"not found"* ]]
 }
