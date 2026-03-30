@@ -29,7 +29,7 @@
 
 **Milestone Goal:** 为通知脚本建立跨平台测试体系，Docker 测试矩阵覆盖 Linux/macOS/Windows，静态分析 + 单元测试。
 
-- [ ] **Phase 6: 测试基础设施 + 静态分析** - 目录结构、共享 fixture、Docker 测试矩阵、notify-play.sh 可测试性改造、ShellCheck 和 PSScriptAnalyzer 配置
+- [x] **Phase 6: 测试基础设施 + 静态分析** - 目录结构、共享 fixture、Docker 测试矩阵、notify-play.sh 可测试性改造、ShellCheck 和 PSScriptAnalyzer 配置
 - [ ] **Phase 7: Bash 单元测试** - bats-core 测试 3 个 bash 脚本核心逻辑（冷却防抖、平台分支、hook 注入/移除、幂等性）
 - [ ] **Phase 8: PowerShell 单元测试** - Pester 测试 3 个 PowerShell 脚本核心逻辑（冷却防抖、MediaPlayer mock、BOM-free JSON、幂等性）
 
@@ -94,7 +94,7 @@ Plans:
 
 Plans:
 - [x] 06-01-PLAN.md — Test directory structure, fixtures, notify-play.sh/ps1 testability refactor
-- [ ] 06-02-PLAN.md — test.sh entry point with ShellCheck + PSScriptAnalyzer + Docker test matrix
+- [x] 06-02-PLAN.md — test.sh entry point with ShellCheck + PSScriptAnalyzer + Docker test matrix
 
 ### Phase 7: Bash 单元测试
 **Goal**: bats-core 测试覆盖 3 个 bash 脚本全部核心逻辑（notify-play.sh 冷却/平台分支、install.sh hook 注入/幂等/前置检查、uninstall.sh hook 移除/文件删除/幂等）
@@ -132,10 +132,10 @@ Phases execute in numeric order: 6 → 7 → 8
 | 3. Hooks 集成 | v1.0 | 1/1 | Complete | 2026-03-30 |
 | 4. macOS 兼容 | v1.1 | 1/1 | Complete | 2026-03-30 |
 | 5. Windows 兼容 | v1.1 | 1/1 | Complete | 2026-03-30 |
-| 6. 测试基础设施 + 静态分析 | v1.2 | 0/? | Not started | - |
+| 6. 测试基础设施 + 静态分析 | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 7. Bash 单元测试 | v1.2 | 0/? | Not started | - |
 | 8. PowerShell 单元测试 | v1.2 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-30 after v1.2 roadmap creation*
+*Last updated: 2026-03-30 after completing phase 06-02*
