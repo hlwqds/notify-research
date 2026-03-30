@@ -23,6 +23,15 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 - **v1.1 跨平台兼容** — macOS afplay + Windows PowerShell, 三平台一键安装
 - **v1.0 语音通知** — Docker TTS + 4 mp3 + Claude Code hooks
 
+## Current Milestone: v1.3 GitHub Actions CI
+
+**Goal:** 把现有测试体系搬到 GitHub Actions，三平台（Linux/macOS/Windows）push/PR 自动运行 lint + 单元测试。
+
+**Target features:**
+- GitHub Actions workflow 配置（push/PR 触发）
+- 三平台矩阵：Linux (ShellCheck + bats), macOS (ShellCheck + bats), Windows (PSScriptAnalyzer + Pester)
+- 适配现有 test.sh 到 CI 环境（macOS 无 Docker、Windows 原生 PowerShell）
+
 ## Requirements
 
 ### Validated
@@ -56,7 +65,7 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 - 音量控制 — 用户通过系统音量控制即可
 - macOS Docker 容器测试 — 不可容器化，mock 测试覆盖
 - Windows Docker 容器测试 — 3-11 GB 镜像过大
-- GitHub Actions CI — 仅本地运行
+- GitHub Actions CI — v1.3 规划中
 - bash 代码覆盖率 — kcov 停止维护，无成熟工具
 
 ## Context
@@ -109,4 +118,4 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after v1.2 milestone completion*
+*Last updated: 2026-03-30 after v1.3 milestone started*
