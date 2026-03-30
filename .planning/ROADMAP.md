@@ -106,11 +106,12 @@ Plans:
   3. install.sh tests verify correct hook injection into settings.json and idempotent re-runs
   4. uninstall.sh tests verify hook removal and mp3 deletion, with idempotent re-runs producing no errors
   5. Audio player commands (paplay, afplay) are fully mocked -- no real audio hardware required
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 07-01-PLAN.md — Stub scripts, test.sh jq fix, notify-play.bats (4 tests: cooldown skip/pass, platform branch, always-exit-0)
 - [x] 07-02-PLAN.md — install.bats (3 tests: hook injection, idempotent, prerequisites) + uninstall.bats (3 tests: hook removal, mp3 deletion, idempotent)
+- [ ] 07-03-PLAN.md — Gap closure: fix test.sh ENTRYPOINT conflict + install.bats BASH-07 PATH bug
 
 ### Phase 8: PowerShell 单元测试
 **Goal**: Pester 测试覆盖 3 个 PowerShell 脚本全部核心逻辑（notify-play.ps1 冷却/MediaPlayer mock、install.ps1 hook 注入/路径转换/BOM-free/幂等、uninstall.ps1 hook 移除/空 hooks 清理/文件删除/幂等）
@@ -137,9 +138,9 @@ Phases execute in numeric order: 6 → 7 → 8
 | 4. macOS 兼容 | v1.1 | 1/1 | Complete | 2026-03-30 |
 | 5. Windows 兼容 | v1.1 | 1/1 | Complete | 2026-03-30 |
 | 6. 测试基础设施 + 静态分析 | v1.2 | 2/2 | Complete | 2026-03-30 |
-| 7. Bash 单元测试 | v1.2 | 0/2 | Not started | - |
+| 7. Bash 单元测试 | v1.2 | 2/3 | Gap closure | - |
 | 8. PowerShell 单元测试 | v1.2 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-30 after planning phase 07*
+*Last updated: 2026-03-30 after gap closure planning for phase 07*
