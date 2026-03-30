@@ -1,55 +1,39 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: 跨平台兼容
-status: complete
-last_updated: "2026-03-30T17:00:00.000Z"
+milestone: v1.2
+milestone_name: 跨平台测试
+status: defining_requirements
+last_updated: "2026-03-30T17:30:00.000Z"
 last_activity: 2026-03-30
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 **Project:** Claude Code 语音通知
 **Initialized:** 2026-03-30
-**Current Phase:** Complete
+**Current Phase:** Not started
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
-**Current focus:** v1.1 shipped — awaiting next milestone
+**Current focus:** v1.2 跨平台测试
 
 ## Current Position
 
-Milestone v1.1 complete.
-All 5 phases shipped across v1.0 + v1.1.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-30 — Milestone v1.2 started
 
-Progress: [██████████] 100%
-
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed: 6
-- v1.0: 4 plans (phases 1-3)
-- v1.1: 2 plans (phases 4-5)
-
-**By Phase:**
-
-| Phase | Plans | Status |
-|-------|-------|--------|
-| 1. Docker TTS | 2/2 | Complete |
-| 2. 生成脚本 | 1/1 | Complete |
-| 3. Hooks 集成 | 1/1 | Complete |
-| 4. macOS 兼容 | 1/1 | Complete |
-| 5. Windows 兼容 | 1/1 | Complete |
+Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
@@ -75,4 +59,4 @@ None.
 No active session.
 
 ---
-*State updated: 2026-03-30 after v1.1 milestone completion*
+*State updated: 2026-03-30 after v1.2 milestone start*

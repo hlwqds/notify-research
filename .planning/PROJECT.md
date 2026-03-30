@@ -10,9 +10,21 @@
 
 ## Current State
 
-v1.1 shipped — Linux/macOS/Windows 三平台均支持一键安装和语音通知。
+v1.2 in progress — 跨平台测试体系。
 
 ### Shipped Versions
+
+## Current Milestone: v1.2 跨平台测试
+
+**Goal:** 为通知脚本建立跨平台测试体系，Docker 测试矩阵覆盖 Linux/macOS/Windows，静态分析 + 单元测试。
+
+**Target features:**
+- ShellCheck 静态分析 bash 脚本
+- PowerShell PSScriptAnalyzer 分析 ps1 脚本
+- bats 单元测试 shell 脚本核心逻辑
+- Pester 单元测试 PowerShell 脚本核心逻辑
+- Docker 测试矩阵（Linux/macOS/Windows 容器，仅本地运行）
+- 测试范围：仅通知脚本（6个：install/uninstall/notify-play × bash/ps1）
 
 <details>
 <summary>v1.0 语音通知</summary>
@@ -45,7 +57,11 @@ macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + 
 
 ### Active
 
-(None — define via `/gsd:new-milestone`)
+- [ ] ShellCheck 静态分析 bash 脚本
+- [ ] PowerShell PSScriptAnalyzer 分析 ps1 脚本
+- [ ] bats 单元测试 shell 脚本核心逻辑
+- [ ] Pester 单元测试 PowerShell 脚本核心逻辑
+- [ ] Docker 测试矩阵覆盖 Linux/macOS/Windows
 
 ### Out of Scope
 
@@ -95,4 +111,4 @@ macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after v1.1 milestone completion*
+*Last updated: 2026-03-30 after v1.2 milestone start*
