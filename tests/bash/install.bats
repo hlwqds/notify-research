@@ -121,7 +121,7 @@ teardown() {
     # Test: missing paplay (remove stub AND ensure no real paplay elsewhere)
     rm -f /usr/bin/paplay
     PATH_BACKUP="$PATH"
-    export PATH="/app/tests/stubs:/usr/bin:/bin"  # minimal PATH without paplay
+    export PATH="/app/tests/stubs:/usr/local/bin:/usr/bin:/bin"  # minimal PATH: has bash but no paplay
     run /app/scripts/install.sh
     [ "$status" -ne 0 ]
     [[ "$output" == *"paplay not found"* ]]
