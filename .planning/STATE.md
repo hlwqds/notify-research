@@ -1,74 +1,92 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-current_phase: 03
-status: v1.0 milestone complete
-last_updated: "2026-03-29T19:34:56.878Z"
+milestone: v1.1
+milestone_name: 跨平台兼容
+current_phase: 05
+status: verifying
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-30T08:44:36.554Z"
+last_activity: 2026-03-30
 progress:
-  total_phases: 3
+  total_phases: 5
   completed_phases: 3
   total_plans: 4
-  completed_plans: 4
+  completed_plans: 5
+  percent: 0
 ---
 
 # Project State
 
 **Project:** Claude Code 语音通知
 **Initialized:** 2026-03-30
-**Current Phase:** 03
+**Current Phase:** 05
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
-**Current focus:** Phase 03 — hooks
+**Current focus:** Phase 05 — windows
 
-## Phase Status
+## Current Position
 
-| Phase | Status | Started | Completed |
-|-------|--------|---------|-----------|
-| 1 - Docker TTS 环境 | Complete | 2026-03-30 | 2026-03-30 |
-| 2 - 生成脚本 | Complete | 2026-03-30 | 2026-03-30 |
-| 3 - Hooks 集成 | Complete | 2026-03-30 | 2026-03-30 |
+Phase: 05 (windows) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-03-30
 
-## Milestones
-
-| Milestone | Status | Phases |
-|-----------|--------|--------|
-| v1 - 语音通知可用 | Complete | 1, 2, 3 |
-
-## Active Threads
-
-(None)
-
-## Decisions
-
-- **[01]** Custom requirements.txt excludes gradio (~500MB savings) and torch (installed via --index-url)
-- **[01]** SparkTTS class used directly instead of CLI for output naming control (avoids timestamp filenames)
-- **[01]** Single-stage Docker build (PyTorch needed at runtime, no build-only deps to separate)
-- **[01]** Model auto-download via huggingface_hub.snapshot_download() inside container
-- **[01]** Auto-detect CPU/GPU device instead of hardcoded --device (avoids Pitfall 1)
-- **[02]** Audio quality accepted as "barely acceptable" for v1 -- voice creation mode produces functional but not polished Chinese speech
-- [Phase 02]: GENERATE_TYPES env var as argparse default for selective generation passthrough from shell script
-- [Phase 02]: Pre-generated mp3 files committed to audio/ for immediate use without Docker
-- [Phase 03]: async: true used instead of shell & for native Claude Code non-blocking hooks
-- [Phase 03]: timeout: 10 on all hooks (audio files play in under 1 second)
-- [Phase 03]: Lock files left in /tmp/ (benign, cleaned on reboot per Pitfall 5)
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
-| Phase | Plan | Duration | Tasks | Files | Date |
-|-------|------|----------|-------|-------|------|
-| 01-docker-tts | 01 | 75s | 2 | 3 | 2026-03-30 |
-| 01-docker-tts | 02 | 45min | 3 | 0 | 2026-03-30 |
-| 02-generate-script | 01 | 1m41s | 3 | 7 | 2026-03-30 |
-| 03-hooks | 01 | 1min | 3 | 3 | 2026-03-30 |
+**Velocity:**
 
-## Blockers
+- Total plans completed: 4 (v1.0)
+- Average duration: N/A (v1.0 metrics not tracked in STATE)
+- Total execution time: N/A
 
-(None)
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 1. Docker TTS | 2/2 | - | - |
+| 2. 生成脚本 | 1/1 | - | - |
+| 3. Hooks 集成 | 1/1 | - | - |
+
+*Updated after each plan completion*
+| Phase 04 P01 | 4min | 3 tasks | 2 files |
+| Phase 05 P01 | 182 | 3 tasks | 3 files |
+
+## Accumulated Context
+
+### Decisions
+
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- **[v1.1]** macOS and Windows 共用预生成 mp3 文件，Docker 构建环境不变
+- **[v1.1]** bash 脚本覆盖 Linux + macOS，Windows 单独使用 PowerShell
+- **[v1.1]** macOS 使用 `afplay`（系统内置），Windows 使用 `MediaPlayer`（.NET PresentationCore）
+- [Phase 04]: Cached OS via uname -s in a variable; pure bash version_gte() replacing sort -V; grep -oE replacing grep -oP for BSD compatibility
+- [Phase 05]: MediaPlayer via Add-Type PresentationCore for headless MP3 playback
+- [Phase 05]: ConvertTo-Json -Depth 100 prevents deep JSON truncation
+- [Phase 05]: Forward-slash paths in hook commands work around #26759
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+- **[Phase 5]** Windows hooks 子系统不稳定（10+ open Claude Code issues），`MediaPlayer` 在 hook context 中未实测验证
+- **[Phase 5]** PowerShell 5.1 `Set-Content -Encoding UTF8` 写入带 BOM 的 UTF-8，可能破坏 settings.json
+- **[Phase 5]** GitHub issue #29560: Windows Desktop App 可能不执行 hooks
+
+## Session Continuity
+
+Last session: 2026-03-30T08:44:36.552Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
 
 ---
-*State updated: 2026-03-30 after completing plan 03-01 (all phases complete)*
+*State updated: 2026-03-30 after v1.1 roadmap creation*
