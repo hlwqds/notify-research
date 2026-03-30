@@ -12,6 +12,16 @@
 
 Shipped v1.0 — 完整的语音通知系统：Docker TTS 环境 → 音频生成脚本 → hooks 安装集成。
 
+## Current Milestone: v1.1 跨平台兼容
+
+**Goal:** 让语音通知系统在 macOS 和 Windows 上也能开箱即用，保持一键安装体验。
+
+**Target features:**
+- 跨平台音频播放：根据 OS 自动选择 afplay(macOS) / PowerShell(Windows) / paplay(Linux)
+- 跨平台安装脚本：install.sh(Linux/macOS) + install.ps1(Windows)，卸载同理
+- notify-play.sh 改造为跨平台通知播放包装器
+- Docker 构建环境不变（仅 Linux 预生成 mp3，分发平台无关）
+
 ## Requirements
 
 ### Validated (v1.0)
@@ -24,7 +34,9 @@ Shipped v1.0 — 完整的语音通知系统：Docker TTS 环境 → 音频生�
 
 ### Active
 
-(None — planning next milestone)
+- [ ] 跨平台音频播放（macOS afplay / Windows PowerShell / Linux paplay）
+- [ ] 跨平台安装/卸载脚本（bash + PowerShell）
+- [ ] 跨平台通知播放包装器
 
 ### Out of Scope
 
@@ -49,6 +61,7 @@ Shipped v1.0 — 完整的语音通知系统：Docker TTS 环境 → 音频生�
 - **性能**：Spark-TTS CPU 推理约 8 分钟/句，只能预生成不能实时合成
 - **环境**：使用 Docker 容器化 Spark-TTS，消除宿主机依赖
 - **平台**：Linux (Fedora)，使用 `paplay` 播放音频
+- **跨平台**：v1.1 目标支持 macOS (afplay) 和 Windows (PowerShell)
 - **许可**：Spark-TTS 使用 Apache 2.0 许可证
 
 ## Key Decisions
@@ -68,4 +81,4 @@ Shipped v1.0 — 完整的语音通知系统：Docker TTS 环境 → 音频生�
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after v1.0 milestone completion*
+*Last updated: 2026-03-30 after starting v1.1 milestone*
