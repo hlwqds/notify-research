@@ -5,6 +5,7 @@
 - ✅ **v1.0 语音通知** — Phases 1-3 (shipped 2026-03-30)
 - ✅ **v1.1 跨平台兼容** — Phases 4-5 (shipped 2026-03-30)
 - ✅ **v1.2 跨平台测试** — Phases 6-8 (shipped 2026-03-30)
+- 🔄 **v1.3 GitHub Actions CI** — Phases 9-11 (in progress)
 
 ## Phases
 
@@ -34,6 +35,63 @@
 
 </details>
 
+<details>
+<summary>🔄 v1.3 GitHub Actions CI (Phases 9-11) — IN PROGRESS</summary>
+
+- [ ] Phase 9: 测试路径适配 — Adapt test files from Docker `/app/` paths to CI-compatible variable paths
+- [ ] Phase 10: CI workflow — Create `.github/workflows/ci.yml` with matrix, triggers, lint, and test steps
+- [ ] Phase 11: README + CI badge — Project documentation with CI status badge
+
+</details>
+
+## Phase Detail
+
+### Phase 9: 测试路径适配
+
+**Goal:** Make all test files work without Docker by replacing hardcoded `/app/` paths with CI-compatible variable/relative paths.
+
+**Requirement mapping:** CI-09 (test files use CI-compatible paths)
+
+**Success criteria:**
+1. `./test.sh --bash` and `./test.sh --powershell` pass locally (Docker still works, backward compatible)
+2. No hardcoded `/app/` absolute path remains in any `.bats` or `.Tests.ps1` file
+3. Bats stubs install via `PATH="$REPO_ROOT/tests/stubs:$PATH"` instead of writing to `/usr/bin/`
+
+**Approach:** Introduce `$REPO_ROOT` variable (derived from `BATS_TEST_DIRNAME` in bats, `$PSScriptRoot` in Pester) and replace all `/app/` references. Keep Docker compatibility by setting `REPO_ROOT=/app` in the Docker test.sh invocation.
+
+---
+
+### Phase 10: CI workflow
+
+**Goal:** Create `.github/workflows/ci.yml` with 3-platform matrix, push/PR triggers, lint + test steps.
+
+**Requirement mapping:** CI-01, CI-02, CI-03, CI-04, CI-05, CI-06, CI-07, CI-08, CI-10
+
+**Success criteria:**
+1. Push to main triggers CI run across all 3 platforms (ubuntu, macos, windows)
+2. Pull request to main triggers CI run with concurrency cancellation of in-progress PR runs
+3. ShellCheck passes on Ubuntu for all 3 bash scripts
+4. PSScriptAnalyzer passes on all 3 platforms for all 3 PowerShell scripts
+5. All 10 bats tests pass on ubuntu-latest and macos-latest
+6. All 12 Pester tests pass on ubuntu-latest, macos-latest, and windows-latest
+
+**Approach:** Single `ci.yml` workflow file. Separate lint job (Ubuntu only) + test job (3-platform matrix). Install bats via `bats-core/bats-action@v3.0.1`. Run Pester directly via preinstalled 5.7.1. Independent from test.sh -- CI runs commands directly on runners.
+
+---
+
+### Phase 11: README + CI badge
+
+**Goal:** Create README.md with project description and CI status badge.
+
+**Requirement mapping:** CI-11
+
+**Success criteria:**
+1. README.md exists at repo root with project description and usage instructions
+2. CI status badge renders correctly pointing to the `ci.yml` workflow
+3. Badge reflects actual CI status (passing green after Phase 10 verification)
+
+**Approach:** Create README.md following the project description from PROJECT.md. Badge URL format: `![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)`. Complete after Phase 10 workflow is verified passing.
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -46,7 +104,10 @@
 | 6. 测试基础设施 + 静态分析 | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 7. Bash 单元测试 | v1.2 | 3/3 | Complete | 2026-03-30 |
 | 8. PowerShell 单元测试 | v1.2 | 2/2 | Complete | 2026-03-30 |
+| 9. 测试路径适配 | v1.3 | 0/? | Planned | — |
+| 10. CI workflow | v1.3 | 0/? | Planned | — |
+| 11. README + CI badge | v1.3 | 0/? | Planned | — |
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-30 after v1.2 milestone completion*
+*Last updated: 2026-03-30 after v1.3 roadmap creation*

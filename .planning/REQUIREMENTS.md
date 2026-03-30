@@ -44,21 +44,21 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CI-01 | TBD | Planned |
-| CI-02 | TBD | Planned |
-| CI-03 | TBD | Planned |
-| CI-04 | TBD | Planned |
-| CI-05 | TBD | Planned |
-| CI-06 | TBD | Planned |
-| CI-07 | TBD | Planned |
-| CI-08 | TBD | Planned |
-| CI-09 | TBD | Planned |
-| CI-10 | TBD | Planned |
-| CI-11 | TBD | Planned |
+| CI-01 | Phase 10 | Planned |
+| CI-02 | Phase 10 | Planned |
+| CI-03 | Phase 10 | Planned |
+| CI-04 | Phase 10 | Planned |
+| CI-05 | Phase 10 | Planned |
+| CI-06 | Phase 10 | Planned |
+| CI-07 | Phase 10 | Planned |
+| CI-08 | Phase 10 | Planned |
+| CI-09 | Phase 9 | Planned |
+| CI-10 | Phase 10 | Planned |
+| CI-11 | Phase 11 | Planned |
 
 **Coverage:**
 - v1.3 requirements: 11 total
-- Mapped to phases: TBD
+- Mapped to phases: 11 (100%)
 - Unmapped: 0
 
 ---
