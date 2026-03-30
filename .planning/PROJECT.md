@@ -10,7 +10,7 @@
 
 ## Current State
 
-Shipped v1.0 — 完整的语音通知系统：Docker TTS 环境 → 音频生成脚本 → hooks 安装集成。
+Phase 4 complete — macOS 兼容已实现（notify-play.sh afplay + BSD stat，install.sh 便携命令）。Windows 兼容待开发。
 
 ## Current Milestone: v1.1 跨平台兼容
 
@@ -28,15 +28,20 @@ Shipped v1.0 — 完整的语音通知系统：Docker TTS 环境 → 音频生�
 
 - ✓ Docker 化 Spark-TTS 环境 — v1.0
 - ✓ 4 种通知语音（任务完成、请确认、出错、进行中）— v1.0
+
+### Validated (v1.1)
+
+- ✓ macOS afplay 音频播放 — Phase 4
+- ✓ macOS BSD stat 兼容 — Phase 4
+- ✓ install.sh macOS 便携命令支持 — Phase 4
+- ✓ uninstall.sh macOS 兼容（无需改动）— Phase 4
 - ✓ 一键脚本生成所有音频文件 — v1.0
 - ✓ Claude Code hooks 4 种事件通知（Stop/Notification/StopFailure/SubagentStop）— v1.0
 - ✓ 非阻塞播放（async: true）+ 5 秒冷却防抖 — v1.0
 
 ### Active
 
-- [ ] 跨平台音频播放（macOS afplay / Windows PowerShell / Linux paplay）
-- [ ] 跨平台安装/卸载脚本（bash + PowerShell）
-- [ ] 跨平台通知播放包装器
+- [ ] Windows 兼容：notify-play.ps1 + install.ps1 + uninstall.ps1
 
 ### Out of Scope
 
