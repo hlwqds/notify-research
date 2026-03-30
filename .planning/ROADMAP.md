@@ -111,7 +111,7 @@ Plans:
 Plans:
 - [x] 07-01-PLAN.md — Stub scripts, test.sh jq fix, notify-play.bats (4 tests: cooldown skip/pass, platform branch, always-exit-0)
 - [x] 07-02-PLAN.md — install.bats (3 tests: hook injection, idempotent, prerequisites) + uninstall.bats (3 tests: hook removal, mp3 deletion, idempotent)
-- [ ] 07-03-PLAN.md — Gap closure: fix test.sh ENTRYPOINT conflict + install.bats BASH-07 PATH bug
+- [x] 07-03-PLAN.md — Gap closure: fix test.sh ENTRYPOINT conflict + install.bats BASH-07 PATH bug
 
 ### Phase 8: PowerShell 单元测试
 **Goal**: Pester 测试覆盖 3 个 PowerShell 脚本全部核心逻辑（notify-play.ps1 冷却/MediaPlayer mock、install.ps1 hook 注入/路径转换/BOM-free/幂等、uninstall.ps1 hook 移除/空 hooks 清理/文件删除/幂等）

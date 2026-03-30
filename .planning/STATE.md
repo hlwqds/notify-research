@@ -4,14 +4,14 @@ milestone: v1.2
 milestone_name: 跨平台测试
 current_phase: 07
 status: verifying
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-03-30T12:56:32.583Z"
+stopped_at: Completed 07-bash-03-PLAN.md
+last_updated: "2026-03-30T13:14:29.903Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  completed_phases: 4
+  total_plans: 7
+  completed_plans: 7
   percent: 62
 ---
 
@@ -59,6 +59,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 07]: BusyBox-safe touch -t with date -d @epoch for cooldown timestamp manipulation in bats Alpine container
 - [Phase 07]: HOME override via mktemp -d for install/uninstall test isolation
 - [Phase 07]: jq -S sorted JSON comparison for idempotency verification
+- [Phase 07-bash]: Use --entrypoint /bin/sh to override bats image ENTRYPOINT for custom docker run commands
 
 ### Pending Todos
 
@@ -71,8 +72,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T12:56:32.581Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-03-30T13:14:29.898Z
+Stopped at: Completed 07-bash-03-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -86,3 +87,4 @@ Resume file: None
 *State updated: 2026-03-30 after completing plan 06-02 (phase 6 complete)*
 | Phase 07 P01 | 1min | 2 tasks | 5 files |
 | Phase 07 P02 | 1min | 2 tasks | 2 files |
+| Phase 07-bash P03 | 52 | 2 tasks | 2 files |
