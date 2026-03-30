@@ -41,9 +41,9 @@
 ### 测试基础设施
 
 - [ ] **INFRA-01**: 统一测试入口脚本 test.sh（运行 ShellCheck + bats + Pester）
-- [ ] **INFRA-02**: 测试目录结构（tests/bash/, tests/powershell/, tests/fixtures/）
+- [x] **INFRA-02**: 测试目录结构（tests/bash/, tests/powershell/, tests/fixtures/）
 - [ ] **INFRA-03**: Docker 测试矩阵（Linux 容器运行 bats，pwsh 容器运行 Pester）
-- [ ] **INFRA-04**: notify-play.sh 可测试性改造（lock file 路径支持环境变量覆盖）
+- [x] **INFRA-04**: notify-play.sh 可测试性改造（lock file 路径支持环境变量覆盖）
 
 ## Out of Scope
 
@@ -60,9 +60,9 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | INFRA-01 | Phase 6 | Pending |
-| INFRA-02 | Phase 6 | Pending |
+| INFRA-02 | Phase 6 | Complete |
 | INFRA-03 | Phase 6 | Pending |
-| INFRA-04 | Phase 6 | Pending |
+| INFRA-04 | Phase 6 | Complete |
 | LINT-01 | Phase 6 | Pending |
 | LINT-02 | Phase 6 | Pending |
 | BASH-01 | Phase 7 | Pending |

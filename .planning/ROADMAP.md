@@ -93,7 +93,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Test directory structure, fixtures, notify-play.sh/ps1 testability refactor
+- [x] 06-01-PLAN.md — Test directory structure, fixtures, notify-play.sh/ps1 testability refactor
 - [ ] 06-02-PLAN.md — test.sh entry point with ShellCheck + PSScriptAnalyzer + Docker test matrix
 
 ### Phase 7: Bash 单元测试
