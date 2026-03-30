@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — Install Claude Code notification hooks.
 # Copies audio files and injects hook configuration into ~/.claude/settings.json.
+# Requires: Claude Code >= 2.1.78 (StopFailure hook event), jq, paplay.
 # Idempotent: safe to run multiple times (per D-07).
 set -euo pipefail
 
@@ -11,6 +12,21 @@ SETTINGS="$CLAUDE_DIR/settings.json"
 NOTIFY_PLAY="$REPO_ROOT/scripts/notify-play.sh"
 
 # --- Prerequisite checks ---
+# Check Claude Code version (>= 2.1.78 for StopFailure hook event)
+if command -v claude &>/dev/null; then
+    CLAUDE_VERSION=$(claude --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1)
+    if [ -n "$CLAUDE_VERSION" ]; then
+        MIN_VERSION="2.1.78"
+        if [ "$(printf '%s\n' "$MIN_VERSION" "$CLAUDE_VERSION" | sort -V | head -1)" != "$MIN_VERSION" ]; then
+            echo "WARNING: Claude Code $CLAUDE_VERSION detected, requires >= $MIN_VERSION (StopFailure hook event)." >&2
+            echo "  StopFailure notification will not work. Other hooks (Stop, Notification, SubagentStop) are unaffected." >&2
+        fi
+    fi
+else
+    echo "WARNING: 'claude' command not found. Cannot verify Claude Code version." >&2
+    echo "  Requires Claude Code >= 2.1.78 for full hook support (StopFailure event)." >&2
+fi
+
 for cmd in jq paplay; do
     if ! command -v "$cmd" &>/dev/null; then
         echo "ERROR: $cmd not found. Please install $cmd first." >&2
