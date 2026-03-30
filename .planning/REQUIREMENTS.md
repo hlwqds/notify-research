@@ -12,10 +12,10 @@
 
 ### Bash 单元测试
 
-- [ ] **BASH-01**: bats-core 测试 notify-play.sh 冷却跳过（lock file 存在且 < 5 秒）
-- [ ] **BASH-02**: bats-core 测试 notify-play.sh 冷却通过（lock file 旧于 5 秒）
-- [ ] **BASH-03**: bats-core 测试 notify-play.sh 平台分支（Darwin afplay vs Linux paplay）
-- [ ] **BASH-04**: bats-core 测试 notify-play.sh 始终 exit 0（即使播放器失败）
+- [x] **BASH-01**: bats-core 测试 notify-play.sh 冷却跳过（lock file 存在且 < 5 秒）
+- [x] **BASH-02**: bats-core 测试 notify-play.sh 冷却通过（lock file 旧于 5 秒）
+- [x] **BASH-03**: bats-core 测试 notify-play.sh 平台分支（Darwin afplay vs Linux paplay）
+- [x] **BASH-04**: bats-core 测试 notify-play.sh 始终 exit 0（即使播放器失败）
 - [ ] **BASH-05**: bats-core 测试 install.sh 4 个 hook 事件注入到 settings.json
 - [ ] **BASH-06**: bats-core 测试 install.sh 幂等重跑（不重复添加 hooks）
 - [ ] **BASH-07**: bats-core 测试 install.sh 前置检查（缺少 jq/paplay/settings.json/mp3 报错）
@@ -65,10 +65,10 @@
 | INFRA-04 | Phase 6 | Complete |
 | LINT-01 | Phase 6 | Pending |
 | LINT-02 | Phase 6 | Pending |
-| BASH-01 | Phase 7 | Pending |
-| BASH-02 | Phase 7 | Pending |
-| BASH-03 | Phase 7 | Pending |
-| BASH-04 | Phase 7 | Pending |
+| BASH-01 | Phase 7 | Complete |
+| BASH-02 | Phase 7 | Complete |
+| BASH-03 | Phase 7 | Complete |
+| BASH-04 | Phase 7 | Complete |
 | BASH-05 | Phase 7 | Pending |
 | BASH-06 | Phase 7 | Pending |
 | BASH-07 | Phase 7 | Pending |

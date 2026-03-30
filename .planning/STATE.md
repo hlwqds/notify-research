@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: 跨平台测试
-current_phase: 7
+current_phase: 07
 status: executing
-stopped_at: Phase 7 context gathered
-last_updated: "2026-03-30T12:26:50.889Z"
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-30T12:53:18.308Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
   percent: 62
 ---
 
@@ -19,20 +19,20 @@ progress:
 
 **Project:** Claude Code 语音通知
 **Initialized:** 2026-03-30
-**Current Phase:** 7
+**Current Phase:** 07
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
-**Current focus:** Phase 06 — test-infra-static-analysis
+**Current focus:** Phase 07 — bash
 
 ## Current Position
 
-Phase: 6 of 8 (v1.2 跨平台测试)
-Plan: Not started
-Status: Executing — plan 06-02 complete, phase 6 complete
+Phase: 07 (bash) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-30
 
 Progress: [████████░░] 62% (5/8 phases shipped in v1.0+v1.1)
@@ -55,6 +55,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 06]: ShellCheck local/Docker fallback preserves user experience without forcing Docker for lint
 - [Phase 06]: Cleanup function pattern for trap (fixes SC2064) instead of inline variable expansion
 - [Phase 06]: Pinned bats/bats:1.11.0 and mcr.microsoft.com/powershell:7.4 Docker images
+- [Phase 07]: Absolute-path stubs via /usr/bin write in container (notify-play.sh uses hardcoded /usr/bin/paplay and /usr/bin/afplay)
+- [Phase 07]: BusyBox-safe touch -t with date -d @epoch for cooldown timestamp manipulation in bats Alpine container
 
 ### Pending Todos
 
@@ -67,9 +69,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T12:26:50.884Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-bash/07-CONTEXT.md
+Last session: 2026-03-30T12:53:18.305Z
+Stopped at: Completed 07-01-PLAN.md
+Resume file: None
 
 ## Performance Metrics
 
@@ -80,3 +82,4 @@ Resume file: .planning/phases/07-bash/07-CONTEXT.md
 
 ---
 *State updated: 2026-03-30 after completing plan 06-02 (phase 6 complete)*
+| Phase 07 P01 | 1min | 2 tasks | 5 files |

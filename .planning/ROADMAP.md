@@ -109,7 +109,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Stub scripts, test.sh jq fix, notify-play.bats (4 tests: cooldown skip/pass, platform branch, always-exit-0)
+- [x] 07-01-PLAN.md — Stub scripts, test.sh jq fix, notify-play.bats (4 tests: cooldown skip/pass, platform branch, always-exit-0)
 - [ ] 07-02-PLAN.md — install.bats (3 tests: hook injection, idempotent, prerequisites) + uninstall.bats (3 tests: hook removal, mp3 deletion, idempotent)
 
 ### Phase 8: PowerShell 单元测试
