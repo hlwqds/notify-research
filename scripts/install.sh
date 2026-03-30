@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — Install Claude Code notification hooks.
 # Copies audio files and injects hook configuration into ~/.claude/settings.json.
-# Requires: Claude Code >= 2.1.78 (StopFailure hook event), jq, paplay.
+# Requires: Claude Code >= 2.1.78 (StopFailure hook event), jq, paplay (Linux) or afplay (macOS).
 # Idempotent: safe to run multiple times (per D-07).
 set -euo pipefail
 
@@ -12,12 +12,23 @@ SETTINGS="$CLAUDE_DIR/settings.json"
 NOTIFY_PLAY="$REPO_ROOT/scripts/notify-play.sh"
 
 # --- Prerequisite checks ---
+# Portable version comparison (pure bash, works on macOS bash 3.2+)
+version_gte() {
+    [ "$1" = "$2" ] && return 0
+    local IFS=.
+    local i a=($1) b=($2)
+    for ((i=0; i<${#b[@]}; i++)); do
+        ((10#${a[i]:-0} < 10#${b[i]})) && return 1
+        ((10#${a[i]:-0} > 10#${b[i]})) && return 0
+    done
+    return 0
+}
 # Check Claude Code version (>= 2.1.78 for StopFailure hook event)
 if command -v claude &>/dev/null; then
-    CLAUDE_VERSION=$(claude --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1)
+    CLAUDE_VERSION=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
     if [ -n "$CLAUDE_VERSION" ]; then
         MIN_VERSION="2.1.78"
-        if [ "$(printf '%s\n' "$MIN_VERSION" "$CLAUDE_VERSION" | sort -V | head -1)" != "$MIN_VERSION" ]; then
+        if ! version_gte "$CLAUDE_VERSION" "$MIN_VERSION"; then
             echo "WARNING: Claude Code $CLAUDE_VERSION detected, requires >= $MIN_VERSION (StopFailure hook event)." >&2
             echo "  StopFailure notification will not work. Other hooks (Stop, Notification, SubagentStop) are unaffected." >&2
         fi
@@ -27,12 +38,26 @@ else
     echo "  Requires Claude Code >= 2.1.78 for full hook support (StopFailure event)." >&2
 fi
 
-for cmd in jq paplay; do
-    if ! command -v "$cmd" &>/dev/null; then
-        echo "ERROR: $cmd not found. Please install $cmd first." >&2
+# jq is required on all platforms (per D-02)
+if ! command -v jq &>/dev/null; then
+    echo "ERROR: jq not found. Please install jq first." >&2
+    exit 1
+fi
+
+# Platform-specific audio player check (per D-01)
+OS="$(uname -s)"
+if [[ "$OS" == "Darwin" ]]; then
+    # afplay is built into macOS -- verify it exists
+    if ! command -v afplay &>/dev/null; then
+        echo "ERROR: afplay not found (unexpected on macOS)." >&2
         exit 1
     fi
-done
+else
+    if ! command -v paplay &>/dev/null; then
+        echo "ERROR: paplay not found. Please install paplay first." >&2
+        exit 1
+    fi
+fi
 
 if [ ! -f "$SETTINGS" ]; then
     echo "ERROR: $SETTINGS not found." >&2
