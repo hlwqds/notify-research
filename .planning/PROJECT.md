@@ -52,9 +52,11 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 - ✓ Pester 单元测试 PowerShell 脚本核心逻辑（12 tests）— v1.2
 - ✓ Docker 测试矩阵覆盖 Linux/macOS/Windows — v1.2
 
+- ✓ CI-compatible test paths ($REPO_ROOT/$RepoRoot, no hardcoded /app/) — v1.3 Phase 9
+
 ### Active
 
-(None — all requirements shipped)
+(None — all shipped requirements validated)
 
 ### Out of Scope
 
@@ -65,7 +67,7 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 - 音量控制 — 用户通过系统音量控制即可
 - macOS Docker 容器测试 — 不可容器化，mock 测试覆盖
 - Windows Docker 容器测试 — 3-11 GB 镜像过大
-- GitHub Actions CI — v1.3 规划中
+- GitHub Actions CI — v1.3 Phase 10 规划中
 - bash 代码覆盖率 — kcov 停止维护，无成熟工具
 
 ## Context
@@ -91,7 +93,7 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 - **环境**：Docker 容器化 Spark-TTS，仅用于音频预生成，运行时无需 Docker
 - **平台**：Linux (paplay)、macOS (afplay)、Windows (MediaPlayer)
 - **许可**：Spark-TTS 使用 Apache 2.0 许可证
-- **测试**：Docker Linux-only 容器测试，macOS/Windows 代码路径通过 mock 覆盖
+- **测试**：Docker Linux-only 容器测试，macOS/Windows 代码路径通过 mock 覆盖；CI-compatible 路径支持 GitHub Actions
 
 ## Key Decisions
 
@@ -110,7 +112,7 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 | forward-slash 路径 | Claude Code Windows hooks 反斜杠 bug #26759 | ✓ v1.1 validated |
 | NOTIFY_LOCK_DIR 环境变量 | 测试可覆盖 lock file 路径，/tmp 默认值兼容 | ✓ v1.2 validated |
 | Docker Linux-only 测试 | Windows 容器 3-11 GB，Pester 在 pwsh 容器运行 | ✓ v1.2 validated |
-| Invoke-MediaPlayer 包装函数 | Pester Mock 兼容性（裸 New-Object 无法 Mock） | ✓ v1.2 validated |
+| CI-compatible test paths | $REPO_ROOT/$RepoRoot 替代 /app/，mktemp stubs 替代 /usr/bin/ | ✓ v1.3 Phase 9 validated |
 | Pester 5.6.1 pinned | 避免 Pester 6.x beta 不兼容 | ✓ v1.2 validated |
 
 ## Evolution
@@ -118,4 +120,4 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after v1.3 milestone started*
+*Last updated: 2026-03-30 after v1.3 Phase 9 (测试路径适配) completion*
