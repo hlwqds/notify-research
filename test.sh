@@ -5,7 +5,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 BATS_IMAGE="bats/bats:1.11.0"
-PWSH_IMAGE="mcr.microsoft.com/powershell:7.4"
+PWSH_IMAGE="mcr.microsoft.com/powershell:7.4-alpine-3.20"
 
 usage() {
     echo "Usage: $0 {--lint|--bash|--powershell|--all}"
@@ -77,7 +77,13 @@ run_bash_tests() {
 run_powershell_tests() {
     echo "=== Pester tests (Docker) ==="
     docker run --rm -v "$REPO_ROOT:/app" "$PWSH_IMAGE" \
-        pwsh -Command "Invoke-Pester -Path /app/tests/powershell -Output Detailed"
+        pwsh -Command "
+            if (-not (Get-Module -ListAvailable -Name Pester)) {
+                Install-Module -Name Pester -RequiredVersion 5.6.1 -Force -Scope CurrentUser
+            }
+            Import-Module Pester
+            Invoke-Pester -Path /app/tests/powershell -Output Detailed
+        "
 }
 
 case "${1:-}" in
