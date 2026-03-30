@@ -48,16 +48,63 @@
 - Model mix: opus (planning, verification), sonnet (research, execution, checking)
 - Notable: Small project completed efficiently in one session with GSD workflow
 
+## Milestone: v1.1 — 跨平台兼容
+
+**Shipped:** 2026-03-30
+**Phases:** 2 | **Plans:** 2 | **Tasks:** 6
+
+### What Was Built
+
+- macOS afplay playback + BSD stat compatibility in notify-play.sh and install.sh
+- Windows notify-play.ps1 with .NET MediaPlayer headless playback + 5-second cooldown
+- Windows install.ps1 with `shell: powershell` hook injection, forward-slash paths, BOM-free JSON
+- Windows uninstall.ps1 with idempotent hook removal and mp3 cleanup
+- Portable `version_gte()` and `grep -oE` replacing GNU-only `sort -V` and `grep -oP`
+
+### What Worked
+
+- Deep research phase (05-RESEARCH.md) caught PowerShell pitfalls before coding — BOM issue, Depth default, forward-slash requirement
+- Key-links in plan frontmatter ensured cross-file wiring (install.ps1 → notify-play.ps1 path references)
+- Existing portable shell patterns (no `stat -c`, no `grep -P`) made macOS work mostly free
+- Cloned bash scripts (PowerShell equivalents) made Windows implementation predictable
+
+### What Was Inefficient
+
+- Worktree merge conflicts in planning files after executor agent — needed manual resolution
+- v1.0 phases 1-3 directories already cleaned up before v1.1 — no cross-phase regression tests possible
+
+### Patterns Established
+
+- PowerShell `WriteAllText` + `UTF8Encoding($false)` for BOM-free JSON (never `Set-Content`)
+- `ConvertTo-Json -Depth 100` for settings.json (default depth 2 truncates)
+- Forward-slash paths in hook commands on Windows (Claude Code bug #26759 workaround)
+- `$env:TEMP` lock files for cooldown on Windows, `[System.IO.Path]::GetTempPath()` fallback
+- `PSObject.Properties.Remove()` for idempotent JSON property deletion
+
+### Key Lessons
+
+- PowerShell JSON manipulation has several gotchas (BOM, depth, property removal) — document in RESEARCH.md
+- Clone pattern works well for cross-platform scripts — same logic, platform idioms
+- Worktree isolation is worth the merge complexity for parallel execution safety
+
+### Cost Observations
+
+- Timeline: ~1 day (same day as v1.0)
+- Commits: ~20 (v1.1 scope only)
+- Model mix: opus (orchestration), sonnet (execution, verification)
+- Notable: Small milestone completed quickly — research quality directly correlated with zero-revision execution
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 |
-|--------|------|
-| Phases | 3 |
-| Plans | 4 |
-| Tasks | 11 |
-| Timeline | ~3 hours |
-| Commits | 32 |
-| Issues found in verification | 0 (passed first time after 1 revision cycle) |
+| Metric | v1.0 | v1.1 | Total |
+|--------|------|------|-------|
+| Phases | 3 | 2 | 5 |
+| Plans | 4 | 2 | 6 |
+| Tasks | 11 | 6 | 17 |
+| Timeline | ~3 hours | ~1 day | ~1 day |
+| Commits | 32 | ~20 | ~52 |
+| Issues found in verification | 0 | 0 | 0 |
+| Verification first-pass rate | 100% | 100% | 100% |
 
 ---
-*Retrospective started: 2026-03-30*
+*Retrospective updated: 2026-03-30 after v1.1 milestone*
