@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Pre-existing hook should not be touched'"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": ["Bash(git *)"]
+  }
+}
