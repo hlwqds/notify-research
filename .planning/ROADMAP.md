@@ -126,7 +126,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — Refactor notify-play.ps1 (Invoke-MediaPlayer wrapper) + Pester install in test.sh + notify-play.Tests.ps1 (4 tests: PS-01~04)
+- [x] 08-01-PLAN.md — Refactor notify-play.ps1 (Invoke-MediaPlayer wrapper) + Pester install in test.sh + notify-play.Tests.ps1 (4 tests: PS-01~04)
 - [ ] 08-02-PLAN.md — install.Tests.ps1 (4 tests: PS-05~08) + uninstall.Tests.ps1 (4 tests: PS-09~12)
 
 ## Progress

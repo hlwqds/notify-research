@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: 跨平台测试
-current_phase: 8
+current_phase: 08
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-03-30T13:39:03.350Z"
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-30T14:07:44.713Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 8
   percent: 62
 ---
 
@@ -19,20 +19,20 @@ progress:
 
 **Project:** Claude Code 语音通知
 **Initialized:** 2026-03-30
-**Current Phase:** 8
+**Current Phase:** 08
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
-**Current focus:** Phase 07 — bash
+**Current focus:** Phase 08 — powershell
 
 ## Current Position
 
-Phase: 07 (bash) — EXECUTING
-Plan: Not started
-Status: Executing Phase 07
+Phase: 08 (powershell) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-30
 
 Progress: [████████░░] 62% (5/8 phases shipped in v1.0+v1.1)
@@ -59,6 +59,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 07]: BusyBox-safe touch -t with date -d @epoch for cooldown timestamp manipulation in bats Alpine container
 - [Phase 07]: HOME override via mktemp -d for install/uninstall test isolation
 - [Phase 07]: jq -S sorted JSON comparison for idempotency verification
+- [Phase 08]: Invoke-MediaPlayer wrapper function extracted for Pester Mock compatibility (D-01)
+- [Phase 08]: Bare exit 0 replaced with return for dot-source safety (Pitfall 2)
+- [Phase 08]: Pester 5.6.1 pinned to avoid Pester 6.x beta (RESEARCH Open Question 2)
 
 ### Pending Todos
 
@@ -71,9 +74,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T13:39:03.347Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-powershell/08-CONTEXT.md
+Last session: 2026-03-30T14:07:44.710Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None
 
 ## Performance Metrics
 
@@ -86,3 +89,4 @@ Resume file: .planning/phases/08-powershell/08-CONTEXT.md
 *State updated: 2026-03-30 after completing plan 06-02 (phase 6 complete)*
 | Phase 07 P01 | 1min | 2 tasks | 5 files |
 | Phase 07 P02 | 1min | 2 tasks | 2 files |
+| Phase 08 P01 | 2min | 2 tasks | 3 files |

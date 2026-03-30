@@ -25,10 +25,10 @@
 
 ### PowerShell 单元测试
 
-- [ ] **PS-01**: Pester 测试 notify-play.ps1 冷却跳过（lock file < 5 秒）
-- [ ] **PS-02**: Pester 测试 notify-play.ps1 冷却通过（lock file 旧于 5 秒）
-- [ ] **PS-03**: Pester 测试 notify-play.ps1 MediaPlayer mock（不调用真实音频）
-- [ ] **PS-04**: Pester 测试 notify-play.ps1 始终 exit 0
+- [x] **PS-01**: Pester 测试 notify-play.ps1 冷却跳过（lock file < 5 秒）
+- [x] **PS-02**: Pester 测试 notify-play.ps1 冷却通过（lock file 旧于 5 秒）
+- [x] **PS-03**: Pester 测试 notify-play.ps1 MediaPlayer mock（不调用真实音频）
+- [x] **PS-04**: Pester 测试 notify-play.ps1 始终 exit 0
 - [ ] **PS-05**: Pester 测试 install.ps1 4 个 hook 事件注入且 shell 为 powershell
 - [ ] **PS-06**: Pester 测试 install.ps1 forward-slash 路径转换
 - [ ] **PS-07**: Pester 测试 install.ps1 BOM-free JSON 输出（无 UTF-8 BOM）
@@ -75,10 +75,10 @@
 | BASH-08 | Phase 7 | Complete |
 | BASH-09 | Phase 7 | Complete |
 | BASH-10 | Phase 7 | Complete |
-| PS-01 | Phase 8 | Pending |
-| PS-02 | Phase 8 | Pending |
-| PS-03 | Phase 8 | Pending |
-| PS-04 | Phase 8 | Pending |
+| PS-01 | Phase 8 | Complete |
+| PS-02 | Phase 8 | Complete |
+| PS-03 | Phase 8 | Complete |
+| PS-04 | Phase 8 | Complete |
 | PS-05 | Phase 8 | Pending |
 | PS-06 | Phase 8 | Pending |
 | PS-07 | Phase 8 | Pending |
