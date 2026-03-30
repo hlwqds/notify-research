@@ -2,45 +2,49 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: GitHub Actions CI
-current_phase: null
-status: roadmap_created
-stopped_at: Roadmap created for v1.3
-last_updated: "2026-03-30T23:00:00.000Z"
-last_activity: 2026-03-30
+current_phase: 09-test-path-adaptation
+current_plan: 1
+status: in_progress
+stopped_at: 09-test-path-adaptation/09-01 complete
+last_updated: "2026-03-31T00:03:42.000Z"
+last_activity: 2026-03-31
 progress:
-  total_phases: 11
-  completed_phases: 8
-  total_plans: 16
-  completed_plans: 16
-  percent: 72
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
 
 **Project:** Claude Code 语音通知
 **Initialized:** 2026-03-30
-**Current Phase:** None (roadmap created)
+**Current Phase:** 09-test-path-adaptation (Plan 1/1)
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
-**Current focus:** v1.3 GitHub Actions CI
+**Current focus:** v1.3 GitHub Actions CI — Phase 09 test path adaptation
 
 ## Current Position
 
-Milestone: v1.3 GitHub Actions CI — ROADMAP CREATED
-Status: 3 phases planned (9-11), ready to begin Phase 9
-Last activity: 2026-03-30
+Milestone: v1.3 GitHub Actions CI — IN PROGRESS
+Status: Phase 09 Plan 01 complete (1/1 plans in phase)
+Last activity: 2026-03-31
 
-Progress: [████████░░] 72% (8/11 phases complete across v1.0-v1.2; 3 remaining in v1.3)
+Progress: [██░░░░░░░░] 33% (0/3 phases, 1/3 plans complete in milestone)
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
+- **BATS_TEST_DIRNAME for REPO_ROOT** (09-01): Standard bats pattern for deriving repo root from test file location
+- **Split-Path -Parent x2 for $RepoRoot** (09-01): Standard Pester pattern, $PSScriptRoot goes up 2 levels from tests/powershell/
+- **PATH-prepend stub pattern** (09-01): mktemp STUB_DIR + export PATH instead of writing to /usr/bin/ (root-free, CI-compatible)
+- **REPO_ROOT env var injection** (09-01): test.sh injects REPO_ROOT=/app for Docker backward compatibility
 
 ### Pending Todos
 
@@ -52,9 +56,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30
-Stopped at: v1.3 roadmap created, ready for Phase 9 (测试路径适配)
+Last session: 2026-03-31
+Stopped at: 09-test-path-adaptation/09-01 complete
 Resume file: None
 
 ---
-*State updated: 2026-03-30 after v1.3 roadmap creation*
+*State updated: 2026-03-31 after 09-01 plan completion*

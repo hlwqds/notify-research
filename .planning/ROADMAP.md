@@ -38,9 +38,9 @@
 <details>
 <summary>🔄 v1.3 GitHub Actions CI (Phases 9-11) — IN PROGRESS</summary>
 
-- [ ] Phase 9: 测试路径适配 (1/1 plans)
-- [ ] Phase 10: CI workflow
-- [ ] Phase 11: README + CI badge
+- [x] Phase 9: 测试路径适配 (1/1 plans) — completed 2026-03-31
+- [ ] Phase 10: GitHub Actions workflow (1/1 plans) — pending
+- [ ] Phase 11: README + documentation (1/1 plans) — pending
 
 </details>
 
@@ -55,7 +55,7 @@
 **Plans:** 1 plan
 
 Plans:
-- [ ] 09-01-PLAN.md — Adapt bats/Pester test paths from /app/ to $REPO_ROOT/$RepoRoot, convert stubs to PATH-prepend, fix notify-play.sh bare commands
+- [x] 09-01-PLAN.md — Adapt bats/Pester test paths from /app/ to $REPO_ROOT/$RepoRoot, convert stubs to PATH-prepend, fix notify-play.sh bare commands
 
 **Success criteria:**
 1. `./test.sh --bash` and `./test.sh --powershell` pass locally (Docker still works, backward compatible)
@@ -96,7 +96,6 @@ Plans:
 3. Badge reflects actual CI status (passing green after Phase 10 verification)
 
 **Approach:** Create README.md following the project description from PROJECT.md. Badge URL format: `![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)`. Complete after Phase 10 workflow is verified passing.
-
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -109,10 +108,10 @@ Plans:
 | 6. 测试基础设施 + 静态分析 | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 7. Bash 单元测试 | v1.2 | 3/3 | Complete | 2026-03-30 |
 | 8. PowerShell 单元测试 | v1.2 | 2/2 | Complete | 2026-03-30 |
-| 9. 测试路径适配 | v1.3 | 0/1 | Planned | — |
-| 10. CI workflow | v1.3 | 0/? | Planned | — |
-| 11. README + CI badge | v1.3 | 0/? | Planned | — |
+| 9. 测试路径适配 | v1.3 | 1/1 | Complete | 2026-03-31 |
+| 10. GitHub Actions workflow | v1.3 | 0/1 | Pending | - |
+| 11. README + documentation | v1.3 | 0/1 | Pending | - |
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-30 after v1.3 roadmap creation*
+*Last updated: 2026-03-31 after phase 09 completion*

@@ -21,7 +21,7 @@
 ### bats Tests in CI
 
 - [ ] **CI-08**: bats-core tests run on Ubuntu and macOS runners (10 tests)
-- [ ] **CI-09**: Test files use CI-compatible paths (no hardcoded `/app/` Docker paths)
+- [x] **CI-09**: Test files use CI-compatible paths (no hardcoded `/app/` Docker paths)
 
 ### Pester Tests in CI
 
@@ -52,7 +52,11 @@
 | CI-06 | Phase 10 | Planned |
 | CI-07 | Phase 10 | Planned |
 | CI-08 | Phase 10 | Planned |
+<<<<<<< HEAD
 | CI-09 | Phase 9 | Planned |
+=======
+| CI-09 | Phase 9 | Done |
+>>>>>>> worktree-agent-a6bbc62c
 | CI-10 | Phase 10 | Planned |
 | CI-11 | Phase 11 | Planned |
 
