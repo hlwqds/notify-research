@@ -1,4 +1,4 @@
-# uninstall.ps1 — Remove Claude Code notification hooks on Windows.
+﻿# uninstall.ps1 — Remove Claude Code notification hooks on Windows.
 # Removes the 4 notification hook entries from settings.json and deletes audio files.
 # Mirrors scripts/uninstall.sh behavior for Windows.
 # Idempotent: safe to run multiple times.
@@ -29,7 +29,9 @@ if ($settings.PSObject.Properties["hooks"]) {
     }
 
     # If hooks object is now empty, remove it entirely
-    if ($settings.hooks.PSObject.Properties.Count -eq 0) {
+    # Note: PSMemberInfoIntegratingCollection.Count returns empty (not 0) when collection is empty,
+    # so we wrap in @() to get a reliable count
+    if (@($settings.hooks.PSObject.Properties).Count -eq 0) {
         $settings.PSObject.Properties.Remove("hooks")
     }
 
@@ -38,12 +40,12 @@ if ($settings.PSObject.Properties["hooks"]) {
         $jsonOutput = $settings | ConvertTo-Json -Depth 100
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($SettingsPath, $jsonOutput, $utf8NoBom)
-        Write-Host "Hooks removed from settings.json."
+        Write-Output "Hooks removed from settings.json."
     } else {
-        Write-Host "No notification hooks found in settings.json."
+        Write-Output "No notification hooks found in settings.json."
     }
 } else {
-    Write-Host "No hooks section found in settings.json."
+    Write-Output "No hooks section found in settings.json."
 }
 
 # --- Remove audio files (mirrors uninstall.sh lines 29-32) ---
@@ -53,7 +55,7 @@ foreach ($type in @("complete", "confirm", "error", "progress")) {
         Remove-Item $audioFile -Force
     }
 }
-Write-Host "Audio files removed from $ClaudeDir\."
+Write-Output "Audio files removed from $ClaudeDir\."
 
-Write-Host ""
-Write-Host "Done! Notification hooks uninstalled."
+Write-Output ""
+Write-Output "Done! Notification hooks uninstalled."

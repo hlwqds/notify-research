@@ -14,8 +14,8 @@ Describe "uninstall.ps1 hook removal and cleanup" {
         New-Item -ItemType Directory -Path $ClaudeDir -Force | Out-Null
         Copy-Item /app/tests/fixtures/settings.json (Join-Path $ClaudeDir "settings.json")
 
-        # Run install to populate hooks before testing uninstall
-        & /app/scripts/install.ps1 -RepoPath /app
+        # Run install to populate hooks before testing uninstall (child process)
+        pwsh -File /app/scripts/install.ps1 -RepoPath /app
     }
 
     AfterEach {
@@ -31,7 +31,7 @@ Describe "uninstall.ps1 hook removal and cleanup" {
         $before.hooks.PSObject.Properties["Stop"] | Should -Not -BeNullOrEmpty
 
         # Run uninstall
-        & /app/scripts/uninstall.ps1
+        pwsh -File /app/scripts/uninstall.ps1
         $LASTEXITCODE | Should -Be 0
 
         # Verify all 4 notification hooks are removed
@@ -67,7 +67,7 @@ Describe "uninstall.ps1 hook removal and cleanup" {
         [System.IO.File]::WriteAllText($settingsPath, $jsonSettings, $utf8NoBom)
 
         # Run uninstall
-        & /app/scripts/uninstall.ps1
+        pwsh -File /app/scripts/uninstall.ps1
         $LASTEXITCODE | Should -Be 0
 
         # Verify hooks object is completely removed (not just empty)
@@ -85,7 +85,7 @@ Describe "uninstall.ps1 hook removal and cleanup" {
         Test-Path (Join-Path $ClaudeDir "notify-progress.mp3") | Should -BeTrue
 
         # Run uninstall
-        & /app/scripts/uninstall.ps1
+        pwsh -File /app/scripts/uninstall.ps1
         $LASTEXITCODE | Should -Be 0
 
         # Verify all 4 MP3 files are deleted
@@ -99,14 +99,14 @@ Describe "uninstall.ps1 hook removal and cleanup" {
         $settingsPath = Join-Path $env:USERPROFILE ".claude" "settings.json"
 
         # First uninstall
-        & /app/scripts/uninstall.ps1
+        pwsh -File /app/scripts/uninstall.ps1
         $LASTEXITCODE | Should -Be 0
 
         # Capture settings after first uninstall
         $firstContent = Get-Content -Path $settingsPath -Raw
 
         # Second uninstall (no hooks to remove, but should not error)
-        & /app/scripts/uninstall.ps1
+        pwsh -File /app/scripts/uninstall.ps1
         $LASTEXITCODE | Should -Be 0
 
         # Verify settings unchanged by second run

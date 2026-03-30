@@ -23,8 +23,8 @@ Describe "install.ps1 hook injection and configuration" {
     It "injects 4 hook events with shell=powershell into settings.json (PS-05)" {
         $settingsPath = Join-Path $env:USERPROFILE ".claude" "settings.json"
 
-        # Run install (child process -- install.ps1 uses exit)
-        & /app/scripts/install.ps1 -RepoPath /app
+        # Run install as child process (pwsh -File sets $LASTEXITCODE)
+        pwsh -File /app/scripts/install.ps1 -RepoPath /app
         $LASTEXITCODE | Should -Be 0
 
         # Parse output settings
@@ -52,7 +52,7 @@ Describe "install.ps1 hook injection and configuration" {
     It "uses forward slashes in hook command paths (PS-06)" {
         $settingsPath = Join-Path $env:USERPROFILE ".claude" "settings.json"
 
-        & /app/scripts/install.ps1 -RepoPath /app
+        pwsh -File /app/scripts/install.ps1 -RepoPath /app
         $LASTEXITCODE | Should -Be 0
 
         $settings = Get-Content -Path $settingsPath -Raw | ConvertFrom-Json
@@ -71,7 +71,7 @@ Describe "install.ps1 hook injection and configuration" {
     It "writes settings.json without UTF-8 BOM (PS-07)" {
         $settingsPath = Join-Path $env:USERPROFILE ".claude" "settings.json"
 
-        & /app/scripts/install.ps1 -RepoPath /app
+        pwsh -File /app/scripts/install.ps1 -RepoPath /app
         $LASTEXITCODE | Should -Be 0
 
         # Read first 3 bytes and verify not BOM signature (per D-03)
@@ -86,18 +86,24 @@ Describe "install.ps1 hook injection and configuration" {
         $settingsPath = Join-Path $env:USERPROFILE ".claude" "settings.json"
 
         # First run
-        & /app/scripts/install.ps1 -RepoPath /app
+        pwsh -File /app/scripts/install.ps1 -RepoPath /app
         $LASTEXITCODE | Should -Be 0
         $firstContent = Get-Content -Path $settingsPath -Raw
 
         # Second run
-        & /app/scripts/install.ps1 -RepoPath /app
+        pwsh -File /app/scripts/install.ps1 -RepoPath /app
         $LASTEXITCODE | Should -Be 0
         $secondContent = Get-Content -Path $settingsPath -Raw
 
-        # Compare normalized JSON (ConvertFrom-Json -> ConvertTo-Json -Depth 100)
-        $firstNormalized = $firstContent | ConvertFrom-Json | ConvertTo-Json -Depth 100
-        $secondNormalized = $secondContent | ConvertFrom-Json | ConvertTo-Json -Depth 100
-        $firstNormalized | Should -Be $secondNormalized -Because "second install should produce identical JSON output"
+        # Compare normalized JSON (per RESEARCH Pitfall 3: property ordering may differ)
+        # Use ConvertFrom-Json and compare as objects property-by-property
+        $firstObj = $firstContent | ConvertFrom-Json
+        $secondObj = $secondContent | ConvertFrom-Json
+        $firstNormalized = $firstObj | ConvertTo-Json -Depth 100
+        $secondNormalized = $secondObj | ConvertTo-Json -Depth 100
+        # Sort JSON lines for stable comparison
+        $firstSorted = ($firstNormalized -split "`n" | Sort-Object) -join "`n"
+        $secondSorted = ($secondNormalized -split "`n" | Sort-Object) -join "`n"
+        $firstSorted | Should -Be $secondSorted -Because "second install should produce identical JSON output"
     }
 }
