@@ -123,7 +123,11 @@ Plans:
   3. install.ps1 tests verify forward-slash path conversion and BOM-free JSON output
   4. uninstall.ps1 tests verify hook removal, empty hooks object cleanup, and mp3 deletion
   5. Cooldown tests use timestamp manipulation (not Start-Sleep) and pass reliably
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Refactor notify-play.ps1 (Invoke-MediaPlayer wrapper) + Pester install in test.sh + notify-play.Tests.ps1 (4 tests: PS-01~04)
+- [ ] 08-02-PLAN.md — install.Tests.ps1 (4 tests: PS-05~08) + uninstall.Tests.ps1 (4 tests: PS-09~12)
 
 ## Progress
 
@@ -139,8 +143,8 @@ Phases execute in numeric order: 6 → 7 → 8
 | 5. Windows 兼容 | v1.1 | 1/1 | Complete | 2026-03-30 |
 | 6. 测试基础设施 + 静态分析 | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 7. Bash 单元测试 | v1.2 | 2/3 | Gap closure | - |
-| 8. PowerShell 单元测试 | v1.2 | 0/? | Not started | - |
+| 8. PowerShell 单元测试 | v1.2 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-30 after gap closure planning for phase 07*
+*Last updated: 2026-03-30 after planning phase 08*
