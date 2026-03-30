@@ -60,22 +60,22 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MAC-01 | TBD | Pending |
-| MAC-02 | TBD | Pending |
-| WIN-01 | TBD | Pending |
-| WIN-02 | TBD | Pending |
-| WIN-03 | TBD | Pending |
-| WIN-04 | TBD | Pending |
-| WIN-05 | TBD | Pending |
-| WIN-06 | TBD | Pending |
-| INST-01 | TBD | Pending |
-| INST-02 | TBD | Pending |
+| MAC-01 | Phase 4 | Pending |
+| MAC-02 | Phase 4 | Pending |
+| INST-01 | Phase 4 | Pending |
+| INST-02 | Phase 4 | Pending |
+| WIN-01 | Phase 5 | Pending |
+| WIN-02 | Phase 5 | Pending |
+| WIN-03 | Phase 5 | Pending |
+| WIN-04 | Phase 5 | Pending |
+| WIN-05 | Phase 5 | Pending |
+| WIN-06 | Phase 5 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10 ⚠️
+- Mapped to phases: 10
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 after v1.1 milestone definition*
+*Last updated: 2026-03-30 after v1.1 roadmap creation*
