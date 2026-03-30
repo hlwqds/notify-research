@@ -28,29 +28,37 @@ function Invoke-MediaPlayer([string]$AudioFile) {
     $player.Close()
 }
 
-$ErrorActionPreference = "Stop"
-$CooldownSec = 5
+function Invoke-NotifyPlayCore {
+    param([string]$Type, [string]$AudioFile)
 
-# Fallback temp path if $env:TEMP is empty
-$LockDir = if ($env:NOTIFY_LOCK_DIR) { $env:NOTIFY_LOCK_DIR } elseif ($env:TEMP) { $env:TEMP } else { [System.IO.Path]::GetTempPath() }
-$LockFile = Join-Path $LockDir "claude-notify-$Type.lock"
+    $ErrorActionPreference = "Stop"
+    $CooldownSec = 5
 
-try {
-    # Cooldown check: if lock file exists and is younger than CooldownSec, skip
-    if (Test-Path $LockFile) {
-        $lockAge = ((Get-Date) - (Get-Item $LockFile).LastWriteTime).TotalSeconds
-        if ($lockAge -lt $CooldownSec) {
-            return  # Within cooldown window, skip playback
+    # Fallback temp path if $env:TEMP is empty
+    $LockDir = if ($env:NOTIFY_LOCK_DIR) { $env:NOTIFY_LOCK_DIR } elseif ($env:TEMP) { $env:TEMP } else { [System.IO.Path]::GetTempPath() }
+    $LockFile = Join-Path $LockDir "claude-notify-$Type.lock"
+
+    try {
+        # Cooldown check: if lock file exists and is younger than CooldownSec, skip
+        if (Test-Path $LockFile) {
+            $lockAge = ((Get-Date) - (Get-Item $LockFile).LastWriteTime).TotalSeconds
+            if ($lockAge -lt $CooldownSec) {
+                return  # Within cooldown window, skip playback
+            }
         }
+
+        # Update lock timestamp
+        Set-Content -Path $LockFile -Value (Get-Date).ToString() -NoNewline
+
+        # Play audio via MediaPlayer (PresentationCore assembly only -- no WPF deps)
+        Invoke-MediaPlayer -AudioFile $AudioFile
+    } catch {
+        # Silently ignore all errors -- hook must never block Claude
+        Write-Verbose "notify-play: $($_.Exception.Message)"
     }
-
-    # Update lock timestamp
-    Set-Content -Path $LockFile -Value (Get-Date).ToString() -NoNewline
-
-    # Play audio via MediaPlayer (PresentationCore assembly only -- no WPF deps)
-    Invoke-MediaPlayer -AudioFile $AudioFile
-} catch {
-    # Silently ignore all errors -- hook must never block Claude
-    Write-Verbose "notify-play: $($_.Exception.Message)"
 }
-return
+
+# Only run main when invoked directly (not dot-sourced)
+if ($MyInvocation.InvocationName -ne '.') {
+    Invoke-NotifyPlayCore -Type $Type -AudioFile $AudioFile
+}
