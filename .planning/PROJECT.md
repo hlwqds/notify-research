@@ -2,7 +2,7 @@
 
 ## What This Is
 
-为 Claude Code 提供语音通知的系统。使用 Spark-TTS 0.5B 预生成中文语音通知音频，通过 Claude Code hooks 在任务完成、需要用户交互、执行出错、子 agent 完成等场景自动播放提醒用户。一键安装，无需手动配置。
+为 Claude Code 提供跨平台语音通知的系统。使用 Spark-TTS 0.5B 预生成中文语音通知音频，通过 Claude Code hooks 在任务完成、需要用户交互、执行出错、子 agent 完成等场景自动播放提醒用户。Linux/macOS/Windows 三平台一键安装，无需手动配置。
 
 ## Core Value
 
@@ -10,40 +10,42 @@
 
 ## Current State
 
-Phase 5 complete — v1.1 跨平台兼容已完成。Linux/macOS/Windows 三平台均支持一键安装。
+v1.1 shipped — Linux/macOS/Windows 三平台均支持一键安装和语音通知。
 
-## Current Milestone: v1.1 跨平台兼容
+### Shipped Versions
 
-**Goal:** 让语音通知系统在 macOS 和 Windows 上也能开箱即用，保持一键安装体验。
+<details>
+<summary>v1.0 语音通知</summary>
 
-**Target features:**
-- 跨平台音频播放：根据 OS 自动选择 afplay(macOS) / PowerShell(Windows) / paplay(Linux)
-- 跨平台安装脚本：install.sh(Linux/macOS) + install.ps1(Windows)，卸载同理
-- notify-play.sh 改造为跨平台通知播放包装器
-- Docker 构建环境不变（仅 Linux 预生成 mp3，分发平台无关）
+Docker 化 Spark-TTS 推理环境，预生成 4 种中文通知音频，通过 Claude Code hooks 实现非阻塞语音提醒。
+
+</details>
+
+<details>
+<summary>v1.1 跨平台兼容</summary>
+
+macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + BOM-free JSON 操作。三平台一键安装/卸载。
+
+</details>
 
 ## Requirements
 
-### Validated (v1.0)
+### Validated
 
 - ✓ Docker 化 Spark-TTS 环境 — v1.0
 - ✓ 4 种通知语音（任务完成、请确认、出错、进行中）— v1.0
-
-### Validated (v1.1)
-
-- ✓ macOS afplay 音频播放 — Phase 4
-- ✓ macOS BSD stat 兼容 — Phase 4
-- ✓ install.sh macOS 便携命令支持 — Phase 4
-- ✓ uninstall.sh macOS 兼容（无需改动）— Phase 4
 - ✓ 一键脚本生成所有音频文件 — v1.0
 - ✓ Claude Code hooks 4 种事件通知（Stop/Notification/StopFailure/SubagentStop）— v1.0
 - ✓ 非阻塞播放（async: true）+ 5 秒冷却防抖 — v1.0
+- ✓ macOS afplay 音频播放 + BSD stat 兼容 — v1.1
+- ✓ macOS install.sh 便携命令支持 — v1.1
+- ✓ Windows notify-play.ps1 MediaPlayer + 冷却防抖 — v1.1
+- ✓ Windows install.ps1 shell:powershell + forward-slash 路径 — v1.1
+- ✓ Windows uninstall.ps1 hook 清理 + 文件删除 — v1.1
 
-### Validated (v1.1)
+### Active
 
-- ✓ Windows notify-play.ps1 MediaPlayer + 冷却防抖 — Phase 5
-- ✓ Windows install.ps1 shell:powershell + forward-slash 路径 — Phase 5
-- ✓ Windows uninstall.ps1 hook 清理 + 文件删除 — Phase 5
+(None — define via `/gsd:new-milestone`)
 
 ### Out of Scope
 
@@ -55,23 +57,21 @@ Phase 5 complete — v1.1 跨平台兼容已完成。Linux/macOS/Windows 三平�
 
 ## Context
 
-- `scripts/install.sh` — 一键安装（复制 mp3 + 注入 hooks 到 settings.json）
-- `scripts/uninstall.sh` — 一键卸载
-- `scripts/notify-play.sh` — 冷却包装器（5 秒防抖）
+- `scripts/install.sh` — Linux/macOS 一键安装
+- `scripts/uninstall.sh` — Linux/macOS 一键卸载
+- `scripts/notify-play.sh` — Linux/macOS 冷却包装器（paplay/afplay，5 秒防抖）
 - `scripts/notify-play.ps1` — Windows 音频播放（MediaPlayer + 5 秒冷却）
 - `scripts/install.ps1` — Windows 一键安装（PowerShell hooks 注入）
 - `scripts/uninstall.ps1` — Windows 一键卸载
 - `audio/notify-*.mp3` — 4 个预生成音频，提交到仓库
-- `Dockerfile` + `requirements.txt` — Spark-TTS Docker 构建环境
+- `Dockerfile` + `requirements.txt` — Spark-TTS Docker 构建环境（仅预生成用）
 - `generate.sh` — 音频重新生成编排脚本
-- Hooks 使用 `async: true`，paplay 绝对路径播放
 
 ## Constraints
 
 - **性能**：Spark-TTS CPU 推理约 8 分钟/句，只能预生成不能实时合成
-- **环境**：使用 Docker 容器化 Spark-TTS，消除宿主机依赖
-- **平台**：Linux (Fedora)，使用 `paplay` 播放音频
-- **跨平台**：v1.1 目标支持 macOS (afplay) 和 Windows (PowerShell)
+- **环境**：Docker 容器化 Spark-TTS，仅用于音频预生成，运行时无需 Docker
+- **平台**：Linux (paplay)、macOS (afplay)、Windows (MediaPlayer)
 - **许可**：Spark-TTS 使用 Apache 2.0 许可证
 
 ## Key Decisions
@@ -85,10 +85,14 @@ Phase 5 complete — v1.1 跨平台兼容已完成。Linux/macOS/Windows 三平�
 | async: true 非阻塞 | 原生 Claude Code 机制 | ✓ v1.0 validated |
 | jq 幂等操作 settings.json | 避免 sed/awk 破坏配置 | ✓ v1.0 validated |
 | 5 秒冷却防抖 | 临时文件时间戳，轻量无依赖 | ✓ v1.0 validated |
+| bash 覆盖 Linux + macOS | uname -s 检测，共享一套脚本 | ✓ v1.1 validated |
+| Windows 单独 PowerShell | PS 5.1 兼容，.NET MediaPlayer 无 GUI | ✓ v1.1 validated |
+| BOM-free JSON 写入 | PS Set-Content 带 BOM，用 WriteAllText 替代 | ✓ v1.1 validated |
+| forward-slash 路径 | Claude Code Windows hooks 反斜杠 bug #26759 | ✓ v1.1 validated |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after Phase 5 (Windows support) completion*
+*Last updated: 2026-03-30 after v1.1 milestone completion*
