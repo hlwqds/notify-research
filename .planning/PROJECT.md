@@ -10,7 +10,7 @@
 
 ## Current State
 
-v1.2 in progress — 跨平台测试体系。
+v1.2 in progress — Phase 6 complete, bash 单元测试 next.
 
 ### Shipped Versions
 
@@ -57,11 +57,14 @@ macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + 
 
 ### Active
 
-- [ ] ShellCheck 静态分析 bash 脚本
-- [ ] PowerShell PSScriptAnalyzer 分析 ps1 脚本
 - [ ] bats 单元测试 shell 脚本核心逻辑
 - [ ] Pester 单元测试 PowerShell 脚本核心逻辑
-- [ ] Docker 测试矩阵覆盖 Linux/macOS/Windows
+
+### Validated in Phase 6: test-infra-static-analysis
+
+- ✓ ShellCheck 静态分析 bash 脚本 — Phase 6
+- ✓ PowerShell PSScriptAnalyzer 分析 ps1 脚本 — Phase 6
+- ✓ Docker 测试矩阵覆盖 Linux/macOS/Windows — Phase 6
 
 ### Out of Scope
 
@@ -111,4 +114,4 @@ macOS afplay 播放 + BSD stat 兼容；Windows PowerShell MediaPlayer 播放 + 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after v1.2 milestone start*
+*Last updated: 2026-03-30 after Phase 6 completion*
