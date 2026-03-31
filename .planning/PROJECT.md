@@ -10,8 +10,10 @@
 
 ## Current State
 
-v1.3 shipped — 11 phases, 18 plans complete. Cross-platform notification system with CI and full test coverage:
-- 4 pre-generated mp3 notification sounds
+v1.3 shipped, v1.4 Phase 12 complete — 12 phases, 21 plans. Cross-platform notification system with CI, full test coverage, and multi-voice support:
+- 8 pre-generated mp3 notification sounds (2 voice styles: gentle + deep)
+- Per-voice directory structure (`audio/voices/{name}/`)
+- Parameterized voice generation (`generate.py --voice <name>`)
 - 6 scripts (install/uninstall/notify-play × bash/PowerShell)
 - 22 automated tests (10 bats-core + 12 Pester)
 - ShellCheck + PSScriptAnalyzer static analysis
@@ -58,6 +60,10 @@ v1.3 shipped — 11 phases, 18 plans complete. Cross-platform notification syste
 - ✓ GitHub Actions CI workflow (3-platform matrix, lint + test) — v1.3 Phase 10
 - ✓ README with CI status badge and project documentation — v1.3 Phase 11
 
+- ✓ Per-voice directory structure (audio/voices/{name}/) — v1.4 Phase 12
+- ✓ Parameterized voice generation (--voice flag, voices/*.json configs) — v1.4 Phase 12
+- ✓ 2 voice styles shipped (gentle + deep, 8 mp3 files) — v1.4 Phase 12
+
 ### Active
 
 (None — all shipped requirements validated)
@@ -82,7 +88,7 @@ v1.3 shipped — 11 phases, 18 plans complete. Cross-platform notification syste
 - `scripts/notify-play.ps1` — Windows 音频播放（MediaPlayer + 5 秒冷却）
 - `scripts/install.ps1` — Windows 一键安装（PowerShell hooks 注入）
 - `scripts/uninstall.ps1` — Windows 一键卸载
-- `audio/notify-*.mp3` — 4 个预生成音频，提交到仓库
+- `audio/voices/{name}/notify-*.mp3` — 每种语音风格 4 个预生成音频，按 voice 分目录
 - `tests/bash/*.bats` — 10 bats-core 测试
 - `tests/powershell/*.Tests.ps1` — 12 Pester 测试
 - `tests/stubs/` — mock stubs（paplay, afplay, claude CLI）
@@ -91,7 +97,9 @@ v1.3 shipped — 11 phases, 18 plans complete. Cross-platform notification syste
 - `.github/workflows/ci.yml` — GitHub Actions CI workflow（3-platform matrix）
 - `README.md` — 项目文档（CI badge、安装说明、hook 配置）
 - `Dockerfile` + `requirements.txt` — Spark-TTS Docker 构建环境（仅预生成用）
-- `generate.sh` — 音频重新生成编排脚本
+- `generate.sh` — 音频重新生成编排脚本（支持 --voice 参数）
+- `voices/{name}.json` — 语音风格配置文件（gender/pitch/speed）
+- `voices.json` — 语音风格清单
 
 ## Constraints
 
@@ -122,10 +130,13 @@ v1.3 shipped — 11 phases, 18 plans complete. Cross-platform notification syste
 | Pester 5.6.1 pinned | 避免 Pester 6.x beta 不兼容 | ✓ v1.2 validated |
 | CI 3-platform matrix | 三平台 lint + test 自动化 | ✓ v1.3 Phase 10 validated |
 | README with CI badge | 项目文档 + CI 状态展示 | ✓ v1.3 Phase 11 validated |
+| Per-voice directory layout | audio/voices/{name}/ 替代扁平 audio/ | ✓ v1.4 Phase 12 validated |
+| Voice config JSON | voices/{name}.json + generate.py --voice | ✓ v1.4 Phase 12 validated |
+| Multi-voice shipped | gentle (female/low) + deep (male/high) | ✓ v1.4 Phase 12 validated |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-31 after v1.3 milestone completion*
+*Last updated: 2026-03-31 after Phase 12 completion*
