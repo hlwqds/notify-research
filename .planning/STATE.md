@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Hooks 生态分发
 current_phase: 12
-status: executing
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-03-31T05:39:29.148Z"
+status: verifying
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-03-31T06:14:46.260Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
   percent: 64
 ---
 
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 Phase: 12 (multi-voice-foundation) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-31
 
 Progress: [████████░░░░] 64% (16/25 plans shipped, 11/15 phases complete)
@@ -64,6 +64,7 @@ Progress: [████████░░░░] 64% (16/25 plans shipped, 11/15
 *Updated after each plan completion*
 | Phase 12 P01 | 80 | 2 tasks | 10 files |
 | Phase 12 P02 | 1min | 2 tasks | 6 files |
+| Phase 12 P03 | 33min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ Recent decisions affecting current work:
 - [Phase 12]: JSON voice configs in voices/{name}.json with gender/pitch/speed fields
 - [Phase 12]: GENERATE_VOICE env var bridges --voice flag through Docker boundary
 - [Phase 12]: Voice-aware output subdirectory OUTPUT_DIR/{voice_name}/ when --voice specified
+- [Phase 12]: Fix generate.sh to mount voices/ parent dir, not voice-specific subdir, to prevent double-nesting with generate.py voice-aware output logic
+- [Phase 12]: Skip --user flag when running with podman rootless mode (uid mapping conflict)
 
 ### Pending Todos
 
@@ -93,8 +96,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-31T05:39:29.142Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-03-31T06:14:46.257Z
+Stopped at: Completed 12-03-PLAN.md
 Resume file: None
 
 ---

@@ -49,7 +49,7 @@
 
 **Milestone Goal:** 将通知系统打包为 Claude Code hooks 扩展包，通过 GitHub 社区生态分发给其他用户一键安装使用
 
-- [ ] **Phase 12: Multi-Voice Foundation** - Per-voice directory structure with parameterized generation and 2 shipped voice packs
+- [x] **Phase 12: Multi-Voice Foundation** - Per-voice directory structure with parameterized generation and 2 shipped voice packs (completed 2026-03-31)
 - [ ] **Phase 13: Plugin Packaging** - Claude Code plugin manifest and hooks with portable path resolution
 - [ ] **Phase 14: Install & Voice Selection** - curl|bash fallback, voice selection at install time, legacy backward compatibility
 - [ ] **Phase 15: Community & Docs** - MIT LICENSE, plugin-primary README, GitHub topic tags for discoverability
@@ -69,7 +69,7 @@
 Plans:
 - [x] 12-01-PLAN.md -- Migrate audio/ to voices/gentle/ directory layout and update all path references
 - [x] 12-02-PLAN.md -- Parameterize generate.py/generate.sh with --voice flag and create voice config JSON files
-- [ ] 12-03-PLAN.md -- Generate and verify deep voice pack
+- [x] 12-03-PLAN.md -- Generate and verify deep voice pack
 
 ### Phase 13: Plugin Packaging
 **Goal**: Notification system installable as a Claude Code plugin via one command, with portable path resolution
@@ -133,7 +133,7 @@ Phases execute in numeric order: 12 -> 13 -> 14 -> 15
 | 9. 测试路径适配 | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 10. GitHub Actions workflow | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 11. README + documentation | v1.3 | 1/1 | Complete | 2026-03-31 |
-| 12. Multi-Voice Foundation | v1.4 | 2/3 | In Progress|  |
+| 12. Multi-Voice Foundation | v1.4 | 3/3 | Complete   | 2026-03-31 |
 | 13. Plugin Packaging | v1.4 | 0/2 | Not started | - |
 | 14. Install & Voice Selection | v1.4 | 0/3 | Not started | - |
 | 15. Community & Docs | v1.4 | 0/2 | Not started | - |
