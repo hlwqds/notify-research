@@ -9,21 +9,21 @@ setup() {
     # Create isolated lock directory (per D-01)
     LOCK_DIR="$(mktemp -d)"
     export NOTIFY_LOCK_DIR="$LOCK_DIR"
-    export CALLED_LOG="$(mktemp)"
+    CALLED_LOG="$(mktemp)"
 
     # Install paplay and afplay stubs via PATH-prepend (no root needed)
     STUB_DIR="$(mktemp -d)"
 
-    cat > "$STUB_DIR/paplay" << 'STUB'
+    cat > "$STUB_DIR/paplay" << STUB
 #!/usr/bin/env bash
-echo "paplay $*" >> "${CALLED_LOG:-/dev/null}"
+echo "paplay \$*" >> "$CALLED_LOG"
 exit 0
 STUB
     chmod +x "$STUB_DIR/paplay"
 
-    cat > "$STUB_DIR/afplay" << 'STUB'
+    cat > "$STUB_DIR/afplay" << STUB
 #!/usr/bin/env bash
-echo "afplay $*" >> "${CALLED_LOG:-/dev/null}"
+echo "afplay \$*" >> "$CALLED_LOG"
 exit 0
 STUB
     chmod +x "$STUB_DIR/afplay"

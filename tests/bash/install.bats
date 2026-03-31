@@ -110,14 +110,22 @@ teardown() {
     # Restore settings.json for next checks
     cp "$REPO_ROOT/tests/fixtures/settings.json" "$settings"
 
-    # Test: missing paplay (remove stub AND ensure no real paplay elsewhere)
+    # Test: missing paplay (remove stub AND use empty PATH except for jq)
     rm -f "$STUB_DIR/paplay"
     PATH_BACKUP="$PATH"
-    export PATH="/usr/local/bin:/usr/bin:/bin"
+    # Create a dir with only jq stub so the PATH is fully controlled
+    EMPTY_DIR="$(mktemp -d)"
+    cat > "$EMPTY_DIR/jq" << 'STUB'
+#!/usr/bin/env bash
+cat
+STUB
+    chmod +x "$EMPTY_DIR/jq"
+    export PATH="$EMPTY_DIR"
     run "$REPO_ROOT/scripts/install.sh"
     [ "$status" -ne 0 ]
     [[ "$output" == *"paplay not found"* ]]
     export PATH="$PATH_BACKUP"
+    rm -rf "$EMPTY_DIR"
 
     # Reinstall paplay stub for subsequent tests
     cat > "$STUB_DIR/paplay" << 'STUB'
