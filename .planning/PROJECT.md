@@ -10,20 +10,22 @@
 
 ## Current State
 
-v1.4 Phase 14 complete — 14 phases, 26 plans. Cross-platform notification system with CI, full test coverage, multi-voice support, voice selection, one-liner installers, and Claude Code plugin packaging:
+v1.4 shipped — 15 phases, 28 plans. Cross-platform notification system ready for community distribution:
 - 8 pre-generated mp3 notification sounds (2 voice styles: gentle + deep)
 - Per-voice directory structure (`audio/voices/{name}/`)
 - Parameterized voice generation (`generate.py --voice <name>`)
 - 6 scripts (install/uninstall/notify-play × bash/PowerShell)
 - 2 one-liner installers (curl|bash + irm|iex via GitHub Release)
 - Interactive voice selection with preview at install time
-- Atomic voice swap (re-run install to switch voice)
+- Claude Code plugin packaging (.claude-plugin + hooks.json)
+- MIT License, plugin-first README, GitHub discovery ready
 - 22 automated tests (10 bats-core + 12 Pester)
 - ShellCheck + PSScriptAnalyzer static analysis
 - Docker test matrix (Linux bats, pwsh Pester)
 
 ### Shipped Versions
 
+- **v1.4 Hooks 生态分发** — plugin packaging, voice selection, one-liner installers, community docs
 - **v1.3 GitHub Actions CI** — 3-platform CI matrix, README with CI badge
 - **v1.2 跨平台测试** — 22 automated tests (bats + Pester), Docker test matrix
 - **v1.1 跨平台兼容** — macOS afplay + Windows PowerShell, 三平台一键安装
@@ -71,6 +73,9 @@ v1.4 Phase 14 complete — 14 phases, 26 plans. Cross-platform notification syst
 - ✓ Interactive voice selection with preview (install.sh --voice, install.ps1 -Voice) — v1.4 Phase 14
 - ✓ Atomic voice swap via temp dir + mv — v1.4 Phase 14
 - ✓ One-liner installers (curl|bash, irm|iex) via GitHub Release — v1.4 Phase 14
+- ✓ MIT License (project licensing) — v1.4 Phase 15
+- ✓ Plugin-first README documentation — v1.4 Phase 15
+- ✓ GitHub discovery metadata (description, topics, community submission) — v1.4 Phase 15
 
 ### Active
 
@@ -103,7 +108,8 @@ v1.4 Phase 14 complete — 14 phases, 26 plans. Cross-platform notification syst
 - `tests/fixtures/` — 共享测试 fixture（settings.json, dummy.mp3）
 - `test.sh` — 统一测试入口（lint + bash + powershell + Docker 矩阵）
 - `.github/workflows/ci.yml` — GitHub Actions CI workflow（3-platform matrix）
-- `README.md` — 项目文档（CI badge、安装说明、hook 配置）
+- `README.md` — 项目文档（plugin-first 安装、CI badge、语音配置、hook 说明）
+- `LICENSE` — MIT License (2026 hlwqds)
 - `Dockerfile` + `requirements.txt` — Spark-TTS Docker 构建环境（仅预生成用）
 - `generate.sh` — 音频重新生成编排脚本（支持 --voice 参数）
 - `voices/{name}.json` — 语音风格配置文件（gender/pitch/speed）
@@ -114,7 +120,7 @@ v1.4 Phase 14 complete — 14 phases, 26 plans. Cross-platform notification syst
 - **性能**：Spark-TTS CPU 推理约 8 分钟/句，只能预生成不能实时合成
 - **环境**：Docker 容器化 Spark-TTS，仅用于音频预生成，运行时无需 Docker
 - **平台**：Linux (paplay)、macOS (afplay)、Windows (MediaPlayer)
-- **许可**：Spark-TTS 使用 Apache 2.0 许可证
+- **许可**：MIT License；Spark-TTS 使用 Apache 2.0 许可证
 - **测试**：Docker Linux-only 容器测试，macOS/Windows 代码路径通过 mock 覆盖；GitHub Actions CI 三平台自动运行
 
 ## Key Decisions
@@ -146,10 +152,13 @@ v1.4 Phase 14 complete — 14 phases, 26 plans. Cross-platform notification syst
 | Interactive voice selection | --voice flag + numbered list from voices.json + preview | ✓ v1.4 Phase 14 validated |
 | Atomic voice swap | mktemp -d + mv (bash), GetTempPath + Move-Item (PS) | ✓ v1.4 Phase 14 validated |
 | One-liner installers | curl|bash + irm|iex via GitHub Release API | ✓ v1.4 Phase 14 validated |
+| MIT License | Industry standard for open-source permissiveness | ✓ v1.4 Phase 15 validated |
+| Plugin-first README | /plugin install as primary method, one-liner fallback | ✓ v1.4 Phase 15 validated |
+| GitHub discovery | Topic tags, description, community submission guide | ✓ v1.4 Phase 15 validated |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-31 after Phase 14 completion*
+*Last updated: 2026-03-31 after Phase 15 completion (v1.4 shipped)*
