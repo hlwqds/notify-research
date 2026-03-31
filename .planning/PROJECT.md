@@ -25,7 +25,7 @@ v1.4 shipped — 15 phases, 28 plans. Cross-platform notification system ready f
 
 ### Shipped Versions
 
-- **v1.5 插件市场分发** — (in progress) self-hosted marketplace for /plugin native discovery
+- **v1.5 插件市场分发** — (in progress) marketplace.json catalog, enriched plugin.json, /plugin native discovery
 - **v1.4 Hooks 生态分发** — plugin packaging, voice selection, one-liner installers, community docs
 - **v1.3 GitHub Actions CI** — 3-platform CI matrix, README with CI badge
 - **v1.2 跨平台测试** — 22 automated tests (bats + Pester), Docker test matrix
@@ -78,6 +78,10 @@ v1.4 shipped — 15 phases, 28 plans. Cross-platform notification system ready f
 - ✓ MIT License (project licensing) — v1.4 Phase 15
 - ✓ Plugin-first README documentation — v1.4 Phase 15
 - ✓ GitHub discovery metadata (description, topics, community submission) — v1.4 Phase 15
+
+- ✓ marketplace.json catalog (name=hlwqds, owner, plugin entry with source=./) — v1.5 Phase 16
+- ✓ plugin.json enriched (author, license, homepage, repository, keywords) — v1.5 Phase 16
+- ✓ claude plugin validate . passes with zero errors — v1.5 Phase 16
 
 ### Active
 
@@ -157,10 +161,12 @@ v1.4 shipped — 15 phases, 28 plans. Cross-platform notification system ready f
 | MIT License | Industry standard for open-source permissiveness | ✓ v1.4 Phase 15 validated |
 | Plugin-first README | /plugin install as primary method, one-liner fallback | ✓ v1.4 Phase 15 validated |
 | GitHub discovery | Topic tags, description, community submission guide | ✓ v1.4 Phase 15 validated |
+| Marketplace catalog | marketplace.json name=hlwqds, source=./, keywords | ✓ v1.5 Phase 16 validated |
+| Plugin manifest enrichment | author, license, homepage, repository, keywords | ✓ v1.5 Phase 16 validated |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-31 — v1.5 milestone started*
+*Last updated: 2026-03-31 — Phase 16 complete, marketplace artifacts created*
