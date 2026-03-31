@@ -79,11 +79,11 @@ Plans:
   1. User can install the notification system with a single Claude Code plugin install command and immediately hear voice notifications on task completion
   2. All audio and script paths in hooks resolve correctly via `${CLAUDE_PLUGIN_ROOT}` with no hardcoded absolute paths
   3. Plugin structure validates successfully (plugin.json + hooks/hooks.json)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 13-01: Create .claude-plugin/plugin.json manifest with userConfig for voice selection
-- [ ] 13-02: Create hooks/hooks.json with ${CLAUDE_PLUGIN_ROOT} path resolution and validate plugin structure
+- [ ] 13-01-PLAN.md -- Create .claude-plugin/plugin.json manifest with userConfig for voice selection
+- [ ] 13-02-PLAN.md -- Create hooks/hooks.json with ${CLAUDE_PLUGIN_ROOT} path resolution and validate plugin structure
 
 ### Phase 14: Install & Voice Selection
 **Goal**: Users can install via curl|bash fallback, choose a voice at install time, and legacy install scripts still work
@@ -140,4 +140,4 @@ Phases execute in numeric order: 12 -> 13 -> 14 -> 15
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-31 after Phase 12 planning*
+*Last updated: 2026-03-31 after Phase 13 planning*
