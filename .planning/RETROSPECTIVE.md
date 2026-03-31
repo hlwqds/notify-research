@@ -194,18 +194,69 @@
 - Model mix: opus (orchestration, planning), sonnet (execution, fixing)
 - Notable: High fix-to-feature ratio (11/37) due to CI environment surprises — research covered Docker well but not GitHub runner quirks
 
+## Milestone: v1.4 — Hooks 生态分发
+
+**Shipped:** 2026-03-31
+**Phases:** 4 | **Plans:** 10 | **Tasks:** 11
+
+### What Was Built
+
+- Per-voice directory layout (audio/voices/{name}/) with 2 voice packs (gentle + deep, 8 mp3 files)
+- Parameterized voice generation (--voice flag, voices/*.json configs, Docker GENERATE_VOICE env var)
+- Claude Code plugin manifest (.claude-plugin/plugin.json) with userConfig.voice
+- hooks/hooks.json with ${CLAUDE_PLUGIN_ROOT} portable paths and ${user_config.voice} substitution
+- Interactive voice selection with preview at install time (install.sh --voice, install.ps1 -Voice)
+- Atomic voice swap via temp dir + mv (bash) / GetTempPath + Move-Item (PowerShell)
+- One-liner installers (curl|bash, irm|iex) via GitHub Release API
+- MIT License, plugin-first README, GitHub discovery metadata and community submission guide
+
+### What Worked
+
+- Voice directory migration (12-01) systematically updated all 7 consumer files — no post-migration breakage
+- hooks.json ${CLAUDE_PLUGIN_ROOT} pattern eliminated all hardcoded paths — truly portable plugin packaging
+- Atomic swap pattern (temp dir + mv) prevents partial state on install failure or interruption
+- Cherry-pick fallback when worktree merge conflicted — orchestrator spot-checked and recovered
+
+### What Was Inefficient
+
+- Worktree cherry-pick abort caused orphaned commits — LICENSE and README disappeared from HEAD until re-cherry-picked
+- Phase 14-01 was already implemented in the working tree but uncommitted — executor detected and committed rather than re-implementing
+- Phase 15 verification initially failed (1/5) due to the cherry-pick issue — required re-run after fix
+
+### Patterns Established
+
+- `audio/voices/{name}/notify-{type}.mp3` per-voice directory layout
+- `voices/{name}.json` voice configuration files (gender, pitch, speed)
+- `${CLAUDE_PLUGIN_ROOT}` in hooks.json for zero-hardcoded-paths plugin packaging
+- `${user_config.voice}` substitution for runtime voice selection in plugin mode
+- `mktemp -d` + `mv` atomic swap pattern for safe file replacement
+- `trap_add()` helper for appending to existing EXIT traps
+
+### Key Lessons
+
+- Always verify cherry-picked commits are ancestors of HEAD — abort can silently revert applied commits
+- Plugin packaging requires careful path indirection — ${CLAUDE_PLUGIN_ROOT} and ${user_config.voice} must be tested end-to-end
+- Worktree isolation is valuable but cherry-pick merge resolution adds complexity — consider `isolation: "worktree"` tradeoffs
+
+### Cost Observations
+
+- Timeline: ~9 hours (single day, 4 milestone phases)
+- Commits: ~30 (v1.4 scope only)
+- Model mix: opus (orchestration, verification), sonnet (execution)
+- Notable: Larger milestone than v1.0-v1.3 combined — 10 plans vs 16 plans for v1.0-v1.3
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | Total |
-|--------|------|------|------|------|-------|
-| Phases | 3 | 2 | 3 | 3 | 11 |
-| Plans | 4 | 2 | 7 | 3 | 16 |
-| Tasks | 11 | 6 | 14 | 6 | 37 |
-| Timeline | ~3 hours | ~1 day | ~2.5 hours | ~2 hours | ~2 days |
-| Commits | 32 | ~20 | 15 | 37 | ~104 |
-| Tests added | 0 | 0 | 22 | 0 | 22 |
-| Fix commits | 0 | 0 | 0 | 11 | 11 |
-| Verification first-pass rate | 100% | 100% | 100% | 100% | 100% |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | Total |
+|--------|------|------|------|------|------|-------|
+| Phases | 3 | 2 | 3 | 3 | 4 | 15 |
+| Plans | 4 | 2 | 7 | 3 | 10 | 26 |
+| Tasks | 11 | 6 | 14 | 6 | 11 | 48 |
+| Timeline | ~3 hours | ~1 day | ~2.5 hours | ~2 hours | ~9 hours | ~3 days |
+| Commits | 32 | ~20 | 15 | 37 | ~30 | ~134 |
+| Tests added | 0 | 0 | 22 | 0 | 0 | 22 |
+| Fix commits | 0 | 0 | 0 | 11 | 2 | 13 |
+| Verification first-pass rate | 100% | 100% | 100% | 100% | 80% | 93% |
 
 ---
-*Retrospective updated: 2026-03-31 after v1.3 milestone*
+*Retrospective updated: 2026-03-31 after v1.4 milestone*

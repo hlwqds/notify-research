@@ -1,5 +1,22 @@
 # Milestones
 
+## v1.4 Hooks 生态分发 (Shipped: 2026-03-31)
+
+**Phases completed:** 4 phases, 10 plans, 11 tasks
+
+**Key accomplishments:**
+
+- Migrated 4 audio files from flat audio/ to audio/voices/gentle/ directory-per-voice layout, updated all 7 consumer files (2 scripts, 5 tests) with new paths
+- Parameterized TTS generation with per-voice JSON configs, --voice flag on generate.py/generate.sh, and Docker integration via GENERATE_VOICE env var
+- Second voice pack (deep: male/high pitch/moderate speed) generated as 4 mp3 files using Spark-TTS CPU inference via podman
+- Claude Code plugin manifest (.claude-plugin/plugin.json) with userConfig.voice for voice style selection
+- 4 Claude Code hook events with dual bash+powershell support using ${CLAUDE_PLUGIN_ROOT} portable paths and ${user_config.voice} substitution for zero-hardcoded-paths plugin packaging
+- scripts/install.sh
+- MIT License adopted and README overhauled with plugin-first installation flow replacing git-clone instructions
+- 15-02-COMMUNITY_SUBMISSION.md
+
+---
+
 ## v1.3 GitHub Actions CI (Shipped: 2026-03-31)
 
 **Phases completed:** 3 phases, 3 plans, 6 tasks
