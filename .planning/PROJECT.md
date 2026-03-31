@@ -10,11 +10,14 @@
 
 ## Current State
 
-v1.3 shipped, v1.4 Phase 13 complete — 13 phases, 23 plans. Cross-platform notification system with CI, full test coverage, multi-voice support, and Claude Code plugin packaging:
+v1.4 Phase 14 complete — 14 phases, 26 plans. Cross-platform notification system with CI, full test coverage, multi-voice support, voice selection, one-liner installers, and Claude Code plugin packaging:
 - 8 pre-generated mp3 notification sounds (2 voice styles: gentle + deep)
 - Per-voice directory structure (`audio/voices/{name}/`)
 - Parameterized voice generation (`generate.py --voice <name>`)
 - 6 scripts (install/uninstall/notify-play × bash/PowerShell)
+- 2 one-liner installers (curl|bash + irm|iex via GitHub Release)
+- Interactive voice selection with preview at install time
+- Atomic voice swap (re-run install to switch voice)
 - 22 automated tests (10 bats-core + 12 Pester)
 - ShellCheck + PSScriptAnalyzer static analysis
 - Docker test matrix (Linux bats, pwsh Pester)
@@ -65,6 +68,9 @@ v1.3 shipped, v1.4 Phase 13 complete — 13 phases, 23 plans. Cross-platform not
 - ✓ 2 voice styles shipped (gentle + deep, 8 mp3 files) — v1.4 Phase 12
 - ✓ Claude Code plugin manifest (.claude-plugin/plugin.json) — v1.4 Phase 13
 - ✓ hooks/hooks.json with ${CLAUDE_PLUGIN_ROOT} portable paths — v1.4 Phase 13
+- ✓ Interactive voice selection with preview (install.sh --voice, install.ps1 -Voice) — v1.4 Phase 14
+- ✓ Atomic voice swap via temp dir + mv — v1.4 Phase 14
+- ✓ One-liner installers (curl|bash, irm|iex) via GitHub Release — v1.4 Phase 14
 
 ### Active
 
@@ -137,10 +143,13 @@ v1.3 shipped, v1.4 Phase 13 complete — 13 phases, 23 plans. Cross-platform not
 | Multi-voice shipped | gentle (female/low) + deep (male/high) | ✓ v1.4 Phase 12 validated |
 | Plugin manifest | .claude-plugin/plugin.json + userConfig.voice | ✓ v1.4 Phase 13 validated |
 | hooks.json portable paths | ${CLAUDE_PLUGIN_ROOT} for all 8 hook entries | ✓ v1.4 Phase 13 validated |
+| Interactive voice selection | --voice flag + numbered list from voices.json + preview | ✓ v1.4 Phase 14 validated |
+| Atomic voice swap | mktemp -d + mv (bash), GetTempPath + Move-Item (PS) | ✓ v1.4 Phase 14 validated |
+| One-liner installers | curl|bash + irm|iex via GitHub Release API | ✓ v1.4 Phase 14 validated |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-31 after Phase 13 completion*
+*Last updated: 2026-03-31 after Phase 14 completion*
