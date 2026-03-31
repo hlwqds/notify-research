@@ -133,7 +133,7 @@ Phases execute in numeric order: 12 -> 13 -> 14 -> 15
 | 9. 测试路径适配 | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 10. GitHub Actions workflow | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 11. README + documentation | v1.3 | 1/1 | Complete | 2026-03-31 |
-| 12. Multi-Voice Foundation | v1.4 | 3/3 | Complete   | 2026-03-31 |
+| 12. Multi-Voice Foundation | v1.4 | 3/3 | Complete    | 2026-03-31 |
 | 13. Plugin Packaging | v1.4 | 0/2 | Not started | - |
 | 14. Install & Voice Selection | v1.4 | 0/3 | Not started | - |
 | 15. Community & Docs | v1.4 | 0/2 | Not started | - |
