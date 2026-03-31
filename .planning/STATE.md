@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Hooks 生态分发
-current_phase: Phase 12 — Multi-Voice Foundation
-status: planning
-stopped_at: Phase 12 context gathered
-last_updated: "2026-03-31T05:13:40.725Z"
-last_activity: 2026-03-31 — v1.4 roadmap created
+current_phase: 12
+status: executing
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-31T05:36:17.827Z"
+last_activity: 2026-03-31
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 64
 ---
 
@@ -19,21 +19,21 @@ progress:
 
 **Project:** Claude Code 语音通知
 **Initialized:** 2026-03-30
-**Current Phase:** Phase 12 — Multi-Voice Foundation
+**Current Phase:** 12
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
-**Current focus:** v1.4 Hooks 生态分发 — 打包分发 + 多语音风格 + 社区收录
+**Current focus:** Phase 12 — multi-voice-foundation
 
 ## Current Position
 
-Phase: 12 of 15 (Multi-Voice Foundation)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-03-31 — v1.4 roadmap created
+Phase: 12 (multi-voice-foundation) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-03-31
 
 Progress: [████████░░░░] 64% (16/25 plans shipped, 11/15 phases complete)
 
@@ -62,6 +62,7 @@ Progress: [████████░░░░] 64% (16/25 plans shipped, 11/15
 - Trend: Improving
 
 *Updated after each plan completion*
+| Phase 12 P01 | 80 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,9 @@ Recent decisions affecting current work:
 - [Phase 12]: audio/voices/{name}/ directory-per-voice structure (not flat audio/)
 - [Phase 12]: voices.json manifest for voice pack discovery
 - [Phase 12]: generate.py --voice parameterization with voices/*.json configs
+- [Phase 12]: audio/voices/{name}/ directory-per-voice layout for multi-voice support (VOICE-01)
+- [Phase 12]: VOICE env var with default fallback (gentle) in install.sh
+- [Phase 12]: PowerShell $VoiceName hardcoded to gentle until Phase 14 adds -Voice parameter
 
 ### Pending Todos
 
@@ -85,9 +89,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-31T05:13:40.723Z
-Stopped at: Phase 12 context gathered
-Resume file: .planning/phases/12-multi-voice-foundation/12-CONTEXT.md
+Last session: 2026-03-31T05:36:17.825Z
+Stopped at: Completed 12-01-PLAN.md
+Resume file: None
 
 ---
 *State updated: 2026-03-31 after v1.4 roadmap creation*

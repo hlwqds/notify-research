@@ -67,7 +67,7 @@
 **Plans**: 3 plans
 
 Plans:
-- [ ] 12-01-PLAN.md -- Migrate audio/ to voices/gentle/ directory layout and update all path references
+- [x] 12-01-PLAN.md -- Migrate audio/ to voices/gentle/ directory layout and update all path references
 - [ ] 12-02-PLAN.md -- Parameterize generate.py/generate.sh with --voice flag and create voice config JSON files
 - [ ] 12-03-PLAN.md -- Generate and verify deep voice pack
 
@@ -133,7 +133,7 @@ Phases execute in numeric order: 12 -> 13 -> 14 -> 15
 | 9. 测试路径适配 | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 10. GitHub Actions workflow | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 11. README + documentation | v1.3 | 1/1 | Complete | 2026-03-31 |
-| 12. Multi-Voice Foundation | v1.4 | 0/3 | Not started | - |
+| 12. Multi-Voice Foundation | v1.4 | 1/3 | In Progress|  |
 | 13. Plugin Packaging | v1.4 | 0/2 | Not started | - |
 | 14. Install & Voice Selection | v1.4 | 0/3 | Not started | - |
 | 15. Community & Docs | v1.4 | 0/2 | Not started | - |
