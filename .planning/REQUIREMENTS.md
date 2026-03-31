@@ -54,24 +54,24 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DIST-01 | TBD | Pending |
-| DIST-02 | TBD | Pending |
-| DIST-03 | TBD | Pending |
-| DIST-04 | TBD | Pending |
-| VOICE-01 | TBD | Pending |
-| VOICE-02 | TBD | Pending |
-| VOICE-03 | TBD | Pending |
-| VOICE-04 | TBD | Pending |
-| VOICE-05 | TBD | Pending |
-| DOCS-01 | TBD | Pending |
-| DOCS-02 | TBD | Pending |
-| DOCS-03 | TBD | Pending |
+| DIST-01 | Phase 13 | Pending |
+| DIST-02 | Phase 14 | Pending |
+| DIST-03 | Phase 14 | Pending |
+| DIST-04 | Phase 13 | Pending |
+| VOICE-01 | Phase 12 | Pending |
+| VOICE-02 | Phase 12 | Pending |
+| VOICE-03 | Phase 12 | Pending |
+| VOICE-04 | Phase 14 | Pending |
+| VOICE-05 | Phase 14 | Pending |
+| DOCS-01 | Phase 15 | Pending |
+| DOCS-02 | Phase 15 | Pending |
+| DOCS-03 | Phase 15 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 12 total
-- Mapped to phases: 0
-- Unmapped: 12 ⚠️
+- Mapped to phases: 12
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after initial definition*
+*Last updated: 2026-03-31 after v1.4 roadmap creation*
