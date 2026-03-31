@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Hooks 生态分发
 current_phase: 14
-status: verifying
+status: executing
 stopped_at: Phase 14 context gathered
-last_updated: "2026-03-31T07:50:18.029Z"
-last_activity: 2026-03-31
+last_updated: "2026-03-31T14:22:58.145Z"
+last_activity: 2026-03-31 -- Phase 14 execution started
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
-  percent: 64
+  total_plans: 10
+  completed_plans: 7
+  percent: 84
 ---
 
 # Project State
@@ -26,18 +26,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
-**Current focus:** Phase 13 — plugin-packaging
+**Current focus:** Phase 14 — install-voice-selection
 
 ## Current Position
 
-Phase: 13 (plugin-packaging) — EXECUTING
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-03-31
+Phase: 14 (install-voice-selection) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 14
+Last activity: 2026-03-31 -- Phase 14 execution started
 
-Progress: [████████░░░░] 64% (16/25 plans shipped, 11/15 phases complete)
+Progress: [██████████░░] 84% (21/25 plans shipped, 14/15 phases complete)
 
-**v1.4 progress:** [░░░░░░░░░░] 0% (0/10 plans, 0/4 phases)
+**v1.4 progress:** [██████░░░░] 60% (6/10 plans, 3/4 phases)
 
 ## Performance Metrics
 
