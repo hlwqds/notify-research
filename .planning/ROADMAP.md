@@ -94,12 +94,12 @@ Plans:
   2. User can select a voice style during installation and all 4 notification sounds reflect the chosen voice
   3. Existing install.sh/install.ps1 scripts continue to work as before (backward compatibility)
   4. Switching voice at install time swaps all 4 audio files atomically (no partial state)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 14-01: Add voice selection to install.sh/install.ps1 with interactive prompt and --voice flag
-- [ ] 14-02: Create install-online.sh curl|bash entry point with tagged-release URL pinning
-- [ ] 14-03: Verify legacy install/uninstall scripts still work with new audio directory structure
+- [ ] 14-01-PLAN.md -- Voice selection + atomic swap for install.sh (--voice flag, interactive prompt, preview)
+- [ ] 14-02-PLAN.md -- Voice selection + atomic swap for install.ps1 (-Voice parameter, interactive prompt, preview)
+- [ ] 14-03-PLAN.md -- Create install-online.sh and install-online.ps1 curl|bash/irm|iex one-liner installers
 
 ### Phase 15: Community & Docs
 **Goal**: Project is discoverable and installable by Claude Code users searching GitHub or community lists
@@ -140,4 +140,4 @@ Phases execute in numeric order: 12 -> 13 -> 14 -> 15
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-31 after Phase 13 planning*
+*Last updated: 2026-03-31 after Phase 14 planning*
