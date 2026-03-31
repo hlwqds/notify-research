@@ -71,10 +71,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Override output directory when --voice is specified (per D-09)
+# Mount parent voices/ dir so generate.py voice-aware subdirectory logic works correctly
 if [[ -n "$VOICE_NAME" ]]; then
-    OUTPUT_DIR="$SCRIPT_DIR/audio/voices/$VOICE_NAME"
+    OUTPUT_DIR="$SCRIPT_DIR/audio/voices"
     echo "==> 语音风格: $VOICE_NAME"
-    echo "==> 输出目录: $OUTPUT_DIR"
+    echo "==> 输出目录: $OUTPUT_DIR/$VOICE_NAME/"
 fi
 
 # Step 1: Docker build

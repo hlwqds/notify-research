@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# HuggingFace cache created by TTS generation container
+.hf_cache/
