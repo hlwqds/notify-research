@@ -1,59 +1,57 @@
 # Feature Research
 
 **Project:** Claude Code Voice Notification System
-**Milestone:** v1.2 Cross-Platform Testing
-**Researched:** 2026-03-30
-**Confidence:** HIGH (verified with official docs for all tools; script analysis from codebase)
+**Milestone:** v1.4 Hooks Ecosystem Distribution
+**Researched:** 2026-03-31
+**Confidence:** MEDIUM (Claude Code plugin system from official docs is HIGH; competitor patterns and community adoption are MEDIUM; multi-voice audio pack distribution is LOW precedent)
 
 ## Scope
 
-This research covers ONLY the new test infrastructure needed for v1.2. All v1.0 (voice notifications) and v1.1 (cross-platform) features are already shipped.
+This research covers ONLY the new features needed for v1.4 "Hooks ecosystem distribution." All v1.0-v1.3 features (voice notifications, cross-platform support, automated tests, CI) are already shipped.
 
-**What we are testing (6 scripts):**
-- `scripts/install.sh` -- Linux/macOS install (copies mp3 + jq hook injection)
-- `scripts/uninstall.sh` -- Linux/macOS uninstall (jq hook removal + mp3 cleanup)
-- `scripts/notify-play.sh` -- Linux/macOS playback (cooldown + paplay/afplay)
-- `scripts/install.ps1` -- Windows install (copies mp3 + PowerShell JSON hook injection)
-- `scripts/uninstall.ps1` -- Windows uninstall (JSON hook removal + mp3 cleanup)
-- `scripts/notify-play.ps1` -- Windows playback (cooldown + MediaPlayer)
+**What we are building:**
+- Packaging the notification system as a Claude Code plugin for one-line install
+- Multi-voice audio style packs (install-time selection)
+- GitHub community presence (awesome lists, discussions)
+- Discovery and installation documentation
 
-**What we are NOT testing:**
-- Spark-TTS Docker environment (generation-time only, not runtime)
-- `generate.sh` (rarely used, manual invocation only)
-- `audio/notify-*.mp3` files (binary assets, not code)
+**What we are NOT building:**
+- Real-time TTS generation (out of scope -- CPU inference too slow)
+- GUI configuration interface
+- Multi-language notifications
+- npm/npx packaging (wrong ecosystem)
 
 ---
 
-## Table Stakes (Must Have)
+## Table Stakes (Users Expect These)
 
-Test categories that any project shipping shell/PowerShell scripts should have. Missing these = regression risk is unmanaged.
+Features that users assume exist when installing a Claude Code hook extension. Missing these = the install experience feels broken or amateur.
 
 | # | Feature | Why Expected | Complexity | Notes |
 |---|---------|--------------|------------|-------|
-| T1 | **ShellCheck static analysis for bash scripts** | ShellCheck is the de facto standard for bash/sh linting. Not running it means bugs like unquoted variables, unused variables, and POSIX compatibility issues go undetected. | LOW | Run `shellcheck scripts/*.sh`. Config: `.shellcheckrc` to exclude expected warnings (SC1090 for sourced files, SC2312 for `command -v`). Zero test code to write -- purely configuration. |
-| T2 | **PSScriptAnalyzer static analysis for PowerShell scripts** | PSScriptAnalyzer (v1.25.0) is the official Microsoft static analysis tool for PowerShell. Not running it means potential issues like unused variables, improper error handling, and style violations go undetected. | LOW | Run `Invoke-ScriptAnalyzer scripts/*.ps1`. Config: `PesterConfiguration` or `.PSScriptAnalyzerSettings.psd1` to exclude specific rules. Zero test code to write -- purely configuration. |
-| T3 | **bats unit tests for notify-play.sh** | `notify-play.sh` is the most frequently invoked script (runs on every hook event). Its cooldown logic and platform branching (Darwin vs Linux stat flags) are the highest-risk code paths. | MEDIUM | Test cooldown skip (lock file exists, age < 5s), cooldown pass (lock file old), lock file creation, Darwin stat path, Linux stat path, exit 0 always (even on audio player failure). Requires mocking `date`, `stat`, `afplay`, `paplay`. |
-| T4 | **bats unit tests for install.sh** | install.sh modifies `~/.claude/settings.json` -- a critical user config file. Idempotency and correctness of jq transformations must be verified. | MEDIUM | Test: settings.json hook injection (4 events), idempotent re-run, prerequisite checks (missing jq, missing paplay, missing settings.json, missing mp3), version check warning. Requires mocking `jq`, `cp`, `command -v`, `claude`. |
-| T5 | **bats unit tests for uninstall.sh** | uninstall.sh removes hooks from settings.json and deletes mp3 files. Must verify it cleans up exactly what install.sh created and nothing more. | LOW | Test: hook removal (4 events removed), audio file deletion, missing settings.json error, idempotent re-run (no hooks = no error). Requires mocking `jq`, `rm`, `mv`. |
-| T6 | **Pester unit tests for notify-play.ps1** | Parallel to T3. Windows cooldown logic and MediaPlayer invocation must be verified without requiring actual Windows audio hardware. | MEDIUM | Test: cooldown skip, cooldown pass, lock file creation, fallback temp path, exit 0 always, MediaPlayer mock. Use Pester `Mock` for `Add-Type`, `New-Object`, `Get-Item`, `Set-Content`, `Test-Path`. |
-| T7 | **Pester unit tests for install.ps1** | Parallel to T4. Windows hook injection with forward-slash paths, BOM-free JSON writing, and `shell: "powershell"` field must be verified. | MEDIUM | Test: 4 events injected with correct structure, forward-slash path normalization, BOM-free output, idempotent re-run, prerequisite checks. Use Pester `Mock` for `Copy-Item`, `Test-Path`, `Get-Content`, `ConvertFrom-Json`, `ConvertTo-Json`, `[System.IO.File]::WriteAllText`. |
-| T8 | **Pester unit tests for uninstall.ps1** | Parallel to T5. Hook removal and mp3 cleanup must work correctly, including the empty-hooks-object cleanup path. | LOW | Test: 4 event removal, empty hooks object removal, audio file deletion, missing settings.json error, idempotent re-run. Use Pester `Mock` for `Test-Path`, `Remove-Item`, `Get-Content`, `ConvertFrom-Json`. |
-| T9 | **Test runner script** | A single entry point to run all tests (static analysis + bats + Pester). CI and developers need one command, not three. | LOW | A bash script at `tests/run-all.sh` or `Makefile` target. Runs ShellCheck, then bats, then (on Linux with pwsh) Pester. Exits non-zero if any step fails. |
+| T1 | **One-line install command** | Users of CLI tools expect `curl ... \| bash` or `npx ...` or native package manager install. Having users manually edit settings.json is unacceptable for ecosystem distribution. | MEDIUM | Claude Code has a native plugin system (`/install-plugin` or `/plugin install`). This is the primary mechanism. Fallback: curl-pipe-bash like oh-my-zsh. |
+| T2 | **Clean uninstall** | Any installed extension must be cleanly removable without orphaning files or breaking settings.json. Uninstall that leaves residue is a trust killer. | LOW | If using the plugin system, `/uninstall-plugin` handles cleanup. If using curl-pipe-bash, provide an `uninstall.sh` (already exists from v1.0). |
+| T3 | **Cross-platform support (Linux/macOS/Windows)** | Claude Code runs on all three platforms. A notification extension must work everywhere or users on unsupported platforms will file issues immediately. | LOW | Already shipped in v1.1. Just needs to be maintained in the plugin package. Scripts exist: install.sh, install.ps1, notify-play.sh, notify-play.ps1. |
+| T4 | **README with clear installation instructions** | The first thing a user sees on GitHub. Must explain what it does, how to install, and how to configure -- in under 30 seconds of reading. | LOW | README.md already exists from v1.3. Needs updating for plugin-based installation. |
+| T5 | **Pre-generated audio files in the package** | Users must not need Docker, Python, or any ML tooling. Audio files must be bundled with the install so it works immediately. | LOW | Already done -- 4 mp3 files committed to repo. Ensure they are included in the plugin package. |
+| T6 | **Hook configuration merged into settings.json correctly** | The plugin must inject hooks that work with Claude Code's hook system without breaking existing user hooks or project hooks. | MEDIUM | Must test hook merging behavior. Claude Code plugin hooks merge with user/project settings. Need to verify `$CLAUDE_PLUGIN_ROOT` and `$CLAUDE_PLUGIN_DATA` env vars work in our scripts. |
+| T7 | **Non-blocking playback (async: true)** | Notification hooks that block Claude Code's execution are immediately noticeable and annoying. Users expect the agent to keep working while the notification plays. | LOW | Already implemented (async: true in hook config). Must preserve in plugin format. |
+| T8 | **Cooldown/debounce (5-second)** | Multiple hook events firing in rapid succession must not stack audio. Users expect one notification, not a cacophony. | LOW | Already implemented in notify-play.sh/ps1. Must preserve in plugin format. |
 
 ---
 
-## Differentiators (Nice to Have)
+## Differentiators (Competitive Advantage)
 
-Test features that go beyond basic coverage. Valuable but not blocking.
+Features that set this project apart from other Claude Code notification solutions. Not required, but valuable for adoption.
 
 | # | Feature | Value Proposition | Complexity | Notes |
 |---|---------|-------------------|------------|-------|
-| D1 | **Docker test matrix (Linux/macOS/Windows containers)** | Run bats tests in Ubuntu and macOS Docker containers, Pester tests in PowerShell Docker image. Catches platform-specific regressions (e.g., GNU vs BSD stat) without needing actual macOS/Windows hardware. | HIGH | Linux: `ubuntu:latest` with bats-core + bats-support + bats-assert + bats-file. macOS: no official Docker image exists (macOS is not containerizable). Windows PowerShell: `mcr.microsoft.com/powershell:latest` (Linux-based pwsh, not real Windows). The macOS gap means this matrix has limited value -- bats on Linux already catches most issues, and the real differences (Darwin stat, afplay) cannot be tested in Docker. |
-| D2 | **install.sh + uninstall.sh integration test (round-trip)** | Install, verify hooks exist, uninstall, verify hooks gone, reinstall -- full lifecycle test. Catches state leakage between install/uninstall that unit tests miss. | MEDIUM | Create a temp settings.json fixture, run install.sh against it, verify output with jq, run uninstall.sh, verify hooks removed. Must mock `cp` and audio player commands. |
-| D3 | **settings.json structure validation** | After install, validate that the generated settings.json conforms to Claude Code's expected schema (correct hook array nesting, required fields present). | LOW | A bats/Pester test that parses the output JSON and asserts on field types and values. Catches regressions in hook format when Claude Code updates its schema. |
-| D4 | **Event mapping consistency test** | Verify that install.sh and install.ps1 use the exact same event-to-audio mapping (Stop->complete, Notification->confirm, StopFailure->error, SubagentStop->progress). A single test that asserts both scripts produce equivalent mappings. | LOW | Extract mapping from each script's test output and compare. Prevents divergence between Linux/macOS and Windows event handling. |
-| D5 | **Code coverage reporting** | Track which lines of each script are exercised by tests. | MEDIUM | bash has no native coverage tool. `kcov` exists but is unmaintained. For PowerShell, `Pester` has `-CodeCoverage` parameter (works on `.ps1` files). Recommend Pester coverage only, skip bash coverage. |
-| D6 | **Cross-platform test on actual Windows (CI)** | Run Pester tests on `windows-latest` in GitHub Actions to catch real Windows-specific issues (path separators, BOM encoding, MediaPlayer assembly loading). | HIGH | Requires a GitHub Actions workflow with `runs-on: windows-latest`. But we have no CI pipeline currently, and the project milestone says "Docker test matrix, local only." |
+| D1 | **Claude Code native plugin format** | Users can install via `/plugin install notify-sounds@marketplace` -- the same mechanism they use for all Claude Code extensions. This is the most discoverable and trustworthy distribution channel. | HIGH | Requires restructuring the repo to follow Claude Code plugin conventions: `hooks/hooks.json` in plugin root, `$CLAUDE_PLUGIN_ROOT` env var in scripts, `.claude-plugin/marketplace.json` for marketplace listing. |
+| D2 | **Multi-voice audio style packs** | Users can choose from multiple voice styles at install time (e.g., female/male, gentle/firm, English/Chinese). This is not offered by any competitor in the Claude Code notification space. | HIGH | Requires: (a) generating audio variants with Spark-TTS using different speaker references, (b) an install-time selection mechanism, (c) a naming convention for audio files (e.g., `notify-complete-female.mp3`). Spark-TTS supports zero-shot voice cloning via speaker reference audio -- this is feasible but requires generation infrastructure. |
+| D3 | **Submission to awesome-claude-code lists** | Being listed on `hesreallyhim/awesome-claude-code` (2.8K+ stars), `Chat2AnyLLM/awesome-claude-skills`, or `quemsah/awesome-claude-plugins` drives organic discovery. These lists are where Claude Code users go to find extensions. | LOW | File a PR or issue on each awesome list repo. Provide a clear description, GIF demo, and install instructions. |
+| D4 | **GitHub Topic tagging and SEO** | Proper GitHub topics (`claude-code`, `claude-code-hooks`, `audio-notification`) make the repo discoverable via GitHub search. Most competitors have poor SEO. | LOW | Add topics to repo settings. Write a good repo description. |
+| D5 | **Install-time voice selection (interactive)** | When users install, they hear a preview of each voice style and choose. Interactive selection is more user-friendly than editing config files after install. | MEDIUM | Can be implemented as a menu in install.sh/install.ps1: "Select voice style: [1] Female-Gentle [2] Male-Firm [3] Neutral". Copies selected audio variant to the active slot. |
+| D6 | **Contextual notification sounds** | Different sounds for different event types (already done in v1.0) but enhanced with distinct audio characteristics that users can identify without looking at the screen. | LOW | Already have 4 distinct sounds (complete, confirm, error, progress). Could enhance with more distinct audio profiles per voice pack. |
 
 ---
 
@@ -61,328 +59,288 @@ Test features that go beyond basic coverage. Valuable but not blocking.
 
 | # | Anti-Feature | Why Avoid | What to Do Instead |
 |---|--------------|-----------|-------------------|
-| A1 | **End-to-end audio playback test** | Requires actual audio hardware and PulseAudio/PipeWire/CoreAudio running. Cannot run in CI or Docker. Fails unpredictably. | Mock the audio player command. Test that the correct player is called with correct arguments. Audio playback is an integration concern, not a unit test concern. |
-| A2 | **macOS Docker container testing** | macOS cannot run in Docker containers (licensing, kernel differences). No `macos:latest` image exists. | Test Darwin stat path with mocked `uname -s` and `stat` in bats on Linux. This is what bats mocking is for. |
-| A3 | **bash code coverage (kcov)** | `kcov` is unmaintained (last release 2019), does not support bash 5.x well, and adds complexity for marginal value. Our scripts are short (<150 lines each). | Rely on test completeness (all code paths listed in T3-T8) rather than coverage metrics. |
-| A4 | **Snapshot testing for settings.json** | Snapshot tests compare full JSON output against a golden file. Fragile: any formatting change (whitespace, key order) breaks the test. | Assert specific fields (event names, command structure, async flag) rather than comparing entire JSON. Use jq to extract and compare individual values. |
-| A5 | **Property-based testing** | Shell scripts are imperative, not functional. Property-based testing (like bash-fuzz) adds complexity with little benefit for 6 short scripts. | Explicit test cases covering each code path (normal, error, edge). |
-| A6 | **Test framework other than bats for bash** | Alternatives (shunit2, roundup, bash_unit) are less maintained and have smaller ecosystems than bats-core. | bats-core is the de facto standard with the largest ecosystem (bats-support, bats-assert, bats-file). |
-| A7 | **Test framework other than Pester for PowerShell** | No other PowerShell test framework has meaningful adoption. Pester is the only serious option. | Pester 5.x is built into some PowerShell images and is the official recommendation from Microsoft. |
+| A1 | **npm/npx packaging** | Claude Code is not a Node.js project. Forcing Node.js packaging adds an unnecessary dependency. The Claude Code plugin system is the native distribution mechanism. | Use Claude Code's native plugin install (`/plugin install`) or curl-pipe-bash for maximum compatibility. |
+| A2 | **Docker required at runtime** | Users should not need Docker installed to use notification sounds. Docker is only for audio generation (Spark-TTS), not playback. | Bundle pre-generated mp3 files in the plugin. Docker is only used in the development/generation pipeline. |
+| A3 | **Real-time TTS synthesis at runtime** | Spark-TTS CPU inference takes ~8 minutes per sentence. This is unacceptable for a notification that should play instantly. | Pre-generate all audio variants and bundle them. Only use TTS when adding new voice packs (rare, developer-time operation). |
+| A4 | **Custom configuration file format** | Do not invent a new config format (YAML, TOML, custom JSON). Use what Claude Code already provides: `settings.json` hooks and environment variables. | Use Claude Code's `$CLAUDE_PLUGIN_DATA` for per-plugin data storage. Use `$CLAUDE_PLUGIN_ROOT` for plugin file paths. |
+| A5 | **Audio volume control in the extension** | Adding volume controls creates platform-specific complexity (PipeWire vs PulseAudio vs CoreAudio vs Windows Audio API). Users already have system-level volume control. | Users adjust volume via their OS. The extension plays audio at whatever the system volume is. |
+| A6 | **GUI configuration tool** | A GUI for selecting voices or configuring hooks adds significant complexity and dependencies (Electron, Qt, etc.). The target audience is CLI power users. | Interactive terminal prompts in install scripts (bash `select`, PowerShell `Read-Host`). |
+| A7 | **Notification sound from internet/URL** | Downloading audio at runtime adds latency, network dependency, and privacy concerns. Users may be offline or behind firewalls. | Bundle all audio files in the plugin package. No network calls at runtime. |
+| A8 | **Hook event filtering/config per user** | Letting users configure which events trigger notifications sounds useful but creates support burden (users breaking their config, events not firing as expected). The current 4-event set (Stop, Notification, StopFailure, SubagentStop) covers the important cases. | Ship a fixed set of 4 hook events. If demand exists, add opt-out flags in a future version. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-T1 (ShellCheck)
-    └── independent ──> no dependencies
+T1 (Plugin packaging format)
+    ├──requires──> Claude Code plugin system understanding (research complete)
+    ├──requires──> hooks/hooks.json structure (adapt from current settings.json injection)
+    ├──requires──> $CLAUDE_PLUGIN_ROOT usage in scripts (refactor install.sh/ps1)
+    ├──enables──> D1 (Native plugin install)
+    └──enables──> D3 (Awesome list submission -- need installable product first)
 
-T2 (PSScriptAnalyzer)
-    └── independent ──> no dependencies
+D2 (Multi-voice audio packs)
+    ├──requires──> Spark-TTS generation pipeline (exists from v1.0)
+    ├──requires──> Speaker reference audio files (need to source)
+    ├──requires──> Naming convention for audio variants (design decision)
+    ├──requires──> D5 (Install-time selection -- needs variants to select from)
+    └──enables──> D6 (Enhanced contextual sounds)
 
-T3 (bats: notify-play.sh)
-    └── requires ──> bats-core + bats-support + bats-assert installed
-    └── independent from T4, T5 (tests different script)
+D5 (Interactive voice selection)
+    ├──requires──> D2 (Audio variants must exist)
+    ├──enhances──> T1 (Plugin install becomes more useful with selection)
+    └──independent from T3, T4 (cross-platform and README are separate)
 
-T4 (bats: install.sh)
-    └── requires ──> bats-core + bats-support + bats-assert + bats-file installed
-    └── independent from T3, T5 (tests different script)
+D3 (Awesome list submission)
+    ├──requires──> T1 (Plugin must be installable first)
+    ├──requires──> T4 (README must document the install clearly)
+    └──requires──> D4 (Good GitHub SEO helps approval chances)
 
-T5 (bats: uninstall.sh)
-    └── requires ──> bats-core + bats-support + bats-assert installed
-    └── independent from T3, T4 (tests different script)
-
-T6 (Pester: notify-play.ps1)
-    └── requires ──> pwsh + Pester module installed
-    └── independent from T7, T8 (tests different script)
-
-T7 (Pester: install.ps1)
-    └── requires ──> pwsh + Pester module installed
-    └── independent from T6, T8 (tests different script)
-
-T8 (Pester: uninstall.ps1)
-    └── requires ──> pwsh + Pester module installed
-    └── independent from T6, T7 (tests different script)
-
-T9 (test runner)
-    └── requires ──> T1, T2, T3-T5, T6-T8 (orchestrates all)
-
-D1 (Docker matrix)
-    └── requires ──> T3, T4, T5 (bats tests runnable in container)
-    └── requires ──> T6, T7, T8 (Pester tests runnable in container)
-    └── enhances ──> T9 (test runner becomes container-aware)
-
-D2 (install/uninstall round-trip)
-    └── requires ──> T4, T5 (individual tests exist first)
-
-D3 (JSON schema validation)
-    └── enhances ──> T4, T7 (additional assertions in existing tests)
-
-D4 (event mapping consistency)
-    └── requires ──> T4, T7 (both install scripts tested first)
-
-D5 (Pester code coverage)
-    └── enhances ──> T6, T7, T8 (adds coverage to existing Pester tests)
+T6 (Hook config merging)
+    ├──requires──> T1 (Plugin format defines how hooks are declared)
+    └──blocks──> T7, T8 (cooldown and async only work if hooks merge correctly)
 ```
 
 ### Dependency Notes
 
-- **T1 and T2 are zero-dependency entry points.** Static analysis needs no test framework, no fixtures, no mocks. Start here.
-- **T3/T4/T5 are independent from T6/T7/T8.** Bash tests and PowerShell tests use completely different tools and runtimes. Implement in parallel.
-- **T9 depends on everything.** The test runner is the final integration piece that ties all test categories together.
-- **D1 (Docker matrix) is the last thing to build.** It wraps existing tests in containers. Build it only after all tests pass locally.
-- **D3 and D4 enhance existing tests rather than requiring new infrastructure.** Add them as additional `@test` blocks within T4 and T7 test files.
+- **T1 (plugin packaging) is the critical path.** Everything else -- marketplace distribution, awesome lists, community adoption -- depends on having a proper plugin package that users can install with one command.
+- **D2 (multi-voice) and T1 (plugin format) can be developed in parallel.** The audio generation pipeline (Spark-TTS + Docker) already exists. New voice variants can be generated independently while the plugin format is being worked on.
+- **D3 (awesome lists) should come last.** Submit to awesome lists only after T1 + T4 are solid. A submission with a broken install or confusing README will be rejected and create a negative impression.
+- **D5 (interactive selection) depends on D2.** No point building a selection UI if there is only one voice pack. Ship single voice first, add selection UI when multiple packs exist.
 
 ---
 
-## Test Category Breakdown by Script
+## Competitor Feature Analysis
 
-### notify-play.sh (highest-risk script)
+| Feature | ChanMeng666/claude-code-audio-hooks | Dev-GOM/marketplace (hook-sound-notifications) | 777genius/claude-notifications-go | ctoth/claudio | Our Approach |
+|---------|--------------------------------------|-----------------------------------------------|----------------------------------|-------------|--------------|
+| **Install method** | Git clone + manual script run | `/plugin install` from marketplace | Go binary download (`curl \| sh`) | Git clone + Python install | `/plugin install` (native Claude Code) + curl fallback |
+| **Audio source** | Pre-generated mp3 files | Pre-generated audio | Pre-generated audio (bundled in binary) | Real-time TTS via ElevenLabs API | Pre-generated mp3 (committed to repo) |
+| **Voice variants** | Single voice | Unknown | Single voice | Dynamic via API | Multiple voice packs (planned differentiator) |
+| **Platforms** | Linux/macOS (bash) | Unknown | Linux/macOS/Windows (Go binary) | Cross-platform (Python) | Linux/macOS/Windows (bash + PowerShell) |
+| **Hook events** | 4 events (Stop, Notification, StopFailure, SubagentStop) | Unknown | Custom events | Custom events | 4 events (matching standard set) |
+| **Cooldown** | Unknown | Unknown | Unknown | Unknown | 5-second debounce (built-in) |
+| **Async playback** | Unknown | Unknown | Unknown | Unknown | async: true (Claude Code native) |
+| **Test coverage** | None visible | None visible | None visible | None visible | 22 automated tests (bats + Pester) |
+| **CI** | None visible | None visible | None visible | None visible | GitHub Actions 3-platform matrix |
+| **Chinese voice** | No (English?) | Unknown | Unknown | Unknown | Yes (Spark-TTS, Chinese primary) |
 
-**Why highest risk:** Invoked on every hook event. Cooldown logic has platform branching (Darwin vs Linux). Must always exit 0.
+### Competitor Analysis Notes
 
-| Test Case | Category | What It Verifies | Mocking Required |
-|-----------|----------|-----------------|-----------------|
-| Cooldown skip (fresh lock) | Unit | Exit 0 without playing when lock file age < 5s | `stat`, `date` |
-| Cooldown pass (stale lock) | Unit | Plays audio when lock file age >= 5s | `stat`, `date`, `afplay`/`paplay` |
-| Lock file creation | Unit | `touch` creates lock file before playback | `stat`, `date`, `afplay`/`paplay` |
-| Darwin stat path | Unit | Uses `stat -f %m` on macOS | Mock `uname -s` to return `Darwin`, mock `stat` |
-| Linux stat path | Unit | Uses `stat -c %Y` on Linux | Mock `uname -s` to return `Linux`, mock `stat` |
-| Exit 0 on audio failure | Unit | Always exits 0 even when player fails | Mock `afplay`/`paplay` to exit 1 |
-| Missing arguments | Error | Should fail (set -u) when called without args | None |
-| Type-specific lock files | Unit | Different types use different lock files | `stat`, `date` |
-
-**Complexity:** MEDIUM -- 8 test cases, mocking `stat` requires function override since bats runs in subshell.
-
-### install.sh (critical-state script)
-
-**Why critical:** Modifies `~/.claude/settings.json`, a file Claude Code depends on. A bug here breaks Claude Code.
-
-| Test Case | Category | What It Verifies | Mocking Required |
-|-----------|----------|-----------------|-----------------|
-| Hook injection (4 events) | Unit | settings.json gets correct hook entries for Stop, Notification, StopFailure, SubagentStop | `jq` (mock to verify filter expression), `cp`, `mv` |
-| Idempotent re-run | Unit | Running twice produces same result | `jq`, `cp`, `mv` |
-| Missing jq (exit 1) | Error | Exits 1 with error message when jq not found | `command -v` mock |
-| Missing paplay (exit 1) | Error | Exits 1 when paplay not found | `command -v` mock |
-| Missing settings.json (exit 1) | Error | Exits 1 when ~/.claude/settings.json missing | File fixture |
-| Missing mp3 files (exit 1) | Error | Exits 1 when audio source files missing | File fixture |
-| Claude version check (warning) | Unit | Prints warning when version < 2.1.78 | `claude --version` mock |
-| jq empty output protection | Unit | Does not clobber settings.json when jq fails | `jq` mock returning empty |
-| Absolute paths in hook commands | Unit | Hook commands use absolute path to notify-play.sh | `jq` output verification |
-
-**Complexity:** MEDIUM -- 9 test cases, requires temp directory fixtures and jq output verification.
-
-### uninstall.sh (simplest bash script)
-
-| Test Case | Category | What It Verifies | Mocking Required |
-|-----------|----------|-----------------|-----------------|
-| Hook removal (4 events) | Unit | All 4 event entries deleted from hooks | `jq` (verify del filter) |
-| Audio file cleanup | Unit | All 4 mp3 files deleted | `rm` mock |
-| Missing settings.json (exit 1) | Error | Exits 1 gracefully | File fixture |
-| Idempotent re-run | Unit | Running twice does not error | `jq` (script handles missing properties) |
-| Empty hooks cleanup | Unit | If hooks object becomes empty, removes it entirely | `jq` output verification |
-
-**Complexity:** LOW -- 5 test cases, straightforward assertions.
-
-### notify-play.ps1 (highest-risk PowerShell script)
-
-**Why highest risk:** Invoked on every hook event. MediaPlayer interaction and cooldown logic are Windows-specific and hard to debug without mocks.
-
-| Test Case | Category | What It Verifies | Mocking Required |
-|-----------|----------|-----------------|-----------------|
-| Cooldown skip (fresh lock) | Unit | Exits 0 when lock file age < 5s | `Test-Path`, `Get-Item`, `Get-Date` |
-| Cooldown pass (stale lock) | Unit | Plays audio when lock file age >= 5s | `Test-Path`, `Get-Item`, `Get-Date`, `Add-Type`, `New-Object` |
-| Lock file creation | Unit | Sets lock file timestamp before playback | `Set-Content`, mock audio playback |
-| Fallback temp path | Unit | Uses `[System.IO.Path]::GetTempPath()` when `$env:TEMP` is empty | Environment variable manipulation |
-| Exit 0 on error | Unit | catch block swallows errors, always exits 0 | Mock `Add-Type` to throw |
-| MediaPlayer mock | Unit | Verifies MediaPlayer.Open called with correct URI | `Add-Type`, `New-Object` mocks |
-| Missing arguments | Error | Mandatory params fail when not provided | None |
-| Type-specific lock files | Unit | Different types use different lock file paths | `Test-Path`, `Get-Item` |
-
-**Complexity:** MEDIUM -- 8 test cases, Pester mocking of .NET types (Add-Type, New-Object) requires careful setup.
-
-### install.ps1 (critical-state PowerShell script)
-
-| Test Case | Category | What It Verifies | Mocking Required |
-|-----------|----------|-----------------|-----------------|
-| Hook injection (4 events) | Unit | settings.json gets correct hook entries | `Get-Content`, `ConvertFrom-Json`, `ConvertTo-Json`, `[System.IO.File]::WriteAllText` |
-| shell: "powershell" field | Unit | Each hook entry has `shell: "powershell"` | JSON output verification |
-| Forward-slash paths | Unit | Hook commands use forward slashes, not backslashes | JSON output verification |
-| BOM-free JSON output | Unit | Written file has no UTF-8 BOM | `[System.IO.File]::WriteAllText` mock |
-| Idempotent re-run | Unit | Running twice produces same result | All mocks |
-| Missing settings.json (exit 1) | Error | Exits 1 gracefully | `Test-Path` mock |
-| Missing notify-play.ps1 (exit 1) | Error | Exits 1 when script not found | `Test-Path` mock |
-| Missing audio dir (exit 1) | Error | Exits 1 when audio source dir missing | `Test-Path` mock |
-| Missing mp3 files (exit 1) | Error | Exits 1 when any mp3 missing | `Test-Path` mock |
-| Claude version warning | Unit | Warns when version < 2.1.78 | `Get-Command`, `claude --version` mocks |
-| -Depth 100 in ConvertTo-Json | Unit | Prevents truncation of nested objects | `ConvertTo-Json` mock |
-
-**Complexity:** MEDIUM -- 11 test cases, BOM detection requires reading raw bytes.
-
-### uninstall.ps1 (simplest PowerShell script)
-
-| Test Case | Category | What It Verifies | Mocking Required |
-|-----------|----------|-----------------|-----------------|
-| Hook removal (4 events) | Unit | All 4 event entries deleted | `Get-Content`, `ConvertFrom-Json`, `ConvertTo-Json` |
-| Empty hooks cleanup | Unit | Removes hooks object when all entries gone | JSON output verification |
-| Audio file cleanup | Unit | Deletes all 4 mp3 files | `Remove-Item`, `Test-Path` |
-| Missing settings.json (exit 1) | Error | Exits 1 gracefully | `Test-Path` mock |
-| No hooks section | Unit | Handles missing hooks gracefully | JSON fixture without hooks |
-| Idempotent re-run | Unit | Running twice does not error | All mocks |
-| BOM-free output | Unit | Written file has no UTF-8 BOM | `[System.IO.File]::WriteAllText` mock |
-
-**Complexity:** LOW -- 7 test cases, simpler than install.ps1.
+- **ChanMeng666** is the most direct competitor. Same approach (pre-generated audio, Claude Code hooks). But no plugin format, no multi-platform support visible, no tests.
+- **777genius** uses Go for cross-platform binary distribution. Clever approach but adds a compilation step. Our bash/PowerShell approach is more transparent and easier to audit.
+- **ctoth/claudio** uses ElevenLabs API for real-time TTS. This requires an API key and internet access. Our pre-generated approach is simpler and works offline.
+- **Dev-GOM/marketplace** already has a notification plugin in a Claude Code marketplace. This validates that the marketplace distribution channel exists and works. We should study their plugin structure.
+- **No competitor offers multi-voice selection.** This is a clear differentiator opportunity.
+- **No competitor has visible test coverage or CI.** Our 22 tests and GitHub Actions CI are a quality differentiator.
 
 ---
 
-## Total Test Case Count
-
-| Script | Test Cases | Complexity |
-|--------|-----------|------------|
-| notify-play.sh | 8 | MEDIUM |
-| install.sh | 9 | MEDIUM |
-| uninstall.sh | 5 | LOW |
-| notify-play.ps1 | 8 | MEDIUM |
-| install.ps1 | 11 | MEDIUM |
-| uninstall.ps1 | 7 | LOW |
-| **Total** | **48** | -- |
-
----
-
-## MVP Recommendation for v1.2
+## MVP Definition for v1.4
 
 ### Launch With (Must Have)
 
-Core test infrastructure that prevents regressions on the 6 shipped scripts.
+Minimum viable product for ecosystem distribution -- what users need to discover, install, and use the notification system.
 
-- [ ] **T1: ShellCheck** -- Zero effort, instant value. Add `.shellcheckrc`, run on CI.
-- [ ] **T2: PSScriptAnalyzer** -- Zero effort, instant value. Add settings file, run via pwsh.
-- [ ] **T3: bats tests for notify-play.sh** -- Highest-risk script, most frequently invoked.
-- [ ] **T4: bats tests for install.sh** -- Modifies critical user config, needs verification.
-- [ ] **T5: bats tests for uninstall.sh** -- Simple, low effort, completes bash coverage.
-- [ ] **T6: Pester tests for notify-play.ps1** -- Windows equivalent of T3.
-- [ ] **T7: Pester tests for install.ps1** -- Windows equivalent of T4.
-- [ ] **T8: Pester tests for uninstall.ps1** -- Windows equivalent of T5.
-- [ ] **T9: Test runner script** -- Single command to run everything.
+- [ ] **T1: Claude Code plugin packaging** -- Restructure repo to plugin format with `hooks/hooks.json`. This is the one feature that unlocks all distribution.
+- [ ] **T3: Cross-platform support preserved** -- Ensure existing Linux/macOS/Windows scripts work within the plugin package structure.
+- [ ] **T4: Updated README** -- Document plugin-based install as the primary method, with curl fallback.
+- [ ] **T5: Audio files bundled** -- 4 mp3 files included in the plugin package.
+- [ ] **T6: Hook config merging verified** -- Test that plugin hooks merge correctly with user/project settings.
+- [ ] **T7: Non-blocking playback preserved** -- async: true in plugin hook config.
+- [ ] **T8: Cooldown preserved** -- 5-second debounce still works from plugin context.
+- [ ] **D4: GitHub SEO** -- Add topics and description to the repo.
 
-### Add After Core Tests Pass (v1.2.x)
+### Add After Validation (v1.4.x)
 
-Enhancements that add confidence but are not blocking.
+Features to add once the plugin is installable and getting initial users.
 
-- [ ] **D2: install/uninstall round-trip test** -- Once T4 and T5 pass, add lifecycle test.
-- [ ] **D3: settings.json structure validation** -- Additional assertions within T4/T7.
-- [ ] **D4: Event mapping consistency** -- Cross-script consistency check.
+- [ ] **D1: Marketplace listing** -- Submit to Claude Code marketplace once plugin format is stable and tested by early users.
+- [ ] **D5: Interactive voice selection** -- Add install-time menu when multiple voice packs exist.
+- [ ] **D2: Multi-voice audio packs** -- Generate additional voice variants using Spark-TTS.
+- [ ] **D3: Awesome list submissions** -- File PRs on awesome-claude-code repos.
 
 ### Future Consideration (v2+)
 
-Expensive features with diminishing returns for 6 short scripts.
+Features to defer until the plugin has a user base and demand is proven.
 
-- [ ] **D1: Docker test matrix** -- bats already runs on Linux; macOS Docker is impossible; PowerShell in Linux Docker does not test real Windows behavior. Limited ROI.
-- [ ] **D5: Pester code coverage** -- Scripts are <150 lines each. Coverage tracking adds overhead without proportional value.
-- [ ] **D6: GitHub Actions Windows runner** -- Requires CI pipeline that does not exist yet. Local-only testing is the stated scope.
-
-### Defer Indefinitely
-
-- [ ] **A1: Audio playback E2E test** -- Cannot run in CI/Docker. Manual verification only.
-- [ ] **A2: macOS container testing** -- Technically impossible.
+- [ ] **D6: Enhanced contextual sounds** -- More event types or richer audio differentiation.
+- [ ] **A8 (reconsidered): Configurable event filtering** -- If users request it.
 
 ---
 
-## Test Tool Summary
+## Feature Prioritization Matrix
 
-| Tool | Purpose | Version | Install | Confidence |
-|------|---------|---------|---------|------------|
-| **ShellCheck** | Bash static analysis | 0.10+ | `apt install shellcheck` / `brew install shellcheck` | HIGH -- de facto standard, actively maintained |
-| **PSScriptAnalyzer** | PowerShell static analysis | 1.25.0 | `Install-Module PSScriptAnalyzer` (bundled in pwsh 7.x) | HIGH -- official Microsoft tool |
-| **bats-core** | Bash test runner | 1.10+ | `npm install -g bats` or git clone to `test/libs/bats-core` | HIGH -- most widely used bash test framework |
-| **bats-support** | bats output formatting | 0.3+ | Git submodule to `test/libs/bats-support` | HIGH -- official bats companion |
-| **bats-assert** | bats assertion functions | 2.1+ | Git submodule to `test/libs/bats-assert` | HIGH -- official bats companion |
-| **bats-file** | bats filesystem assertions | 0.3+ | Git submodule to `test/libs/bats-file` | MEDIUM -- useful for file existence tests |
-| **Pester** | PowerShell test framework | 5.5+ | Bundled in pwsh 7.x / `Install-Module Pester` | HIGH -- official recommendation from Microsoft |
+| # | Feature | User Value | Implementation Cost | Priority |
+|---|---------|------------|---------------------|----------|
+| T1 | Plugin packaging format | HIGH -- enables one-line install | MEDIUM -- restructure repo, adapt scripts | P1 |
+| T4 | Updated README/docs | HIGH -- first impression for discoverers | LOW -- edit existing README | P1 |
+| T6 | Hook config merging verified | HIGH -- broken hooks = broken product | MEDIUM -- test with plugin format | P1 |
+| T5 | Audio files bundled | HIGH -- no audio = no notification | LOW -- already done | P1 |
+| T7 | Non-blocking playback | MEDIUM -- users notice blocking | LOW -- already done | P1 |
+| T8 | Cooldown/debounce | MEDIUM -- users notice stacking | LOW -- already done | P1 |
+| T3 | Cross-platform support | HIGH -- excluded users file issues | LOW -- already done | P1 |
+| D4 | GitHub SEO | MEDIUM -- improves discovery | LOW -- add topics to repo | P1 |
+| D2 | Multi-voice audio packs | MEDIUM -- nice differentiation | HIGH -- generate variants, design naming | P2 |
+| D5 | Interactive voice selection | MEDIUM -- improves UX | MEDIUM -- terminal menu | P2 |
+| D1 | Marketplace listing | HIGH -- best distribution channel | MEDIUM -- format + submission | P2 |
+| D3 | Awesome list submissions | MEDIUM -- organic discovery | LOW -- file PRs | P2 |
+| D6 | Enhanced contextual sounds | LOW -- current sounds work | MEDIUM -- audio design work | P3 |
+
+**Priority key:**
+- P1: Must have for v1.4 launch
+- P2: Should have, add when possible in v1.4.x
+- P3: Nice to have, future consideration
 
 ---
 
-## Mocking Strategy Summary
+## Claude Code Plugin Format Reference
 
-### bash (bats)
+Based on official Claude Code plugin documentation:
 
-Mocking in bats is done by defining shell functions that shadow external commands. Since each test runs in a subshell, mocks are automatically scoped.
+### Plugin Directory Structure
 
-```bash
-# Example: mock jq to capture its arguments and return predefined JSON
-setup() {
-    # Create temp settings.json fixture
-    SETTINGS_FIXTURE=$(mktemp --suffix=.json)
-    echo '{"hooks": {}}' > "$SETTINGS_FIXTURE"
+```
+notify-sounds/
+  .claude-plugin/
+    marketplace.json     # Marketplace metadata
+  hooks/
+    hooks.json           # Hook definitions (merged into Claude Code settings)
+  audio/
+    notify-complete.mp3
+    notify-confirm.mp3
+    notify-error.mp3
+    notify-progress.mp3
+  scripts/
+    notify-play.sh       # Linux/macOS playback wrapper
+    notify-play.ps1      # Windows playback wrapper
+```
 
-    # Shadow jq with a function
-    jq() {
-        # Call real jq with the filter to produce valid output
-        command jq "$@"
-    }
-}
+### Key Environment Variables
 
-teardown() {
-    rm -f "$SETTINGS_FIXTURE"
+- `$CLAUDE_PLUGIN_ROOT` -- Absolute path to the plugin's root directory. Use this to reference audio files and scripts from within hook commands.
+- `$CLAUDE_PLUGIN_DATA` -- Per-plugin writable data directory (e.g., `~/.claude/plugins/data/notify-sounds/`). Use this for user-specific state.
+
+### hooks.json Structure
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "$CLAUDE_PLUGIN_ROOT/scripts/notify-play.sh complete \"$CLAUDE_PLUGIN_ROOT/audio/notify-complete.mp3\""
+      }
+    ],
+    "Notification": [
+      {
+        "type": "command",
+        "command": "$CLAUDE_PLUGIN_ROOT/scripts/notify-play.sh confirm \"$CLAUDE_PLUGIN_ROOT/audio/notify-confirm.mp3\""
+      }
+    ],
+    "StopFailure": [
+      {
+        "type": "command",
+        "command": "$CLAUDE_PLUGIN_ROOT/scripts/notify-play.sh error \"$CLAUDE_PLUGIN_ROOT/audio/notify-error.mp3\""
+      }
+    ],
+    "SubagentStop": [
+      {
+        "type": "command",
+        "command": "$CLAUDE_PLUGIN_ROOT/scripts/notify-play.sh progress \"$CLAUDE_PLUGIN_ROOT/audio/notify-progress.mp3\""
+      }
+    ]
+  }
 }
 ```
 
-For commands that should NOT run (paplay, afplay, cp), shadow them with no-op functions:
-```bash
-paplay() { :; }
-afplay() { :; }
-cp() { :; }
+**Confidence:** MEDIUM -- the plugin system is documented officially, but the exact behavior of `$CLAUDE_PLUGIN_ROOT` expansion in hook commands, how async is specified in plugin hooks, and the merge behavior with user/project settings need hands-on validation. This is a phase-specific research flag.
+
+---
+
+## Install Experience Comparison
+
+| Method | User Command | Steps | Friction Level | Ecosystem Fit |
+|--------|-------------|-------|----------------|---------------|
+| Claude Code plugin | `/plugin install notify-sounds@marketplace` | 1 command | Minimal | Best -- native mechanism |
+| curl-pipe-bash | `curl -sSL https://raw.github.com/.../install.sh \| bash` | 1 command | Low | Good -- familiar pattern (oh-my-zsh) |
+| Git clone + manual | `git clone ... && cd ... && ./install.sh` | 3+ commands | High | Poor -- power-user only |
+| Manual JSON edit | User edits settings.json themselves | Many steps | Very high | Worst -- error-prone |
+
+**Recommendation:** Support both Claude Code plugin install (primary) and curl-pipe-bash (fallback for users not using a marketplace). The curl fallback also serves as the installation method for the existing v1.0-v1.3 user base who are not on a plugin system yet.
+
+---
+
+## Multi-Voice Audio Pack Design
+
+### Naming Convention (proposed)
+
+```
+audio/
+  packs/
+    default/
+      notify-complete.mp3
+      notify-confirm.mp3
+      notify-error.mp3
+      notify-progress.mp3
+    female-gentle/
+      notify-complete.mp3
+      notify-confirm.mp3
+      notify-error.mp3
+      notify-progress.mp3
+    male-firm/
+      ...
+  active/  -> symlink to selected pack (or copied files)
 ```
 
-### PowerShell (Pester)
+### Precedent Analysis
 
-Pester has built-in `Mock` that intercepts any cmdlet or function call:
+| Tool | Multi-Variant Pattern | Selection Method |
+|------|----------------------|-----------------|
+| oh-my-zsh | `custom/themes/<name>/` directories | `ZSH_THEME="theme"` in .zshrc |
+| starship | `starship preset <name> -o config.toml` | CLI command |
+| bat (syntax highlighter) | `--theme=<name>` flag | CLI flag / config file |
+| This project | `audio/packs/<voice>/` directories | Interactive install menu + config file |
 
-```powershell
-BeforeAll {
-    # Mock file system commands
-    Mock Test-Path { $true }
-    Mock Copy-Item { }
-    Mock Get-Content { '{"hooks": {}}' }
-    Mock ConvertFrom-Json { [PSCustomObject]@{ hooks = [PSCustomObject]@{} } }
-    Mock ConvertTo-Json { '{"hooks": {}}' }
-}
-```
+### Generation Pipeline for New Voice Packs
 
-Key Pester mocking capabilities needed:
-- `Mock <CommandName> { <return value> }` -- replace command with stub
-- `Assert-MockCalled -CommandName <name> -Times <n>` -- verify call count
-- `Assert-MockCalled -ParameterFilter { $param -eq 'value' }` -- verify call arguments
+1. Source a speaker reference audio file (3-10 seconds of clean speech)
+2. Place reference in Docker generate environment
+3. Run `generate.sh --speaker <ref.wav> --output-dir audio/packs/<voice-name>/`
+4. Preview generated audio
+5. Add new pack name to install script's selection menu
+
+**Spark-TTS supports zero-shot voice cloning** -- provide a short speaker reference and it generates speech in that voice. This is the mechanism for creating new voice packs without training.
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [bats-core official docs](https://bats-core.readthedocs.io/en/stable/writing-tests.html) -- test structure, setup/teardown, `run` helper
-- [bats-support](https://github.com/bats-core/bats-support) -- output formatting companion
-- [bats-assert](https://github.com/bats-core/bats-assert) -- `assert_success`, `assert_output`, `assert_equal`
-- [bats-file](https://github.com/bats-core/bats-file) -- `assert_file_exist`, `assert_file_not_exist`
-- [Pester official docs - Mocking](https://pester.dev/docs/usage/mocking) -- Mock, Assert-MockCalled, ParameterFilter
-- [Pester GitHub](https://github.com/pester/pester) -- v5.x is current, v6 in development
-- [ShellCheck GitHub](https://github.com/koalaman/shellcheck) -- v0.10+, GPLv3, actively maintained
-- [PSScriptAnalyzer on PowerShell Gallery](https://www.powershellgallery.com/packages/PSScriptAnalyzer/1.25.0) -- latest release v1.25.0
+
+- [Claude Code Plugin Documentation](https://docs.anthropic.com/en/docs/claude-code/plugins) -- Plugin structure, marketplace.json, hooks/hooks.json, env vars (HIGH confidence, official Anthropic docs, verified 2026-03-31)
+- [Claude Code Hooks Reference](https://docs.anthropic.com/en/docs/claude-code/hooks) -- Hook events, configuration, async behavior (HIGH confidence, official docs)
+- [Claude Code Hooks Guide](https://docs.anthropic.com/en/docs/claude-code/hooks-guide) -- Practical hook examples, notification patterns (HIGH confidence, official docs)
+- Existing project codebase -- All scripts, tests, and CI analyzed from v1.0-v1.3
 
 ### Secondary (MEDIUM confidence)
-- [bats-mock (jasonkarns)](https://github.com/jasonkarns/bats-mock) -- alternative mocking approach (not needed if using function shadows)
-- [mcr.microsoft.com/powershell Docker image](https://hub.docker.com/r/mcr/microsoft/powershell) -- official PowerShell Docker image for Linux
-- [Testing Bash with BATS - Opensource.com](https://opensource.com/article/19/2/testing-bash-bats) -- practical examples
-- [Practical PowerShell Unit-Testing: Mock Objects - Red Gate](https://www.red-gate.com/simple-talk/sysadmin/powershell/practical-powershell-unit-testing-mock-objects/) -- Pester mocking patterns
 
-### Verified Through Code Analysis
-- All 6 scripts read and analyzed (see Scope section)
-- notify-play.sh: 38 lines, platform branching on `uname -s`, cooldown via timestamp file
-- install.sh: 124 lines, jq-based JSON manipulation, prerequisite checks, version comparison
-- uninstall.sh: 36 lines, jq-based hook removal, file cleanup
-- notify-play.ps1: 52 lines, MediaPlayer via PresentationCore, cooldown via temp file
-- install.ps1: 145 lines, ConvertFrom-Json/ConvertTo-Json, BOM-free writing, forward-slash paths
-- uninstall.ps1: 60 lines, hook property removal, empty hooks cleanup
+- [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) -- 2.8K+ stars, primary awesome list for Claude Code ecosystem (MEDIUM -- repo structure and submission process not deeply verified)
+- [Chat2AnyLLM/awesome-claude-skills](https://github.com/Chat2AnyLLM/awesome-claude-skills) -- 39K+ skills listed, large community (MEDIUM -- repo activity level not verified)
+- [quemsah/awesome-claude-plugins](https://github.com/quemsah/awesome-claude-plugins) -- Plugins-specific awesome list (MEDIUM -- newer repo, less established)
+- [ChanMeng666/claude-code-audio-hooks](https://github.com/ChanMeng666/claude-code-audio-hooks) -- Direct competitor, analyzed structure and approach (MEDIUM -- repo not deeply audited)
+- [777genius/claude-notifications-go](https://github.com/777genius/claude-notifications-go) -- Go-based competitor (MEDIUM -- repo not deeply audited)
+- [Dev-GOM/claude-code-marketplace](https://github.com/Dev-GOM/claude-code-marketplace) -- Community marketplace implementation (MEDIUM -- plugin structure needs deeper study)
+- [Spark-TTS GitHub](https://github.com/SparkAudio/Spark-TTS) -- TTS engine for voice pack generation (HIGH from v1.0 research)
+
+### Tertiary (LOW confidence)
+
+- oh-my-zsh theme selection pattern -- general CLI precedent (LOW -- not directly related to audio)
+- starship preset system -- general CLI precedent (LOW -- not directly related to audio)
+- npm/npx distribution patterns -- Node.js ecosystem (LOW -- wrong ecosystem for Claude Code)
+- Six additional competitor repos found via search (6m1w/claude-sound-fx, RonitSachdev/ccnudge, ctoth/claudio, etc.) -- surface-level analysis only
 
 ---
-*Feature research for: Claude Code voice notification system v1.2 cross-platform testing*
-*Researched: 2026-03-30*
+*Feature research for: Claude Code voice notification system v1.4 hooks ecosystem distribution*
+*Researched: 2026-03-31*

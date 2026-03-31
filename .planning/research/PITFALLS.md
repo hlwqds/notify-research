@@ -1,391 +1,312 @@
-# Pitfalls Research: Test Infrastructure for Shell/PowerShell Notification Scripts
+# Pitfalls Research: Distribution, Multi-Voice, and Community Promotion for Claude Code Notification System
 
-**Domain:** Adding cross-platform test infrastructure (bats, Pester, ShellCheck, PSScriptAnalyzer, Docker matrix) to shell/PowerShell notification scripts
-**Researched:** 2026-03-30
+**Domain:** Adding `curl | bash` distribution, multi-voice audio variants, GitHub community presence, and cross-platform installation docs to an existing shell/PowerShell Claude Code hooks project
+**Researched:** 2026-03-31
 **Confidence:** MEDIUM-HIGH
-**Scope:** Pitfalls specific to ADDING test infrastructure to shell/PowerShell projects. Builds on the existing v1.1 PITFALLS.md which covers cross-platform runtime issues.
+**Scope:** Pitfalls specific to ADDING distribution packaging, multi-voice audio, community promotion, and documentation to the existing v1.3 notification system. Builds on prior PITFALLS.md files covering cross-platform runtime (v1.1) and test infrastructure (v1.2).
 
 ## Critical Pitfalls
 
-Mistakes that cause tests to be unreliable, misleading, or impossible to run in CI/Docker.
+Mistakes that cause security incidents, repo bloat, user trust loss, or community backlash.
 
-### Pitfall 1: Testing Cooldown Logic with Real Time Produces Flaky Tests
+### Pitfall 1: `curl | bash` Remote Install Script Has No Integrity Verification
 
 **What goes wrong:**
-Tests that exercise the 5-second cooldown mechanism (lock file timestamp check) use `sleep` and real wall-clock time. Tests pass most of the time but intermittently fail in CI under load, making the test suite unreliable. A test that asserts "within 5 seconds, playback is skipped" may fail if the CI runner is slow and the `date +%s` call happens to straddle a second boundary.
+The one-line install command (`curl -fsSL https://... | bash`) downloads and immediately executes a script with zero cryptographic verification. If the GitHub account is compromised, the domain expires, or a CDN serves malicious content, every user who runs the command is compromised silently. Unlike `apt` or `brew` which verify GPG signatures, the raw pipe-to-shell pattern has no integrity chain.
 
 **Why it happens:**
-The cooldown logic in `notify-play.sh` uses `date +%s` minus `stat` mtime to compute lock age. Testing this requires creating a lock file, waiting, then checking behavior. The 1-second granularity of epoch seconds means tests that check "is it within cooldown?" are inherently non-deterministic when the lock age is close to the 5-second threshold. CI runners under load add extra latency.
+It is the standard pattern for developer tools (Homebrew, rustup, nvm, Docker all use it). It maximizes conversion by reducing friction to a single copy-paste. The convenience pressure makes integrity verification feel like over-engineering for a small notification tool. However, the 2026 attack surface is real: [Codecov bash uploader compromise (2021)](https://about.codecov.io/security-update/) and [polyfill.io domain takeover (2024)](https://www.kb.cert.org/vuls/id/979398/) demonstrate that supply-chain attacks on install scripts are not hypothetical.
 
 **How to avoid:**
-1. **Do not use `sleep` to test cooldown.** Instead, directly manipulate the lock file timestamp to simulate aging:
+1. **Provide a two-step alternative** alongside the one-liner in docs:
    ```bash
-   # Create lock file with specific age
-   touch "$LOCK_FILE"
-   touch -d "6 seconds ago" "$LOCK_FILE"  # GNU/Linux
-   touch -A "-000600" "$LOCK_FILE"         # macOS BSD
+   # One-liner (convenient)
+   curl -fsSL https://raw.githubusercontent.com/<repo>/main/scripts/remote-install.sh | bash
+
+   # Two-step (verifiable)
+   curl -fsSL https://raw.githubusercontent.com/<repo>/main/scripts/remote-install.sh -o install.sh
+   less install.sh          # inspect
+   bash install.sh
    ```
-2. If time manipulation is not feasible, make the cooldown duration injectable (e.g., via environment variable) so tests can use a very short cooldown (0 or 1 second) instead of 5 seconds.
-3. Add a tolerance buffer in assertions -- never assert exactly at the boundary (e.g., assert at 6 seconds instead of 5).
+2. **Pin the URL to a tagged release** (not `main` branch) so the script content is immutable:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/<repo>/v1.4.0/scripts/remote-install.sh | bash
+   ```
+3. **Publish checksums** in the GitHub Release alongside the script. Document the verification step even if most users skip it:
+   ```bash
+   sha256sum install.sh  # compare with RELEASE_SHA256 in release notes
+   ```
+4. **Never use `sudo`** in the pipe-to-shell command. The existing install.sh writes to `~/.claude/` which does not require root. This limits blast radius.
+5. **Keep the remote install script minimal** -- it should only `git clone` and call the local `install.sh`, not implement installation logic itself.
 
 **Warning signs:**
-- Tests that call `sleep` are slow (2-5 seconds per test) and occasionally fail
-- Test results differ between local runs and CI runs
-- Running the same test 10 times produces different pass/fail outcomes
+- Install script downloads and executes additional scripts from the network (chained downloads)
+- Script requires `sudo` or writes to system directories
+- No tagged version in the curl URL (points to `main`)
+- Script source has been modified since the user last checked
 
 **Phase to address:**
-Phase 1 (bats unit tests for shell scripts) -- this is the first logic that needs testing, and the flaky test risk is immediate.
+Phase 1 (remote install script) -- integrity verification must be designed in from the start, not bolted on later.
 
 ---
 
-### Pitfall 2: Headless CI/Docker Cannot Play Audio -- Tests Must Mock, Not Execute
+### Pitfall 2: Adding Audio Variants Bloats Git History Permanently
 
 **What goes wrong:**
-Tests that run `notify-play.sh` or `notify-play.ps1` end-to-end try to invoke `paplay`, `afplay`, or `MediaPlayer`. In Docker containers and CI runners (no audio hardware, no PulseAudio, no desktop session), these commands either fail or hang indefinitely. The test suite becomes unusable in CI.
+Adding new voice styles (e.g., male/female, different tones) multiplies the 4 existing MP3 files. If each variant adds 4 files at ~10-15 KB each, and variants are swapped or updated during development, the git history accumulates binary blobs that are never garbage-collected. A future `git clone` downloads the entire history including every audio file variant ever committed. After 5-6 variant experiments, the `.git` directory could grow significantly larger than the actual repo content.
 
 **Why it happens:**
-The scripts hardcode absolute paths to audio players (`/usr/bin/paplay`, `/usr/bin/afplay`) and directly instantiate .NET classes (`Add-Type -AssemblyName PresentationCore; New-Object System.Windows.Media.MediaPlayer`). There is no abstraction layer that allows substituting a mock. In CI, `paplay` fails immediately (good), but `MediaPlayer` on Windows can hang waiting for a WPF dispatcher thread that never starts (bad -- test timeout).
+The existing repo already commits MP3 files directly (no Git LFS). This was a deliberate v1.0 decision to eliminate Docker dependency at runtime. Adding more variants doubles or triples the committed audio. Binary files in Git are stored per-commit (not as deltas), so every modification creates a full copy in the object store.
 
 **How to avoid:**
-1. **For bats tests:** Create stub scripts for `paplay` and `afplay` that log their invocation arguments to a file and exit 0. Place stubs in a `test/fixtures/bin/` directory and prepend it to `$PATH`:
-   ```bash
-   setup() {
-       export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
-       mkdir -p "$BATS_TEST_TMPDIR/bin"
-       # Create stub paplay that records calls
-       cat > "$BATS_TEST_TMPDIR/bin/paplay" << 'STUB'
-       echo "$@" >> "$BATS_TMPDIR/paplay.log"
-       exit 0
-   STUB
-       chmod +x "$BATS_TEST_TMPDIR/bin/paplay"
-   }
+1. **Keep audio files small.** The current 4 MP3s total ~47 KB. If new variants are also short notification sounds (1-3 seconds), each will be ~10-15 KB. At this size, Git LFS overhead (pointer files, `git lfs pull` friction) is NOT worth it. The Stack Overflow [consensus](https://stackoverflow.com/questions/49018053/how-large-does-a-large-file-have-to-be-to-benefit-from-git-lfs) is that LFS helps for files above ~500 KB.
+2. **Do NOT use Git LFS for files under 100 KB.** LFS adds complexity (users need `git lfs install`, GitHub has [bandwidth/storage quotas](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-storage-and-bandwidth-usage)), and the benefit for 10-15 KB files is negative.
+3. **Use `.gitattributes` to document audio file tracking** even without LFS:
+   ```gitattributes
+   audio/*.mp3 binary
    ```
-2. **For Pester tests:** Refactor `notify-play.ps1` to extract the audio playback into a wrapper function, then mock the function in tests:
-   ```powershell
-   # In production code
-   function Invoke-AudioPlayback {
-       param([string]$AudioFile)
-       Add-Type -AssemblyName PresentationCore
-       $player = New-Object System.Windows.Media.MediaPlayer
-       # ...
-   }
-   ```
-   ```powershell
-   # In Pester test
-   Mock Invoke-AudioPlayback {} -ModuleName notify-play
-   ```
-3. **Never instantiate MediaPlayer in tests.** It requires a WPF dispatcher thread and desktop session, neither of which exist in CI or Docker.
-4. **Pester's Mock cannot mock .NET constructor calls** (`New-Object System.Windows.Media.MediaPlayer`). Only PowerShell commands/functions/cmdlets can be mocked. This is why extracting to a wrapper function is necessary.
+   This ensures Git never attempts text diff on audio files.
+4. **Avoid committing intermediate/experimental audio variants.** Generate variants, preview locally, and only commit the final selection. If experimenting, use a separate branch and squash before merging.
+5. **If variant count exceeds ~10 files** (>150 KB total), consider a downloadable audio pack (tarball in GitHub Release) instead of committing to the repo.
 
 **Warning signs:**
-- Tests pass locally (with audio hardware) but fail/hang in CI
-- Pester tests timeout after default 30 seconds
-- Docker test matrix shows Windows container tests as "stuck"
+- `git clone` takes noticeably longer than expected for a small shell script project
+- `.git/objects/pack/` is much larger than the working directory
+- Multiple audio files with names like `notify-complete-v2.mp3`, `notify-complete-final.mp3`, `notify-complete-old.mp3` in the repo
 
 **Phase to address:**
-Phase 1 (bats unit tests) and Phase 2 (Pester unit tests) -- this affects both test frameworks.
+Phase 2 (multi-voice audio) -- establish audio management policy before generating variants.
 
 ---
 
-### Pitfall 3: Pester Version Mismatch Between PowerShell 5.1 and pwsh 7
+### Pitfall 3: settings.json Path Hardcoding Breaks on Different Claude Code Installations
 
 **What goes wrong:**
-Tests written for Pester v5 on `pwsh 7` fail on Windows PowerShell 5.1, or vice versa. The project targets PowerShell 5.1 (per the existing install.ps1 constraints), but developers may test on `pwsh 7`. Pester v6 has dropped support for PS 3/4/5.0, and v5 has different syntax from v4. Loading the wrong Pester version causes cryptic type errors (`[PesterConfiguration]` not found, parameterized tests fail silently).
+The current install scripts hardcode `$HOME/.claude` as the target directory and assume `settings.json` exists there. The remote install script will run on machines where Claude Code uses a different configuration path (custom `CLAUDE_CONFIG_DIR`, project-level `.claude/settings.json`, or different OS conventions). Users on NixOS, containers, or systems with unusual home directory setups will see cryptic "settings.json not found" errors.
 
 **Why it happens:**
-Windows ships with PowerShell 5.1 pre-installed. Many developers also install PowerShell 7 (`pwsh`). VSCode may load Pester from different module paths depending on which shell is active. If Pester v4 and v5 are both installed (v4 in system modules, v5 in user modules), VSCode may load the wrong one, causing `[PesterConfiguration]` type conflicts (GitHub Issue pester/Pester#1770).
+The existing scripts were designed for the developer's own machine. The v1.0 milestone validated `~/.claude/settings.json` as the path. But Claude Code supports multiple configuration scopes (user, project, workspace), and the remote installer needs to handle all of them. Additionally, the `CLAUDE_CONFIG_DIR` environment variable (if it exists) changes the base path.
 
 **How to avoid:**
-1. **Pin Pester version explicitly** in test scripts and CI:
-   ```powershell
-   # At top of test file
-   Import-Module Pester -MinimumVersion 5.5.0 -MaximumVersion 5.99.99 -ErrorAction Stop
+1. **Detect the Claude Code configuration directory** rather than assuming `~/.claude`:
+   ```bash
+   CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
    ```
-2. **Do NOT use Pester v6** -- it drops PS 3/4/5.0 support. PS 5.1 support in v6 is uncertain and the migration effort is not worthwhile for notification scripts.
-3. **Test on PS 5.1 specifically**, not just pwsh 7. Many cmdlets and .NET types behave differently.
-4. **In Docker Windows containers**, note that Nano Server only supports `pwsh` while Server Core supports both PS 5.1 and `pwsh`. For PS 5.1 compatibility testing, use a Server Core image.
-5. **Use `PSScriptAnalyzer` with the `desktop-5.1.14393.206-windows` target profile** to catch PS 5.1 incompatible syntax at lint time:
-   ```powershell
-   # PSScriptAnalyzerSettings.psd1
-   @{
-       Rules = @{
-           PSUseCompatibleSyntax = @{
-               Enable = $true
-               TargetVersions = @("5.1")
-           }
-           PSUseCompatibleCommands = @{
-               Enable = $true
-               TargetProfiles = @("desktop-5.1.14393.206-windows")
-           }
-       }
-   }
+2. **Let users specify the target directory** via CLI flag:
+   ```bash
+   bash install.sh --claude-dir /custom/path/.claude
    ```
+3. **Create `settings.json` if it does not exist**, rather than failing. A minimal empty settings file is valid JSON:
+   ```json
+   {}
+   ```
+4. **Document the scopes** clearly: user-level (`~/.claude/settings.json`) for global installation, project-level (`.claude/settings.json`) for per-project installation.
+5. **Check if Claude Code is installed** before attempting hooks injection. The existing scripts already check `claude --version` but only warn -- the remote installer should provide clearer guidance.
 
 **Warning signs:**
-- `[PesterConfiguration]` type not found error
-- Parameterized tests (`-TestCases`) produce no output
-- Tests pass on pwsh 7 but fail on powershell 5.1
-- VSCode Pester extension shows different results than `Invoke-Pester` in terminal
+- Users report "settings.json not found" errors on GitHub issues
+- Works on Ubuntu but not NixOS or Alpine
+- Claude Code settings in project directories are not recognized
 
 **Phase to address:**
-Phase 2 (Pester unit tests) -- version compatibility must be decided before writing tests. Phase 3 (PSScriptAnalyzer) can catch syntax issues early.
+Phase 1 (remote install script) -- configuration path detection must be robust before the installer goes public.
 
 ---
 
-### Pitfall 4: bats `load` Path Resolution Breaks When Run from Different Directories
+### Pitfall 4: Competitor Landscape Is Already Crowded -- Differentiation Is Critical
 
 **What goes wrong:**
-Test helper files loaded via bats `load` command cannot be found when tests are run from a directory other than the project root. `bats tests/notify-play.bats` works, but `cd tests && bats notify-play.bats` fails with "file not found" because `load` resolves paths relative to the **test file's location**, not the working directory.
+The project is submitted to awesome-claude-code lists and community channels, but gets no traction because multiple competitors already offer the same core feature (audio notifications for Claude Code hooks). The project is seen as redundant rather than complementary.
 
 **Why it happens:**
-The bats `load` command sources files relative to the current test file's directory. However, the test's working directory (`$PWD`) defaults to where `bats` was invoked, not where the test file lives. If helper files are referenced using `$PWD`-relative paths (e.g., `load ../scripts/notify-play.sh`), the resolution depends on the invocation directory.
+Research of the current ecosystem reveals at least **5 existing competitors** already listed in awesome-claude-code repos:
+
+| Project | Approach | Differentiator |
+|---------|----------|----------------|
+| [pascalporedda/awesome-claude-code](https://github.com/pascalporedda/awesome-claude-code) | TypeScript hooks via `npx tsx`, global installer, macOS system sounds, event logging | Full-featured with logging and macOS-native sounds |
+| [Claudio](https://github.com/hesreallyhim/awesome-claude-code) (by Christopher Toth) | "No-frills library" adding OS-native sounds via hooks | Simplicity, delightful UX |
+| [CC Notify](https://github.com/hesreallyhim/awesome-claude-code) (by dazuiba) | Desktop notifications + VS Code one-click jump | GUI integration, task duration display |
+| [claude-devtools](https://github.com/hesreallyhim/awesome-claude-code) (by matt1398) | Desktop app with session observability + custom notification triggers | Rich dashboard, subagent tracking |
+| [ChanMeng666/claude-code-audio-hooks](https://github.com/ChanMeng666/claude-code-audio-hooks) | Audio hooks for Claude Code | Audio-specific |
+
+The project's unique value (Chinese TTS-generated voice, Spark-TTS 0.5B) is a differentiator, but if promotion focuses on "audio notifications for Claude Code" generically, it will be lost in the noise.
 
 **How to avoid:**
-1. Use a consistent project-root-relative structure and always invoke bats from the project root:
-   ```
-   project/
-   ├── scripts/
-   │   └── notify-play.sh
-   └── tests/
-       ├── helpers/
-       │   └── common.bash
-       └── notify-play.bats
-   ```
-   In `notify-play.bats`: `load helpers/common` resolves to `tests/helpers/common.bash`.
-2. To source production scripts (not helpers), use absolute paths derived from the test file:
-   ```bash
-   SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")" && pwd)"
-   REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-   source "$REPO_ROOT/scripts/notify-play.sh"
-   ```
-3. **Never use `source` with relative paths for production code** -- always compute absolute paths first.
-4. Document the expected invocation: `bats tests/` from project root.
+1. **Position the project around Chinese voice notifications specifically**, not generic audio alerts. The Spark-TTS 0.5B integration for Chinese TTS is genuinely unique -- no other project offers this.
+2. **Lead with the one-liner install** as the differentiator. Most competitors require Node.js (`npx tsx`) or more complex setup. A pure-bash `curl | bash` with zero runtime dependencies (no Node.js, no Docker at runtime) is a real advantage.
+3. **Target Chinese-speaking Claude Code users** specifically. Cross-post to Chinese developer communities (V2EX, Ruby China, SegmentFault, Juejin) where Chinese-language tooling is valued.
+4. **In awesome-list PRs**, emphasize what is different: "Chinese TTS voice notifications, pure bash (no Node.js), zero runtime dependencies." Do not submit as just another notification hook.
+5. **Check the awesome-lists' contribution guidelines** before submitting. [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) requires using their CONTRIBUTING.md workflow -- PRs submitted without following the process will be rejected.
 
 **Warning signs:**
-- `load` or `source` fails with "file not found"
-- Tests pass in CI but fail locally (or vice versa) due to different working directories
-- Docker `WORKDIR` causes test failures
+- Awesome-list PR is rejected or gets no response
+- "Show HN" post gets zero comments
+- Users on Reddit say "there's already X that does this"
+- README copy is too similar to competitor READMEs
 
 **Phase to address:**
-Phase 1 (bats unit tests) -- directory structure and file loading must be correct from the start.
+Phase 3 (community promotion) -- positioning and messaging must be crafted before any public announcement. The messaging strategy determines whether the project is noticed.
 
 ---
 
-### Pitfall 5: Lock File Pollution Between Tests -- No Temp Directory Isolation
+### Pitfall 5: Multi-Voice Selection Breaks Idempotent Installation
 
 **What goes wrong:**
-Multiple test cases that exercise cooldown logic share the same lock file path (`/tmp/claude-notify-complete.lock`). If tests run in parallel (bats `--parallel` flag) or if teardown fails to clean up, a lock file created by one test affects subsequent tests. Tests become order-dependent: test A creates a lock, test B sees it and skips playback when it should not.
+The current install scripts copy exactly 4 hardcoded MP3 files (`notify-complete.mp3`, `notify-confirm.mp3`, `notify-error.mp3`, `notify-progress.mp3`) and inject hardcoded paths into `settings.json`. Adding a voice selection mechanism (e.g., `install.sh --voice female`) means the script must conditionally copy from different subdirectories and inject different filenames. If a user switches voices, the old files remain in `~/.claude/` and the old `settings.json` paths may become stale or conflicting.
 
 **Why it happens:**
-The production script hardcodes the lock file path to `/tmp/claude-notify-${TYPE}.lock`. Tests that invoke the script directly use the same path. bats does not sandbox the filesystem. While bats provides `$BATS_TEST_TMPDIR` (a unique temp dir per test), the production script does not use it.
+The current install.sh is idempotent because it always copies the same 4 files and overwrites the same hooks. Adding voice selection introduces state: "which voice did the user choose?" This state is not tracked anywhere -- not in a config file, not in `settings.json`, not in an environment variable. Re-running the installer with a different voice option will overwrite some files but may leave orphaned files from the previous voice.
 
 **How to avoid:**
-1. **Override the lock file path in tests** by setting a test-specific temp directory:
+1. **Store the selected voice in a manifest file** in `~/.claude/`:
    ```bash
-   setup() {
-       export LOCK_DIR="$BATS_TEST_TMPDIR"
-       # Refactor notify-play.sh to use $LOCK_DIR instead of /tmp
-       # Or: create a wrapper that sets TMPDIR before invoking
-       export TMPDIR="$BATS_TEST_TMPDIR"
-   }
+   echo "female" > ~/.claude/notify-voice.txt
    ```
-2. **Better: make the lock directory configurable** in the production script via environment variable with fallback:
+   The install script reads this file to know which variant to use, and the uninstall script reads it to clean up the correct files.
+2. **Use a consistent filename scheme** so the hook commands in `settings.json` do not need to change:
+   ```
+   audio/
+     voices/
+       default/  notify-complete.mp3, notify-confirm.mp3, ...
+       female/   notify-complete.mp3, notify-confirm.mp3, ...
+       male/     notify-complete.mp3, notify-confirm.mp3, ...
+   ```
+   The install script always copies 4 files named `notify-{type}.mp3` to `~/.claude/`, but from different source directories. The `settings.json` paths never change.
+3. **Clean up old voice files** during installation if the voice changes:
    ```bash
-   LOCK_DIR="${NOTIFY_LOCK_DIR:-${TMPDIR:-/tmp}}"
-   LOCK_FILE="$LOCK_DIR/claude-notify-${TYPE}.lock"
+   # Before copying new voice files, remove any existing notify-*.mp3
+   rm -f "$CLAUDE_DIR"/notify-*.mp3
    ```
-3. Always clean up lock files in teardown:
-   ```bash
-   teardown() {
-       rm -f "$BATS_TEST_TMPDIR"/claude-notify-*.lock
-   }
-   ```
-4. Never use bats `--parallel` without ensuring each test uses `$BATS_TEST_TMPDIR`.
+4. **The uninstall script must not be voice-aware.** It removes all `notify-*.mp3` files regardless of voice -- this is already the current behavior and should remain unchanged.
+5. **Test voice switching** in the bats test suite: install with voice A, install with voice B, verify only voice B files remain.
 
 **Warning signs:**
-- Tests pass individually (`bats tests/notify-play.bats`) but fail when run as a suite
-- Tests pass in one order but fail in another
-- Adding a new test causes an unrelated existing test to fail
+- `~/.claude/` accumulates `notify-complete.mp3`, `notify-complete-female.mp3`, `notify-complete-male.mp3` simultaneously
+- Switching voices leaves hooks pointing to old files
+- Uninstall does not remove voice-specific files
 
 **Phase to address:**
-Phase 1 (bats unit tests) -- temp directory isolation is fundamental to test reliability.
+Phase 2 (multi-voice audio) -- the voice selection architecture must be designed before generating audio variants.
 
 ---
 
 ## Moderate Pitfalls
 
-Mistakes that cause degraded developer experience or incomplete test coverage.
+Mistakes that cause degraded user experience or incomplete functionality.
 
-### Pitfall 6: bats `setup()` Runs Per-Test, Not Once -- Expensive Setup Repeated
-
-**What goes wrong:**
-Placing expensive operations (Docker container startup, model file copying, environment bootstrapping) in `setup()` causes them to run before every single test. A test suite with 20 tests takes 60 seconds instead of 3 seconds because Docker starts 20 times.
-
-**Why it happens:**
-bats `setup()` and `teardown()` run before and after **each individual test**, not once per test file. This is documented but counter-intuitive for developers coming from JUnit or pytest where `@BeforeAll` runs once.
-
-**How to avoid:**
-1. Use `setup_file()` / `teardown_file()` for one-time setup per test file.
-2. Use `setup_suite()` / `teardown_suite()` (in a `setup_suite.bash` file) for one-time setup across the entire suite.
-3. Keep `setup()` lightweight -- only create per-test temp directories and stub commands.
-4. Document which setup scope is used and why.
-
-**Phase to address:**
-Phase 1 (bats unit tests) -- choose the right setup scope before writing tests.
-
----
-
-### Pitfall 7: ShellCheck Suppression Without Understanding Creates False Confidence
+### Pitfall 6: README Installation Instructions Assume Linux, Confuse Windows/macOS Users
 
 **What goes wrong:**
-Developers add `# shellcheck disable=SCXXXX` directives to silence warnings without understanding the underlying issue. The script passes ShellCheck with zero warnings but still contains bugs (unquoted variables, word splitting, glob expansion). CI shows green but the script fails in production.
+The installation documentation presents the bash one-liner prominently, with Windows PowerShell instructions buried or presented as an afterthought. Windows users see `curl | bash` and assume the tool is not for them. macOS users may have compatibility issues that are not documented.
 
 **Why it happens:**
-ShellCheck warnings are sometimes noisy for well-intentioned patterns. The existing scripts use `set -euo pipefail` which mitigates some issues, leading developers to suppress warnings that seem unnecessary. However, suppression directives disable the check for the entire command, not just the false positive.
+The developer's primary platform is Linux (Fedora). The existing README already has install instructions for all three platforms, but a distribution-focused rewrite may inadvertently prioritize the bash path. The remote install script only exists for bash -- Windows users must still clone and run `install.ps1`.
 
 **How to avoid:**
-1. **Never suppress without a comment** explaining why:
-   ```bash
-   # shellcheck disable=SC2086  # Intentional word split: $args contains separate arguments
-   some_command $args
+1. **Present all three platforms equally** in the README "Quick Start" section, with tabbed or side-by-side layouts.
+2. **The remote install is Linux/macOS only** -- clearly state this. For Windows, document the PowerShell equivalent:
+   ```powershell
+   irm https://raw.githubusercontent.com/<repo>/v1.4.0/scripts/install.ps1 -OutFile install.ps1; powershell -File install.ps1
    ```
-2. **Scope suppression to single lines** -- avoid file-level `# shellcheck disable=` which disables all checks.
-3. **Review every suppression** in code review. Maintain a suppression log if the project grows.
-4. For the existing scripts, the most likely ShellCheck findings will be:
-   - SC2086 (double quote variables) -- the scripts already quote correctly
-   - SC1091 (source not following) -- expected for external dependencies
-   - SC2034 (unused variable) -- check if truly unused
-5. Run ShellCheck with `severity=warning` (not `error`) initially to see all findings.
+   (PowerShell's `Invoke-WebRequest` / `irm` is more idiomatic than `curl` on Windows.)
+3. **Test the documented commands on a fresh machine** for each platform. GitHub Actions CI covers this for the existing scripts, but the remote install URL must be verified separately.
+4. **Document prerequisites clearly**: `jq` on Linux, no prerequisites on macOS, PowerShell 5.1 on Windows.
+5. **Include a troubleshooting section** that covers the most common failure modes: "paplay not found", "settings.json not found", "jq not found".
 
 **Phase to address:**
-Phase 3 (ShellCheck static analysis) -- establish suppression policy before running.
+Phase 4 (installation documentation) -- documentation must be tested on all three platforms before publication.
 
 ---
 
-### Pitfall 8: Docker Test Matrix for Windows Containers Is Extremely Heavy (3-11 GB Images)
+### Pitfall 7: Show HN / Community Post Timing and Format Gets No Engagement
 
 **What goes wrong:**
-Adding Windows containers to the Docker test matrix seems straightforward but the Windows Server Core base image is 3-5 GB and a full Nano Server image can be 1-2 GB. Downloading and building Windows containers takes 10-30 minutes, making local development painful and CI slow. The project documentation says "local-only Docker matrix" but the image sizes may make this impractical.
+A Show HN post or Reddit submission is published at a bad time (Friday evening US, during a major conference), with a generic title, and gets zero engagement. The post sinks without a trace and the developer concludes the tool has no audience, when in reality the problem is the launch strategy.
 
 **Why it happens:**
-Windows containers require a Windows host OS layer. Unlike Linux containers which share the host kernel, Windows containers include their own Windows kernel components. Even "minimal" Windows Server Core images are gigabytes.
+Developer tool launches require specific timing and messaging. The HN guidelines say "Show HN is for something you've made that other people can play with." A notification script is hard to demo in a text post -- there is no screenshot or GIF that conveys the experience.
 
 **How to avoid:**
-1. **Prefer WSL2 with Linux containers for PowerShell Core testing** -- `mcr.microsoft.com/powershell:latest` is a Linux image (~400 MB) that runs `pwsh`. This does NOT test PS 5.1 compatibility but is much lighter.
-2. **For PS 5.1 compatibility, test natively on Windows** (not in Docker). PS 5.1 is pre-installed on all Windows 10/11 machines. Running Pester directly in PowerShell 5.1 is simpler and more reliable than Windows containers.
-3. **If Windows containers are needed**, use `mcr.microsoft.com/windows/servercore:ltsc2022` (~3 GB) and accept the size. Never use full Server images.
-4. **Document the Docker matrix as optional** -- Linux containers for bats, native Windows for Pester. Docker Windows containers are a "nice to have" not a requirement.
-5. Use `--platform linux/amd64` to avoid pulling Windows images on Linux hosts by accident.
+1. **Timing:** Post on Tuesday-Thursday US morning (9-11 AM EST). Avoid weekends, holidays, and major event weeks.
+2. **Title format:** Use "Show HN: Claude Code notifies you in Chinese when tasks complete -- pure bash, zero dependencies". The title must convey: (a) what it does, (b) what makes it unique, (c) how easy it is.
+3. **Include an audio sample** -- embed a short demo video or link to a playable audio clip so readers can hear the notification without installing.
+4. **Lead with the one-liner install** in the post body. Developer tools that require >3 steps to try get skipped.
+5. **Be present for the first 2 hours** after posting to respond to comments. HN engagement is front-loaded.
 
 **Phase to address:**
-Phase 4 (Docker test matrix) -- decide on matrix strategy before building Dockerfiles. This decision affects CI pipeline complexity.
+Phase 3 (community promotion) -- draft the launch post well before publishing and get feedback from peers.
 
 ---
 
-### Pitfall 9: `teardown()` Failure Reported Against Wrong Test in bats
+### Pitfall 8: Awesome-List PR Rejected for Not Following Contribution Guidelines
 
 **What goes wrong:**
-When a bats `teardown()` function fails, the error is attributed to the **next test**, not the test whose teardown actually failed. This makes debugging very confusing: "test B failed because of an error in test A's teardown" is not obvious from the output.
+A PR is submitted to [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) adding the project, but it is rejected because it does not follow the repository's CONTRIBUTING.md process. The project has a specific submission format, category requirements, and quality bar. The [pascalporedda/awesome-claude-code](https://github.com/pascalporedda/awesome-claude-code) list has different (simpler) requirements.
 
 **Why it happens:**
-This is a known bats-core behavior (GitHub Issue bats-core/bats-core#1136). The teardown failure is detected when the next test's `setup()` runs, so the error gets associated with that test.
+The hesreallyhim list explicitly states: "Please do not open a PR to submit a recommendation -- the only person who is allowed to submit PRs to this repo is Claude." This means PRs from third parties are auto-rejected. Instead, contributors must open an issue following the CONTRIBUTING.md template. Skipping this step wastes everyone's time.
 
 **How to avoid:**
-1. Make `teardown()` robust -- use `|| true` for cleanup operations that can fail:
-   ```bash
-   teardown() {
-       rm -f "$BATS_TEST_TMPDIR"/claude-notify-*.lock || true
-   }
-   ```
-2. If teardown must fail for debugging, check `$BATS_TEST_NAME` to identify which test caused the issue.
-3. Be aware of this behavior when debugging -- if a test fails unexpectedly, check the previous test's teardown.
+1. **Read the CONTRIBUTING.md** of each awesome-list before submitting. For hesreallyhim, the process is: open an issue (not a PR) with specific format.
+2. **Check the existing list entries** for the category format. The Hooks section entries follow a specific structure: project name by author -- one-line description. Additional details follow.
+3. **Verify the project meets the quality bar**: working CI, clear README, no broken links, active maintenance.
+4. **Submit to multiple lists** -- both hesreallyhim and pascalporedda have different scopes and audiences. The pascalporedda list is specifically about hooks, which is a better fit.
+5. **Do not spam** -- submit to at most 2-3 lists simultaneously. Wait for response before trying others.
 
 **Phase to address:**
-Phase 1 (bats unit tests) -- understand this quirk before writing teardown logic.
+Phase 3 (community promotion) -- read contribution guidelines before any submission.
 
 ---
 
-### Pitfall 10: macOS-Specific `stat` and `touch` Flags Break Tests on Linux
+### Pitfall 9: Forward-Slash Path Requirement Not Documented for Advanced Users
 
 **What goes wrong:**
-Tests written on macOS use BSD `stat -f %m` and `touch -A` flags. These tests fail on Linux (CI) because Linux uses GNU `stat -c %Y` and `touch -d`. Conversely, tests written on Linux fail on macOS. The project already handles this in production code (v1.1), but test helper functions may accidentally use OS-specific flags.
+Advanced users who manually edit `settings.json` to customize hook commands use Windows backslash paths (`C:\Users\...`). Claude Code hooks silently fail because backslashes in JSON strings are escape characters. This is already handled by `install.ps1` (which uses `ConvertTo-ForwardSlash`), but users who customize hooks manually are not warned.
 
 **Why it happens:**
-Test helper functions that manipulate file timestamps for cooldown testing need to "age" a lock file. The `touch` command for setting arbitrary timestamps is completely different between GNU and BSD:
-- Linux: `touch -d "6 seconds ago" "$FILE"`
-- macOS: `touch -A "-000600" "$FILE"` (the `-A` argument format is MMDDhhmm, not human-readable)
+The forward-slash requirement is documented in the project's Key Decisions (WIN-05) but is not surfaced in user-facing documentation. Users who read the awesome-list description or a community post and manually configure hooks will miss this detail.
 
 **How to avoid:**
-1. Create a portable helper function in `tests/helpers/common.bash`:
-   ```bash
-   set_file_age() {
-       local file="$1"
-       local seconds_ago="$2"
-       if [[ "$(uname -s)" == "Darwin" ]]; then
-           # macOS: touch -A uses [[CC]YY]MMDDhhmm[.SS] format
-           local now_epoch=$(date +%s)
-           local target_epoch=$((now_epoch - seconds_ago))
-           local target_date=$(date -r "$target_epoch" +%Y%m%d%H%M.%S)
-           touch -t "$target_date" "$file"
-       else
-           touch -d "${seconds_ago} seconds ago" "$file"
-       fi
-   }
-   ```
-2. Alternatively, since the production script already detects the OS for stat, reuse that pattern in test helpers.
-3. Test this helper on both macOS and Linux early.
+1. **Add a prominent note in the README** troubleshooting section: "On Windows, all paths in settings.json hooks must use forward slashes (/), not backslashes."
+2. **The install scripts already handle this**, so most users will not hit this. But for the edge case of manual configuration, document it.
+3. **Consider adding a validation step** in the install script that warns if backslashes are detected in the generated `settings.json`.
 
 **Phase to address:**
-Phase 1 (bats unit tests) -- the cooldown timestamp helper is needed for the first meaningful test.
+Phase 4 (installation documentation) -- ensure the forward-slash requirement is in the user-facing docs.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 11: ShellCheck Docker Image Missing `shell` Binary for Glob Support
+### Pitfall 10: GitHub Release Audio Pack Forgetting to Update Checksums
 
 **What goes wrong:**
-Running ShellCheck via its official Docker image (`koalaman/shellcheck`) produces false negatives for rules that require shell execution (SC2250, SC2296). The Docker image does not include a full `shell` binary for glob expansion analysis (GitHub Issue koalaman/shellcheck#2862).
+Audio variant packs are published as GitHub Release assets (tarballs), but the SHA256 checksums in the release notes are not updated or are computed incorrectly. Users who verify checksums get false failures, or users who skip verification are exposed to tampering.
 
 **How to avoid:**
-1. Install ShellCheck natively on Linux/macOS (`apt install shellcheck` or `brew install shellcheck`) rather than running via Docker.
-2. If Docker is required, accept the reduced coverage and document the limitation.
-3. For the existing simple scripts (no complex globbing), this is unlikely to be a practical issue.
-
-**Phase to address:**
-Phase 3 (ShellCheck integration) -- minor concern, decide native vs Docker installation.
-
----
-
-### Pitfall 12: bats Parallel Mode Changes Test Timing Assumptions
-
-**What goes wrong:**
-Running `bats --parallel` to speed up CI causes tests to fail because parallel tests share the same `/tmp` directory. Lock file tests conflict, temp files collide, and timing-sensitive tests produce unpredictable results.
-
-**How to avoid:**
-1. Do NOT use `bats --parallel` for this project. The test suite is small (6 scripts, ~20 tests) and should complete in under 5 seconds without parallelism.
-2. If parallelism is ever needed, ensure every test uses `$BATS_TEST_TMPDIR` exclusively (see Pitfall 5).
-
-**Phase to address:**
-Phase 1 (bats unit tests) -- document that parallel execution is not supported.
-
----
-
-### Pitfall 13: PSScriptAnalyzer `UseCompatibleTypes` May Flag PresentationCore on Non-Windows
-
-**What goes wrong:**
-Running PSScriptAnalyzer with `UseCompatibleTypes` rule against the PowerShell scripts flags `System.Windows.Media.MediaPlayer` (from PresentationCore) as incompatible with non-Windows targets. This is technically correct but expected -- MediaPlayer only exists on Windows.
-
-**How to avoid:**
-1. Configure PSScriptAnalyzer to target only `desktop-5.1.14393.206-windows`, not cross-platform profiles.
-2. Suppress the warning for the specific line if needed:
-   ```powershell
-   [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseCompatibleTypes', '')]
+1. Automate checksum generation in the release script:
+   ```bash
+   sha256sum notify-audio-female.tar.gz >> CHECKSUMS.txt
    ```
-3. This is expected behavior -- the scripts are Windows-only by design.
+2. Include checksums in the GitHub Release body automatically via CI.
 
 **Phase to address:**
-Phase 3 (PSScriptAnalyzer) -- configure the correct target profile.
+Phase 2 (multi-voice audio) -- if audio packs are released separately, include checksum automation.
+
+---
+
+### Pitfall 11: README Becomes Overwhelming with Too Many Installation Options
+
+**What goes wrong:**
+The README grows to include: one-liner install, git clone install, voice selection options, platform-specific instructions, troubleshooting, and contribution guidelines. New users are overwhelmed and leave without installing.
+
+**How to avoid:**
+1. **Lead with exactly one install command** per platform at the top. Everything else goes below a fold line.
+2. **Use collapsible sections** (`<details>`) for advanced options (voice selection, manual installation, uninstall).
+3. **Link to separate docs** (GitHub Wiki or `/docs/` directory) for detailed troubleshooting.
+
+**Phase to address:**
+Phase 4 (installation documentation) -- test the README with a cold-read by someone unfamiliar with the project.
 
 ---
 
@@ -393,52 +314,74 @@ Phase 3 (PSScriptAnalyzer) -- configure the correct target profile.
 
 Shortcuts that seem reasonable but create long-term problems.
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Skip mocking, use `sleep` in tests | Tests written faster | Flaky CI, slow suite (2-5s per test) | Never for cooldown tests; OK for smoke tests |
-| Test only on pwsh 7, ignore PS 5.1 | Simpler test writing | Scripts break on default Windows PS | Never -- PS 5.1 is the target |
-| Use Docker for all platforms including Windows | One tool for everything | 3-11 GB Windows images, slow CI, requires Windows host | Never for PS 5.1 testing; consider Linux pwsh container |
-| Suppress all ShellCheck warnings to get green CI | Quick compliance | Hidden bugs, false confidence | Never without per-suppression justification |
-| Run bats without temp directory isolation | Simpler test code | Order-dependent tests, parallel hazards | Never |
-| Use Pester v6 for newer features | Access to latest Pester features | Drops PS 3/4/5.0 support, uncertain PS 5.1 support | Never until PS 5.1 support is explicitly confirmed |
+| Shortcut | Immediate Benefit | Long-T Cost | When Acceptable |
+|----------|-------------------|-------------|-----------------|
+| Skip checksum verification in install docs | Simpler docs, fewer steps | Zero integrity guarantee for remote install | Acceptable for MVP if two-step alternative is documented |
+| Commit all voice variants to repo | No separate download step, simpler install | Repo grows with each variant; old variants permanent in history | Acceptable if total audio < 200 KB and variants are curated (< 5 voices) |
+| Submit PR instead of issue to awesome-lists | Feels more direct | Rejected due to contribution guidelines | Never -- read guidelines first |
+| Use `main` branch in curl URL | Always latest, no version bumps | Content can change; TOCTOU risk | Never -- pin to release tag |
+| Skip forward-slash docs | Saves README lines | Silent hook failures for Windows manual config | Never -- this is a known Windows pitfall |
+| Hardcode voice list in install.sh | Simpler script | Adding voices requires code changes | Acceptable for < 5 voices; consider config file if more |
 
 ## Integration Gotchas
 
-Common mistakes when connecting test infrastructure to external tools and CI.
+Common mistakes when connecting to external services and platforms.
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| bats + production scripts | Sourcing scripts that execute side effects (play audio, write to `$HOME/.claude`) | Set `NOTIFY_LOCK_DIR` and mock audio commands in PATH before sourcing |
-| Pester + settings.json | Tests modify real `~/.claude/settings.json`, polluting the developer's environment | Use `$env:USERPROFILE = "$TestDrive"` or mock file operations |
-| ShellCheck + shebang | ShellCheck may not detect the correct shell for `.ps1` files | Run ShellCheck separately: `shellcheck scripts/*.sh` and `Invoke-ScriptAnalyzer scripts/*.ps1` |
-| Docker + bats | `bats` not installed in the Docker image, or wrong version | Install bats-core via npm (`npm install -g bats`) or clone from GitHub in Dockerfile |
-| Docker + Pester | Pester module not pre-installed in Windows container | `pwsh -Command "Install-Module Pester -Force -Scope CurrentUser"` in Dockerfile |
-| CI + lock files | Lock files persist between CI runs on self-hosted runners | Always clean `$TMPDIR`/`$TEMP` in CI setup step |
+| GitHub raw URLs for install scripts | Using `main` branch (mutable content) | Pin to release tag: `raw.githubusercontent.com/<repo>/v1.4.0/scripts/...` |
+| Claude Code hooks settings.json | Using backslash paths on Windows | Always use forward slashes; `install.ps1` already converts |
+| GitHub awesome-lists | Opening a PR instead of an issue | Read CONTRIBUTING.md; hesreallyhim requires issues, not PRs |
+| GitHub Actions CI for remote install | Not testing the remote install URL in CI | Add a CI step that `curl`s the remote install script and validates it parses correctly |
+| Spark-TTS Docker for audio generation | Rebuilding Docker image for each variant | Generate all variants in one Docker run; reuse the same container |
+| GitHub Release assets | Manual checksum computation | Automate in release workflow; include `CHECKSUMS.txt` |
 
 ## Performance Traps
 
-Patterns that work at small scale but fail as the test suite grows.
+Patterns that work at small scale but fail as usage grows.
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| `sleep` in tests | Each cooldown test takes 5+ seconds; 10 tests = 50+ seconds | Mock time via timestamp manipulation; make cooldown configurable | Immediately at 5+ tests |
-| Docker Windows pull time | CI pipeline takes 15-30 minutes for Windows container phase | Use native Windows for PS 5.1; skip Windows containers if possible | First CI run |
-| No test isolation | Adding tests breaks existing tests | Use `$BATS_TEST_TMPDIR` and fresh `$TESTDRIVE` per test | At 3+ test files |
-| Repeated expensive setup | Docker startup in `setup()` runs per test | Use `setup_file()` for Docker; per-test setup only for mocks | At 5+ tests |
+| All audio in repo | Clone time grows with each variant | Cap total committed audio at ~200 KB; use GitHub Releases for packs | At 5+ voices with multiple styles |
+| Remote install script downloads full repo | Slow install for users on slow connections | Keep repo small; the install script should be < 5 KB | At 10+ committed audio files |
+| settings.json jq parsing on every install | Not a performance issue (single invocation) | N/A -- this is fine | Never |
+
+## Security Mistakes
+
+Domain-specific security issues beyond general web security.
+
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| Remote install script uses HTTP, not HTTPS | MITM can inject arbitrary code | Always use HTTPS URLs; verify TLS certificate |
+| Install script writes to system directories | Root-level compromise | Only write to `~/.claude/` -- never `/usr/`, `/etc/`, etc. |
+| Install script exposes environment variables | API keys, tokens leaked in logs or errors | Do not log or display env vars; use `set -euo pipefail` |
+| No version pinning in curl URL | Content can change post-review | Pin to release tag SHA or version tag |
+| Install script does not validate downloads | Corrupted or truncated files cause silent failures | Check file size or checksum after download |
+
+## UX Pitfalls
+
+Common user experience mistakes in this domain.
+
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| No audio preview before install | User installs, hears the voice, dislikes it, must uninstall | Provide audio preview links in README so users can hear before installing |
+| Voice selection only at install time | User wants to change voice later but uninstall/reinstall is unclear | Support `install.sh --voice female` as a re-configuration command (idempotent) |
+| No visual feedback during install | User runs install, sees nothing for 10 seconds, wonders if it worked | Print clear step-by-step progress: "Copying audio...", "Configuring hooks...", "Done!" (already implemented) |
+| Error messages reference internal paths | User sees "/app/scripts/install.sh: line 42" and does not know what to do | Use user-friendly error messages: "Could not find ~/.claude/settings.json. Is Claude Code installed?" |
+| Chinese-only TTS with no English alternative | Non-Chinese-speaking users want notifications too | Document that Chinese voice is the primary offering; suggest system sounds as alternative for non-Chinese users |
 
 ## "Looks Done But Isn't" Checklist
 
 Things that appear complete but are missing critical pieces.
 
-- [ ] **Cooldown tests:** Do tests manipulate file timestamps instead of using `sleep`? Verify by running 10 times -- any intermittent failure indicates real-time dependency.
-- [ ] **Audio mocking:** Do bats tests stub `paplay`/`afplay` in PATH? Do Pester tests mock the playback function? Verify by checking that the real audio command is never invoked (check process list).
-- [ ] **Temp isolation:** Does each test use its own temp directory? Verify by running tests in random order -- any order-dependent failure indicates shared state.
-- [ ] **PS 5.1 coverage:** Have tests been run on actual Windows PowerShell 5.1 (not just pwsh 7)? Verify by checking `$PSVersionTable.PSVersion` in CI output.
-- [ ] **ShellCheck zero warnings:** Are all ShellCheck warnings addressed, not just suppressed? Review each `# shellcheck disable` directive.
-- [ ] **PSScriptAnalyzer profile:** Is the `desktop-5.1.14393.206-windows` target profile configured? Verify by checking PSScriptAnalyzer output includes version-specific warnings.
-- [ ] **Docker matrix runs locally:** Does `docker compose up` start all three platform containers and run tests? Verify on a fresh machine (no cached images).
-- [ ] **settings.json not polluted:** After running all tests, is the developer's `~/.claude/settings.json` unchanged? Verify by diffing before/after.
-- [ ] **Lock files cleaned up:** After test suite completes, are there leftover `/tmp/claude-notify-*.lock` files? Verify by listing `/tmp` after tests.
+- [ ] **Remote install URL:** Does the curl URL point to a tagged release (not `main`)? Verify by checking the URL resolves correctly.
+- [ ] **Voice manifest:** Does `~/.claude/notify-voice.txt` exist after voice selection? Verify install and uninstall handle this correctly.
+- [ ] **settings.json forward slashes:** After install on Windows, do all hook commands use forward slashes? Verify by reading settings.json.
+- [ ] **Orphaned audio files:** After switching voices, are only the new voice's files in `~/.claude/`? Verify by listing the directory.
+- [ ] **README on all platforms:** Does the documented install command work on a fresh Linux, macOS, and Windows machine? Verify with GitHub Actions CI.
+- [ ] **Awesome-list submission:** Did you read the contribution guidelines before submitting? Verify by checking the repo's CONTRIBUTING.md.
+- [ ] **Checksum verification:** If a CHECKSUMS.txt is published, does it match the actual files? Verify by running `sha256sum -c CHECKSUMS.txt`.
+- [ ] **Uninstall completeness:** After uninstall, is `~/.claude/` clean (no orphaned notify files, no voice manifest)? Verify by listing the directory.
 
 ## Recovery Strategies
 
@@ -446,12 +389,12 @@ When pitfalls occur despite prevention, how to recover.
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Flaky time-based tests | MEDIUM | 1. Identify tests with `sleep` calls. 2. Replace with timestamp manipulation. 3. Add retry assertion if absolutely needed. |
-| CI hangs on MediaPlayer | LOW | 1. Add timeout to Pester tests (`-Timeout 5`). 2. Extract MediaPlayer to wrapper function. 3. Mock wrapper in tests. |
-| Pester version conflict | LOW | 1. Remove all Pester versions: `Get-Module Pester -All \| Remove-Module -Force`. 2. Install specific version: `Install-Module Pester -RequiredVersion 5.5.0 -Force`. 3. Pin version in test files. |
-| bats path resolution broken | LOW | 1. Compute absolute paths using `$BATS_TEST_FILENAME`. 2. Add error checking for file existence. 3. Document required invocation directory. |
-| Lock file pollution | LOW | 1. Clean `/tmp/claude-notify-*.lock`. 2. Add `$BATS_TEST_TMPDIR` to all tests. 3. Add cleanup to teardown. |
-| Docker Windows too heavy | HIGH | 1. Remove Windows containers from Docker Compose. 2. Add native Windows testing instructions. 3. Keep Linux containers only. |
+| Remote install URL serves wrong content | LOW | 1. Pin URL to a specific git tag. 2. Add CI check that validates the script. 3. Publish checksums. |
+| Git history bloated by audio variants | MEDIUM | 1. If total is still < 500 KB, accept it. 2. If bloated, use `git filter-repo` to remove old variants. 3. All contributors must re-clone. |
+| Awesome-list PR rejected | LOW | 1. Read contribution guidelines. 2. Re-submit following the correct process (issue, not PR). |
+| settings.json corrupted by install | MEDIUM | 1. The install script uses `jq` with a temp file and atomic `mv`, so corruption is unlikely. 2. If it happens, user can restore from git: `cp ~/.claude/settings.json.backup ~/.claude/settings.json`. 3. Add backup step to install script. |
+| Voice switching leaves orphan files | LOW | 1. Run `rm -f ~/.claude/notify-*.mp3` before copying new voice. 2. Update install script to do this automatically. |
+| Show HN post gets no engagement | LOW | 1. Wait 2 weeks. 2. Rewrite title and post at better time. 3. Try Reddit r/ClaudeAI or r/commandline instead. |
 
 ## Pitfall-to-Phase Mapping
 
@@ -459,53 +402,45 @@ How roadmap phases should address these pitfalls.
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Pitfall 1 (flaky cooldown tests) | Phase 1 (bats tests) | Run cooldown tests 20 times locally and in CI -- zero failures |
-| Pitfall 2 (headless audio) | Phase 1 (bats), Phase 2 (Pester) | Verify no real audio command runs during tests (check process list, temp logs) |
-| Pitfall 3 (Pester version) | Phase 2 (Pester tests) | Run `Invoke-Pester` on PS 5.1 and pwsh 7 -- identical results |
-| Pitfall 4 (bats path resolution) | Phase 1 (bats tests) | Run `bats tests/` from project root and from subdirectory -- both pass |
-| Pitfall 5 (lock file pollution) | Phase 1 (bats tests) | Run tests in random order 5 times -- all pass identically |
-| Pitfall 6 (setup scope) | Phase 1 (bats tests) | Verify no Docker start in `setup()`, only in `setup_file()` |
-| Pitfall 7 (ShellCheck suppression) | Phase 3 (ShellCheck) | Review all suppressions in code review; zero uncommented suppressions |
-| Pitfall 8 (Docker Windows size) | Phase 4 (Docker matrix) | Measure total image download time; if >5 min, reconsider strategy |
-| Pitfall 9 (teardown attribution) | Phase 1 (bats tests) | Verify teardown uses `|| true` for cleanup |
-| Pitfall 10 (macOS stat/touch) | Phase 1 (bats tests) | Run all bats tests on both macOS and Linux |
-| Pitfall 13 (PSScriptAnalyzer types) | Phase 3 (PSScriptAnalyzer) | Configure desktop-5.1 profile; verify PresentationCore not flagged as error |
+| Pitfall 1 (no integrity verification) | Phase 1 (remote install) | Verify curl URL points to tagged release; two-step alternative documented |
+| Pitfall 2 (repo bloat from audio) | Phase 2 (multi-voice) | Verify total committed audio < 200 KB; `.gitattributes` marks audio as binary |
+| Pitfall 3 (hardcoded settings path) | Phase 1 (remote install) | Test install on custom CLAUDE_CONFIG_DIR; test on fresh machine without Claude Code |
+| Pitfall 4 (crowded competitor space) | Phase 3 (community promotion) | Verify README leads with Chinese TTS differentiator; awesome-list entry text is unique |
+| Pitfall 5 (voice breaks idempotent install) | Phase 2 (multi-voice) | Test: install voice A, then voice B, verify only voice B files remain |
+| Pitfall 6 (README assumes Linux) | Phase 4 (docs) | Verify README install instructions work on all three platforms |
+| Pitfall 7 (bad launch timing) | Phase 3 (community promotion) | Draft launch post; get peer review; schedule for Tue-Thu US morning |
+| Pitfall 8 (awesome-list PR rejected) | Phase 3 (community promotion) | Read CONTRIBUTING.md before submitting; verify submission format |
+| Pitfall 9 (forward-slash not documented) | Phase 4 (docs) | Verify troubleshooting section mentions forward-slash requirement |
+| Pitfall 10 (checksums not updated) | Phase 2 (multi-voice) | Verify release workflow includes checksum generation |
+| Pitfall 11 (README overload) | Phase 4 (docs) | Cold-read test by unfamiliar user; verify quick-start is < 5 lines |
 
 ## Sources
 
-### HIGH Confidence (Official Documentation / Verified Issues)
+### HIGH Confidence (Official Documentation / Verified Repositories)
 
-- [bats-core Writing Tests](https://bats-core.readthedocs.io/en/stable/writing-tests.html) -- `load`, `$BATS_TEST_TMPDIR`, `$BATS_FILE_TMPDIR`, setup/teardown scopes (verified 2026-03-30)
-- [bats-core FAQ](https://bats-core.readthedocs.io/en/stable/faq.html) -- setup runs per-test, setup_suite for global setup (verified 2026-03-30)
-- [bats-core Issue #1136: teardown failure attribution](https://github.com/bats-core/bats-core/issues/1136) -- teardown failure reported against wrong test (verified 2026-03-30)
-- [bats-core Issue #226: temp file cleanup](https://github.com/bats-core/bats-core/issues/226) -- cleanup strategies (verified 2026-03-30)
-- [bats-core Issue #283: isolated temp dir per run](https://github.com/bats-core/bats-core/issues/283) -- temp directory isolation discussion (verified 2026-03-30)
-- [Pester v5 to v6 Migration Guide](https://pester.dev/docs/v6/migrations/v5-to-v6) -- dropped PS 3/4/5.0 support (verified 2026-03-30)
-- [Pester Breaking Changes in v5](https://pester.dev/docs/migrations/breaking-changes-in-v5) -- v4 to v5 migration (verified 2026-03-30)
-- [PSScriptAnalyzer UseCompatibleTypes](https://learn.microsoft.com/en-us/powershell/utility-modules/psscriptanalyzer/rules/usecompatibletypes?view=ps-modules) -- compatibility profiles (verified 2026-03-30)
-- [PSScriptAnalyzer for Version Compatibility (Microsoft Dev Blogs)](https://devblogs.microsoft.com/powershell/using-psscriptanalyzer-to-check-powershell-version-compatibility/) -- UseCompatibleSyntax, target profiles (verified 2026-03-30)
-- [Microsoft: Differences between Windows PowerShell 5.1 and PowerShell 7.x](https://learn.microsoft.com/en-us/powershell/scripting/whats-new/differences-from-windows-powershell?view=powershell-7.6) -- cmdlet and type differences (verified 2026-03-30)
+- [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) -- Hooks section, contribution guidelines, competitor landscape (verified 2026-03-31)
+- [pascalporedda/awesome-claude-code](https://github.com/pascalporedda/awesome-claude-code) -- sound notification hooks implementation, global installer pattern (verified 2026-03-31)
+- [Show HN Guidelines](https://news.ycombinator.com/showhn.html) -- official Show HN submission requirements (verified 2026-03-31)
+- [CLI Guidelines (clig.dev)](https://clig.dev/) -- community-driven CLI best practices (verified 2026-03-31)
+- [Git LFS official documentation](https://git-lfs.github.com/) -- LFS behavior and tradeoffs (verified 2026-03-31)
 
 ### MEDIUM Confidence (Multiple Sources Agree)
 
-- [bats-core Issue #79: load relative paths](https://github.com/bats-core/bats-core/issues/79) -- load resolves relative to test file (verified 2026-03-30)
-- [bats-core Issue #171: parallel mode](https://github.com/bats-core/bats-core/issues/171) -- parallel execution limitations (verified 2026-03-30)
-- [Pester Issue #1770: PesterConfiguration type conflict](https://github.com/pester/Pester/issues/1770) -- version mismatch symptoms (verified 2026-03-30)
-- [PowerShell/DscResource.Tests Issue #204: Pester in Windows containers](https://github.com/PowerShell/DscResource.Tests/issues/204) -- scope isolation workarounds (verified 2026-03-30)
-- [PS7CompatibilityRules (Jane Street)](https://github.com/janestreet/PS7CompatibilityRules) -- community rules for PS 5.1 to 7 migration (verified 2026-03-30)
-- [How to use bats-mock to assert against calls](https://stackoverflow.com/questions/38315185/how-to-use-bats-mock-to-assert-against-calls-to-a-mocked-script-in-bash-testin) -- stub approach for external commands (verified 2026-03-30)
-- [Stack Overflow: PS 5.1 using module differences](https://stackoverflow.com/questions/78359289/windows-powershell-5-1-cannot-import-local-module-file-with-using-module-but-p) -- module loading differences (verified 2026-03-30)
-- [Stack Overflow: Race condition with lock file](https://stackoverflow.com/questions/325628/how-to-avoid-race-condition-when-using-a-lock-file-to-avoid-two-instances-of-a-s) -- TOCTOU prevention (verified 2026-03-30)
-- [Fixing Flaky Time Based Unit Tests (Expedia Group)](https://medium.com/expedia-group-tech/fixing-flaky-time-based-unit-tests-176accf5096e) -- general time-based test flakiness patterns (MEDIUM -- not shell-specific)
+- [Security Stack Exchange: Is `curl | sudo bash` safe?](https://security.stackexchange.com/questions/213401/is-curl-something-sudo-bash-a-reasonably-safe-installation-method) -- auditability concerns (verified 2026-03-31)
+- [Netdata Issue #3551: Stop encouraging curl | bash](https://github.com/netdata/netdata/issues/3551) -- community pushback against pipe-to-shell (verified 2026-03-31)
+- [javapro.io: curl | bash | hacked (2026)](https://javapro.io/2026/03/25/curl-bash-hacked-the-unseen-dangers-in-your-dev-lifecycle/) -- recent 2026 coverage of supply chain risks (verified 2026-03-31)
+- [Stack Overflow: How large for Git LFS benefit?](https://stackoverflow.com/questions/49018053/how-large-does-a-large-file-have-to-be-to-benefit-from-git-lfs) -- LFS threshold consensus ~500 KB (verified 2026-03-31)
+- [Reddit r/git: Git LFS for small MP3 files](https://www.reddit.com/r/git/comments/11xwhkt/will_using_git_lfs_track_mp3_also_use_gitlfs_to/) -- LFS tracks all files regardless of size (verified 2026-03-31)
+- [How to Launch a Dev Tool on Hacker News (markepear.dev)](https://www.markepear.dev/blog/dev-tool-hacker-news-launch) -- HN launch strategy (verified 2026-03-31)
+- [Apple Developer: Shell Scripting for Cross-Platform](https://developer.apple.com/library/archive/documentation/OpenSource/Conceptual/ShellScripting/PortingScriptstoMacOSX/PortingScriptstoMacOSX.html) -- GNU vs BSD coreutils (verified 2026-03-31)
 
-### LOW Confidence (Training Data / Single Source)
+### LOW Confidence (Training Data / Single Source / Unverified)
 
-- Pester Mock cannot mock .NET constructors -- based on Pester documentation knowledge and community consensus, but no single authoritative source verified
-- Docker Windows container sizes (3-11 GB) -- cited in blog post (Rolling Websphere), not verified against latest Microsoft images
-- ShellCheck Docker glob support limitation -- GitHub Issue koalaman/shellcheck#2862 confirmed, impact on this project's scripts not verified
-- `touch -A` flag for macOS timestamp manipulation -- known BSD syntax, not verified against latest macOS version
-- `faketime` tool for mocking time in bash -- known tool, not verified as available in all CI environments
+- ChanMeng666/claude-code-audio-hooks -- referenced in CLAUDE.md but not directly reviewed; may or may not be a direct competitor
+- Domain expiration attack on install script URLs -- theoretical risk, no specific incidents involving developer tool install scripts found
+- Show HN engagement rate for developer tools -- no quantitative data found on typical engagement rates
+- Audio file size estimates for voice variants -- based on existing 4 files (~10-15 KB each), untested with new voices
 
 ---
-*Pitfalls research for: Claude Code voice notification system v1.2 test infrastructure*
-*Researched: 2026-03-30*
+*Pitfalls research for: Claude Code notification system v1.4 distribution and community*
+*Researched: 2026-03-31*
