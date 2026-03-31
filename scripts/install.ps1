@@ -15,7 +15,9 @@ $ErrorActionPreference = "Stop"
 # --- Path setup (per D-06, D-07) ---
 $ClaudeDir = Join-Path $env:USERPROFILE ".claude"
 $SettingsPath = Join-Path $ClaudeDir "settings.json"
-$AudioSource = Join-Path $RepoPath "audio"
+# Default voice pack (Phase 14 adds interactive selection)
+$VoiceName = "gentle"
+$AudioSource = Join-Path $RepoPath "audio\voices\$VoiceName"
 $NotifyPlayScript = Join-Path $RepoPath "scripts\notify-play.ps1"
 
 # --- Prerequisite checks ---

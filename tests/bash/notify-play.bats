@@ -42,7 +42,7 @@ teardown() {
     # Create lock file with current timestamp (within cooldown window)
     touch "$LOCK_DIR/claude-notify-complete.lock"
 
-    run "$REPO_ROOT/scripts/notify-play.sh" complete "$REPO_ROOT/audio/notify-complete.mp3"
+    run "$REPO_ROOT/scripts/notify-play.sh" complete "$REPO_ROOT/audio/voices/gentle/notify-complete.mp3"
     [ "$status" -eq 0 ]
     # Player should NOT have been called
     ! grep -q "paplay" "$CALLED_LOG"
@@ -62,7 +62,7 @@ teardown() {
     old_time=$(date -d "@${old_epoch}" +%Y%m%d%H%M.%S)
     touch -t "$old_time" "$LOCK_DIR/claude-notify-complete.lock"
 
-    run "$REPO_ROOT/scripts/notify-play.sh" complete "$REPO_ROOT/audio/notify-complete.mp3"
+    run "$REPO_ROOT/scripts/notify-play.sh" complete "$REPO_ROOT/audio/voices/gentle/notify-complete.mp3"
     [ "$status" -eq 0 ]
     # Player SHOULD have been called
     grep -q "paplay" "$CALLED_LOG"
@@ -75,7 +75,7 @@ teardown() {
     fi
     # On Linux (uname -s == Linux), notify-play.sh should call paplay
     # No lock file exists, so cooldown check passes immediately
-    run "$REPO_ROOT/scripts/notify-play.sh" complete "$REPO_ROOT/audio/notify-complete.mp3"
+    run "$REPO_ROOT/scripts/notify-play.sh" complete "$REPO_ROOT/audio/voices/gentle/notify-complete.mp3"
     [ "$status" -eq 0 ]
     # paplay should be called
     grep -q "paplay" "$CALLED_LOG"
@@ -93,6 +93,6 @@ FAILSTUB
     chmod +x "$STUB_DIR/paplay"
 
     # No lock file, so cooldown passes and player is invoked
-    run "$REPO_ROOT/scripts/notify-play.sh" complete "$REPO_ROOT/audio/notify-complete.mp3"
+    run "$REPO_ROOT/scripts/notify-play.sh" complete "$REPO_ROOT/audio/voices/gentle/notify-complete.mp3"
     [ "$status" -eq 0 ]
 }

@@ -12,7 +12,7 @@ Describe "notify-play.ps1 cooldown and playback" {
 
     BeforeEach {
         # Dot-source to load function definitions (invocation guard prevents main from running)
-        . "$RepoRoot/scripts/notify-play.ps1" -Type "complete" -AudioFile "$RepoRoot/audio/notify-complete.mp3"
+        . "$RepoRoot/scripts/notify-play.ps1" -Type "complete" -AudioFile "$RepoRoot/audio/voices/gentle/notify-complete.mp3"
 
         # Isolate lock directory (per D-02, D-06)
         $TestDir = Join-Path ([System.IO.Path]::GetTempPath()) "pester-notify-$(Get-Random)"
@@ -32,7 +32,7 @@ Describe "notify-play.ps1 cooldown and playback" {
 
         Mock Invoke-MediaPlayer {}
 
-        Invoke-NotifyPlayCore -Type "complete" -AudioFile "$RepoRoot/audio/notify-complete.mp3"
+        Invoke-NotifyPlayCore -Type "complete" -AudioFile "$RepoRoot/audio/voices/gentle/notify-complete.mp3"
 
         Should -Invoke Invoke-MediaPlayer -Times 0 -Exactly
     }
@@ -46,7 +46,7 @@ Describe "notify-play.ps1 cooldown and playback" {
 
         Mock Invoke-MediaPlayer {}
 
-        Invoke-NotifyPlayCore -Type "complete" -AudioFile "$RepoRoot/audio/notify-complete.mp3"
+        Invoke-NotifyPlayCore -Type "complete" -AudioFile "$RepoRoot/audio/voices/gentle/notify-complete.mp3"
 
         Should -Invoke Invoke-MediaPlayer -Times 1 -Exactly
     }
@@ -55,7 +55,7 @@ Describe "notify-play.ps1 cooldown and playback" {
         # No lock file -- cooldown passes immediately
         Mock Invoke-MediaPlayer {}
 
-        Invoke-NotifyPlayCore -Type "error" -AudioFile "$RepoRoot/audio/notify-error.mp3"
+        Invoke-NotifyPlayCore -Type "error" -AudioFile "$RepoRoot/audio/voices/gentle/notify-error.mp3"
 
         # Verify the mock was called with the correct AudioFile parameter
         Should -Invoke Invoke-MediaPlayer -Times 1 -Exactly -ParameterFilter {

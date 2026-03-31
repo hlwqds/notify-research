@@ -15,7 +15,7 @@ setup() {
 
     # Copy real MP3 files (per D-06: install.sh checks they exist)
     for type in complete confirm error progress; do
-        cp "$REPO_ROOT/audio/notify-${type}.mp3" "$CLAUDE_DIR/notify-${type}.mp3"
+        cp "$REPO_ROOT/audio/voices/gentle/notify-${type}.mp3" "$CLAUDE_DIR/notify-${type}.mp3"
     done
 
     # Install paplay stub via PATH-prepend (no root needed)

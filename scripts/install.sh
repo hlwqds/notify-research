@@ -73,8 +73,10 @@ fi
 
 # --- Copy audio files (per D-01, D-02) ---
 echo "Copying audio files to $CLAUDE_DIR/ ..."
+# Default voice pack (Phase 14 adds interactive selection)
+VOICE="${VOICE:-gentle}"
 for type in complete confirm error progress; do
-    src="$REPO_ROOT/audio/notify-${type}.mp3"
+    src="$REPO_ROOT/audio/voices/$VOICE/notify-${type}.mp3"
     if [ ! -f "$src" ]; then
         echo "ERROR: $src not found. Run generate.sh first." >&2
         exit 1
