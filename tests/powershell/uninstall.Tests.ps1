@@ -3,7 +3,12 @@
 #         PS-11 (mp3 deletion), PS-12 (idempotent re-run)
 
 Describe "uninstall.ps1 hook removal and cleanup" {
-    $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    BeforeAll {
+        $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        if (-not (Test-Path (Join-Path $RepoRoot "tests" "fixtures" "settings.json"))) {
+            $RepoRoot = (Get-Item .).FullName
+        }
+    }
 
     BeforeEach {
         # Isolate USERPROFILE to temp directory (per D-02, D-06)

@@ -3,7 +3,13 @@
 #         PS-07 (BOM-free JSON), PS-08 (idempotent re-run)
 
 Describe "install.ps1 hook injection and configuration" {
-    $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    BeforeAll {
+        $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        # Fallback: PSScriptRoot may not resolve correctly in some Pester/host combos
+        if (-not (Test-Path (Join-Path $RepoRoot "tests" "fixtures" "settings.json"))) {
+            $RepoRoot = (Get-Item .).FullName
+        }
+    }
 
     BeforeEach {
         # Isolate USERPROFILE to temp directory (per D-02, D-06)

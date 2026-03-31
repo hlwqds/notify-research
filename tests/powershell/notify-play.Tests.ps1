@@ -3,7 +3,12 @@
 #         PS-03 (MediaPlayer mock), PS-04 (always exit 0)
 
 Describe "notify-play.ps1 cooldown and playback" {
-    $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    BeforeAll {
+        $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        if (-not (Test-Path (Join-Path $RepoRoot "tests" "fixtures" "settings.json"))) {
+            $RepoRoot = (Get-Item .).FullName
+        }
+    }
 
     BeforeEach {
         # Dot-source to load function definitions (invocation guard prevents main from running)
