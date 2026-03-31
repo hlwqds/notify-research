@@ -51,7 +51,7 @@
 
 - [x] **Phase 12: Multi-Voice Foundation** - Per-voice directory structure with parameterized generation and 2 shipped voice packs (completed 2026-03-31)
 - [x] **Phase 13: Plugin Packaging** - Claude Code plugin manifest and hooks with portable path resolution (completed 2026-03-31)
-- [ ] **Phase 14: Install & Voice Selection** - curl|bash fallback, voice selection at install time, legacy backward compatibility
+- [x] **Phase 14: Install & Voice Selection** - curl|bash fallback, voice selection at install time, legacy backward compatibility (completed 2026-03-31)
 - [ ] **Phase 15: Community & Docs** - MIT LICENSE, plugin-primary README, GitHub topic tags for discoverability
 
 ## Phase Details
@@ -97,9 +97,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 14-01-PLAN.md -- Voice selection + atomic swap for install.sh (--voice flag, interactive prompt, preview)
-- [ ] 14-02-PLAN.md -- Voice selection + atomic swap for install.ps1 (-Voice parameter, interactive prompt, preview)
-- [ ] 14-03-PLAN.md -- Create install-online.sh and install-online.ps1 curl|bash/irm|iex one-liner installers
+- [x] 14-01-PLAN.md -- Voice selection + atomic swap for install.sh (--voice flag, interactive prompt, preview)
+- [x] 14-02-PLAN.md -- Voice selection + atomic swap for install.ps1 (-Voice parameter, interactive prompt, preview)
+- [x] 14-03-PLAN.md -- Create install-online.sh and install-online.ps1 curl|bash/irm|iex one-liner installers
 
 ### Phase 15: Community & Docs
 **Goal**: Project is discoverable and installable by Claude Code users searching GitHub or community lists
@@ -109,11 +109,11 @@ Plans:
   1. README shows plugin-based install as the primary installation method with curl|bash as fallback
   2. Project has a LICENSE file (MIT) making it eligible for community listing
   3. GitHub repository has topic tags (claude-code, hooks, notifications, tts) that appear in search results
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 15-01: Add MIT LICENSE file and update README with plugin install as primary method
-- [ ] 15-02: Add GitHub topic tags and repository description for discoverability
+- [ ] 15-01-PLAN.md -- Add MIT LICENSE file and update README with plugin install as primary method
+- [ ] 15-02-PLAN.md -- Document GitHub topic tags, repository description, and community submission steps
 
 ## Progress
 
@@ -135,9 +135,9 @@ Phases execute in numeric order: 12 -> 13 -> 14 -> 15
 | 11. README + documentation | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 12. Multi-Voice Foundation | v1.4 | 3/3 | Complete    | 2026-03-31 |
 | 13. Plugin Packaging | v1.4 | 2/2 | Complete    | 2026-03-31 |
-| 14. Install & Voice Selection | v1.4 | 0/3 | Not started | - |
+| 14. Install & Voice Selection | v1.4 | 3/3 | Complete    | 2026-03-31 |
 | 15. Community & Docs | v1.4 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-31 after Phase 14 planning*
+*Last updated: 2026-03-31*
