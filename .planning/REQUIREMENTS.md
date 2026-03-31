@@ -29,7 +29,7 @@
 
 ### README
 
-- [ ] **CI-11**: README with CI status badge and project documentation
+- [x] **CI-11**: README with CI status badge and project documentation
 
 ## Out of Scope
 

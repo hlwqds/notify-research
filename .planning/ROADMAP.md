@@ -95,10 +95,10 @@ Plans:
 
 **Requirement mapping:** CI-11
 
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 11-01-PLAN.md — Create README.md with CI badge, tri-platform install instructions, hook config example, and links
+- [x] 11-01-PLAN.md — Create README.md with CI badge, tri-platform install instructions, hook config example, and links
 
 **Success criteria:**
 1. README.md exists at repo root with project description and usage instructions
@@ -121,7 +121,7 @@ Plans:
 | 8. PowerShell 单元测试 | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 9. 测试路径适配 | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 10. GitHub Actions workflow | v1.3 | 1/1 | Complete    | 2026-03-31 |
-| 11. README + documentation | v1.3 | 0/1 | Planned | - |
+| 11. README + documentation | v1.3 | 1/1 | Complete   | 2026-03-31 |
 
 ---
 *Roadmap created: 2026-03-30*
