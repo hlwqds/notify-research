@@ -115,7 +115,7 @@ Plans:
 | 7. Bash 单元测试 | v1.2 | 3/3 | Complete | 2026-03-30 |
 | 8. PowerShell 单元测试 | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 9. 测试路径适配 | v1.3 | 1/1 | Complete | 2026-03-31 |
-| 10. GitHub Actions workflow | v1.3 | 1/1 | Complete   | 2026-03-31 |
+| 10. GitHub Actions workflow | v1.3 | 1/1 | Complete    | 2026-03-31 |
 | 11. README + documentation | v1.3 | 0/1 | Pending | - |
 
 ---
