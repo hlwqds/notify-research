@@ -4,14 +4,14 @@ milestone: v1.4
 milestone_name: Hooks 生态分发
 current_phase: 12
 status: executing
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-03-31T05:36:17.827Z"
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-03-31T05:39:29.148Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 64
 ---
 
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 12 (multi-voice-foundation) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-31
 
@@ -63,6 +63,7 @@ Progress: [████████░░░░] 64% (16/25 plans shipped, 11/15
 
 *Updated after each plan completion*
 | Phase 12 P01 | 80 | 2 tasks | 10 files |
+| Phase 12 P02 | 1min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase 12]: audio/voices/{name}/ directory-per-voice layout for multi-voice support (VOICE-01)
 - [Phase 12]: VOICE env var with default fallback (gentle) in install.sh
 - [Phase 12]: PowerShell $VoiceName hardcoded to gentle until Phase 14 adds -Voice parameter
+- [Phase 12]: JSON voice configs in voices/{name}.json with gender/pitch/speed fields
+- [Phase 12]: GENERATE_VOICE env var bridges --voice flag through Docker boundary
+- [Phase 12]: Voice-aware output subdirectory OUTPUT_DIR/{voice_name}/ when --voice specified
 
 ### Pending Todos
 
@@ -89,8 +93,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-31T05:36:17.825Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-03-31T05:39:29.142Z
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None
 
 ---

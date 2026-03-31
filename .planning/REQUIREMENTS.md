@@ -15,7 +15,7 @@
 ### Multi-Voice Audio (VOICE)
 
 - [x] **VOICE-01**: Audio files are organized in `audio/{voice-name}/` directory structure with one subdirectory per voice style
-- [ ] **VOICE-02**: `generate.py` accepts `--voice` parameter to load voice settings from `voices/*.json` config files
+- [x] **VOICE-02**: `generate.py` accepts `--voice` parameter to load voice settings from `voices/*.json` config files
 - [ ] **VOICE-03**: At least 2 voice styles are pre-generated and shipped (default + 1 alternative, e.g. female voice)
 - [ ] **VOICE-04**: User can select a voice style during installation
 - [ ] **VOICE-05**: Switching voice style at install time swaps all 4 notification audio files atomically
@@ -59,7 +59,7 @@
 | DIST-03 | Phase 14 | Pending |
 | DIST-04 | Phase 13 | Pending |
 | VOICE-01 | Phase 12 | Complete |
-| VOICE-02 | Phase 12 | Pending |
+| VOICE-02 | Phase 12 | Complete |
 | VOICE-03 | Phase 12 | Pending |
 | VOICE-04 | Phase 14 | Pending |
 | VOICE-05 | Phase 14 | Pending |
