@@ -156,7 +156,7 @@ Plans:
 
 **Milestone Goal:** 搭建 Claude Code 自建插件市场，让用户通过 `/plugin` 原生发现和安装语音通知插件
 
-- [ ] **Phase 16: Marketplace 构建** - Create marketplace.json and update plugin manifest for plugin marketplace distribution
+- [x] **Phase 16: Marketplace 构建** - Create marketplace.json and update plugin manifest for plugin marketplace distribution (completed 2026-03-31)
 - [ ] **Phase 17: 验证与发布** - End-to-end validation of /plugin install flow and documentation update
 
 ## Phase Details
@@ -193,5 +193,5 @@ Phases execute in numeric order: 16 → 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Marketplace 构建 | v1.5 | 1/1 | Complete | 2026-03-31 |
+| 16. Marketplace 构建 | v1.5 | 1/1 | Complete    | 2026-03-31 |
 | 17. 验证与发布 | v1.5 | 0/? | Not started | - |
