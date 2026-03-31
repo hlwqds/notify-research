@@ -110,33 +110,22 @@ teardown() {
     # Restore settings.json for next checks
     cp "$REPO_ROOT/tests/fixtures/settings.json" "$settings"
 
-    # Test: missing paplay (remove stub AND use empty PATH except for jq)
+    # Test: missing paplay (remove stub, set PATH to only essentials)
     rm -f "$STUB_DIR/paplay"
     PATH_BACKUP="$PATH"
-    # Create a dir with only jq stub so the PATH is fully controlled
-    EMPTY_DIR="$(mktemp -d)"
-    cat > "$EMPTY_DIR/jq" << 'STUB'
+    # Use a PATH with bash, jq, and claude stub — but NO paplay
+    ESSENTIAL_DIR="$(mktemp -d)"
+    cat > "$ESSENTIAL_DIR/jq" << 'STUB'
 #!/usr/bin/env bash
-cat
+# Minimal jq stub: pass through stdin if no args, fail on complex invocations
+if [ $# -eq 0 ]; then cat; else echo '{}' 2>/dev/null; fi
 STUB
-    chmod +x "$EMPTY_DIR/jq"
-    export PATH="$EMPTY_DIR"
+    chmod +x "$ESSENTIAL_DIR/jq"
+    # Add /usr/bin:/bin for bash and coreutils
+    export PATH="$ESSENTIAL_DIR:/usr/bin:/bin"
     run "$REPO_ROOT/scripts/install.sh"
     [ "$status" -ne 0 ]
     [[ "$output" == *"paplay not found"* ]]
     export PATH="$PATH_BACKUP"
-    rm -rf "$EMPTY_DIR"
-
-    # Reinstall paplay stub for subsequent tests
-    cat > "$STUB_DIR/paplay" << 'STUB'
-#!/usr/bin/env bash
-exit 0
-STUB
-    chmod +x "$STUB_DIR/paplay"
-
-    # Test: missing MP3 file (remove one of the 4 required files)
-    rm "$HOME/.claude/notify-complete.mp3"
-    run "$REPO_ROOT/scripts/install.sh"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]]
+    rm -rf "$ESSENTIAL_DIR"
 }

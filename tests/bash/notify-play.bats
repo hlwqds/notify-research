@@ -70,6 +70,9 @@ teardown() {
 
 # BASH-03: Platform branch -- Linux uses paplay, not afplay
 @test "platform branch uses paplay on Linux" {
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        skip "paplay not available on macOS"
+    fi
     # On Linux (uname -s == Linux), notify-play.sh should call paplay
     # No lock file exists, so cooldown check passes immediately
     run "$REPO_ROOT/scripts/notify-play.sh" complete "$REPO_ROOT/audio/notify-complete.mp3"
