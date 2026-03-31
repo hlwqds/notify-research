@@ -184,7 +184,10 @@ Plans:
   2. After install, plugin appears in `/plugin` Installed tab with hooks correctly registered
   3. README shows `/plugin marketplace add` as the primary installation method (above one-liner and git-clone methods)
   4. plugin.json version is 1.5.0
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 17-01: Bump version to 1.5.0, audit README, E2E verification of /plugin install flow
 
 ## Progress
 
@@ -194,4 +197,4 @@ Phases execute in numeric order: 16 → 17
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 16. Marketplace 构建 | v1.5 | 1/1 | Complete    | 2026-03-31 |
-| 17. 验证与发布 | v1.5 | 0/? | Not started | - |
+| 17. 验证与发布 | v1.5 | 0/1 | Not started | - |
