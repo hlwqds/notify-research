@@ -6,7 +6,8 @@
     "voice": {
       "type": "string",
       "default": "gentle",
-      "description": "Voice pack name (available: gentle, deep)"
+      "description": "Voice pack name (available: gentle, deep)",
+      "title": "Voice"
     }
   }
 }
