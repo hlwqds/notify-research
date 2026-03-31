@@ -10,7 +10,7 @@
 
 ## Current State
 
-v1.3 shipped, v1.4 Phase 12 complete — 12 phases, 21 plans. Cross-platform notification system with CI, full test coverage, and multi-voice support:
+v1.3 shipped, v1.4 Phase 13 complete — 13 phases, 23 plans. Cross-platform notification system with CI, full test coverage, multi-voice support, and Claude Code plugin packaging:
 - 8 pre-generated mp3 notification sounds (2 voice styles: gentle + deep)
 - Per-voice directory structure (`audio/voices/{name}/`)
 - Parameterized voice generation (`generate.py --voice <name>`)
@@ -63,6 +63,8 @@ v1.3 shipped, v1.4 Phase 12 complete — 12 phases, 21 plans. Cross-platform not
 - ✓ Per-voice directory structure (audio/voices/{name}/) — v1.4 Phase 12
 - ✓ Parameterized voice generation (--voice flag, voices/*.json configs) — v1.4 Phase 12
 - ✓ 2 voice styles shipped (gentle + deep, 8 mp3 files) — v1.4 Phase 12
+- ✓ Claude Code plugin manifest (.claude-plugin/plugin.json) — v1.4 Phase 13
+- ✓ hooks/hooks.json with ${CLAUDE_PLUGIN_ROOT} portable paths — v1.4 Phase 13
 
 ### Active
 
@@ -133,10 +135,12 @@ v1.3 shipped, v1.4 Phase 12 complete — 12 phases, 21 plans. Cross-platform not
 | Per-voice directory layout | audio/voices/{name}/ 替代扁平 audio/ | ✓ v1.4 Phase 12 validated |
 | Voice config JSON | voices/{name}.json + generate.py --voice | ✓ v1.4 Phase 12 validated |
 | Multi-voice shipped | gentle (female/low) + deep (male/high) | ✓ v1.4 Phase 12 validated |
+| Plugin manifest | .claude-plugin/plugin.json + userConfig.voice | ✓ v1.4 Phase 13 validated |
+| hooks.json portable paths | ${CLAUDE_PLUGIN_ROOT} for all 8 hook entries | ✓ v1.4 Phase 13 validated |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-31 after Phase 12 completion*
+*Last updated: 2026-03-31 after Phase 13 completion*
