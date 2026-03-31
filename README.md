@@ -91,6 +91,16 @@ All hooks run asynchronously (`async: true`) so they never block your workflow.
 - Check hooks are registered: `/plugin` → Installed tab → claude-voice-notify
 - Verify hook events are listed (Stop, Notification, StopFailure, SubagentStop)
 
+**Double notification (sound plays twice)?**
+
+- Plugin and legacy hooks are mutually exclusive — do not use both
+- If you previously used `install.sh` / `install.ps1`, run the uninstall script first:
+  ```bash
+  bash scripts/uninstall.sh       # Linux/macOS
+  powershell -File scripts/uninstall.ps1  # Windows
+  ```
+- Then install via plugin: `/plugin install claude-voice-notify@hlwqds`
+
 ## Uninstall
 
 **Plugin:**
