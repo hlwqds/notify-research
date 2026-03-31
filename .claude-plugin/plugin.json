@@ -1,6 +1,6 @@
 {
   "name": "claude-voice-notify",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Chinese voice notifications for Claude Code task events. Plays audio on task complete, confirmation, error, and progress.",
   "author": {
     "name": "hlwqds"
