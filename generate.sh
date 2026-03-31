@@ -10,6 +10,7 @@ trap 'echo "错误：脚本执行失败，请检查上方输出" >&2' ERR
 
 FORCE_REBUILD=""
 NOTIFY_TYPES=""
+VOICE_NAME=""
 
 show_help() {
     cat <<'EOF'
@@ -21,12 +22,15 @@ Claude Code 语音通知生成脚本
   --type, -t <类型>    要生成的通知类型，逗号分隔
                       可选: complete, confirm, error, progress
                       默认: 全部生成
+  --voice, -v <名称>    语音风格名称，从 voices/<name>.json 加载配置
+                      输出到 audio/voices/<name>/
   --force-rebuild     强制重建 Docker 镜像
   --help, -h          显示此帮助信息
 
 示例:
   ./generate.sh                        # 生成全部 4 种通知
   ./generate.sh --type confirm,error   # 只生成确认和错误通知
+  ./generate.sh --voice deep           # 使用 deep 语音风格生成
   ./generate.sh --force-rebuild        # 强制重建镜像后生成
 EOF
 }
@@ -40,6 +44,14 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             NOTIFY_TYPES="$2"
+            shift 2
+            ;;
+        --voice|-v)
+            if [[ $# -lt 2 ]]; then
+                echo "错误：--voice 需要一个参数" >&2
+                exit 1
+            fi
+            VOICE_NAME="$2"
             shift 2
             ;;
         --force-rebuild)
@@ -57,6 +69,13 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Override output directory when --voice is specified (per D-09)
+if [[ -n "$VOICE_NAME" ]]; then
+    OUTPUT_DIR="$SCRIPT_DIR/audio/voices/$VOICE_NAME"
+    echo "==> 语音风格: $VOICE_NAME"
+    echo "==> 输出目录: $OUTPUT_DIR"
+fi
 
 # Step 1: Docker build
 if [[ "$FORCE_REBUILD" == "true" ]]; then
@@ -85,6 +104,10 @@ if [[ -n "$NOTIFY_TYPES" ]]; then
     echo "==> 开始生成通知音频: $NOTIFY_TYPES..."
 else
     echo "==> 开始生成通知音频..."
+fi
+
+if [[ -n "$VOICE_NAME" ]]; then
+    DOCKER_ARGS+=(--env "GENERATE_VOICE=$VOICE_NAME")
 fi
 
 docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME"

@@ -27,6 +27,9 @@ RUN git clone --depth 1 https://github.com/SparkAudio/Spark-TTS.git /tmp/spark-t
 # Copy generation script
 COPY generate.py .
 
+# Copy voice config files (needed by generate.py --voice)
+COPY voices/ voices/
+
 # Create output directory (mounted at runtime)
 RUN mkdir -p /output
 
