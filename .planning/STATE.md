@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: 跨平台测试
-current_phase: null
-status: milestone_complete
-stopped_at: v1.2 milestone archived
-last_updated: "2026-03-30T22:45:00.000Z"
+milestone: v1.0
+milestone_name: milestone
+current_phase: None (milestone complete)
+status: planning
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-31T01:43:16.004Z"
 last_activity: 2026-03-30
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 16
-  completed_plans: 16
+  total_phases: 3
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
   percent: 100
 ---
 
@@ -42,6 +42,9 @@ Progress: [██████████] 100% (8/8 phases shipped across 3 mil
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
+- [Phase 10]: D-01 through D-13: Single ci.yml with lint gating test, 3-platform matrix, concurrency cancel-PR-only, minimal permissions
+- [Phase 10]: Darwin skip guard for BASH-02 GNU date incompatibility instead of POSIX rewrite
+
 ### Pending Todos
 
 None.
@@ -52,8 +55,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30
-Stopped at: v1.2 milestone completion
+Last session: 2026-03-31T01:43:16.001Z
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None
 
 ---
