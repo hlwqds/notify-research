@@ -7,14 +7,14 @@
 
 ### Marketplace 构建
 
-- [ ] **MKT-01**: 用户可通过 `/plugin marketplace add owner/repo` 添加语音通知插件市场
-- [ ] **MKT-02**: `.claude-plugin/marketplace.json` 包含市场 name、owner 信息、plugin 入口（source/description/version/author）
-- [ ] **MKT-03**: `plugin.json` 补全 marketplace 可选字段（author, license, homepage, repository, keywords）
-- [ ] **MKT-04**: `hooks/hooks.json` 所有路径使用 `${CLAUDE_PLUGIN_ROOT}` 可移植变量（v1.4 已实现，需确认无回归）
+- [x] **MKT-01**: 用户可通过 `/plugin marketplace add owner/repo` 添加语音通知插件市场
+- [x] **MKT-02**: `.claude-plugin/marketplace.json` 包含市场 name、owner 信息、plugin 入口（source/description/version/author）
+- [x] **MKT-03**: `plugin.json` 补全 marketplace 可选字段（author, license, homepage, repository, keywords）
+- [x] **MKT-04**: `hooks/hooks.json` 所有路径使用 `${CLAUDE_PLUGIN_ROOT}` 可移植变量（v1.4 已实现，需确认无回归）
 
 ### 验证与测试
 
-- [ ] **VAL-01**: `claude plugin validate .` 验证 plugin.json 通过（无 error）
+- [x] **VAL-01**: `claude plugin validate .` 验证 plugin.json 通过（无 error）
 - [ ] **VAL-02**: 用户可通过 `/plugin install claude-voice-notify@marketplace-name` 安装插件
 - [ ] **VAL-03**: 安装后 hooks 正确注册（通过 `/plugin` → Installed tab 可见）
 
@@ -35,11 +35,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MKT-01 | Phase 16 | Pending |
-| MKT-02 | Phase 16 | Pending |
-| MKT-03 | Phase 16 | Pending |
-| MKT-04 | Phase 16 | Pending |
-| VAL-01 | Phase 16 | Pending |
+| MKT-01 | Phase 16 | Complete |
+| MKT-02 | Phase 16 | Complete |
+| MKT-03 | Phase 16 | Complete |
+| MKT-04 | Phase 16 | Complete |
+| VAL-01 | Phase 16 | Complete |
 | VAL-02 | Phase 17 | Pending |
 | VAL-03 | Phase 17 | Pending |
 | DOC-01 | Phase 17 | Pending |

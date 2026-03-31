@@ -173,7 +173,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 16-01: Create marketplace.json and enrich plugin.json, then validate with claude plugin validate
+- [x] 16-01: Create marketplace.json and enrich plugin.json, then validate with claude plugin validate
 
 ### Phase 17: 验证与发布
 **Goal**: Users can discover and install the plugin via /plugin, and README reflects marketplace as primary installation method
@@ -193,5 +193,5 @@ Phases execute in numeric order: 16 → 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Marketplace 构建 | v1.5 | 0/1 | Planned | - |
+| 16. Marketplace 构建 | v1.5 | 1/1 | Complete | 2026-03-31 |
 | 17. 验证与发布 | v1.5 | 0/? | Not started | - |

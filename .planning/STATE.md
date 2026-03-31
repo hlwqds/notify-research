@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: 插件市场分发
 current_phase: 16
-status: planning
-stopped_at: Phase 16 context gathered
-last_updated: "2026-03-31T15:30:16.115Z"
-last_activity: 2026-03-31 — Roadmap created for v1.5 (2 phases)
+status: completed
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-03-31T15:55:53.797Z"
+last_activity: 2026-03-31 — Phase 16 Plan 1 complete
 progress:
   total_phases: 2
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
+  percent: 50
 ---
 
 # Project State
@@ -31,11 +31,11 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 16 of 17 (Marketplace 构建)
-Plan: —
-Status: Roadmap created, ready to plan Phase 16
-Last activity: 2026-03-31 — Roadmap created for v1.5 (2 phases)
+Plan: 1 of 1
+Status: Plan 16-01 complete, phase ready for advancement
+Last activity: 2026-03-31 — Phase 16 Plan 1 complete
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: Stable
 
 *Updated after each plan completion*
+| Phase 16 P01 | 1min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,12 @@ Recent decisions affecting current work:
 - [Phase 13]: No hooks field in plugin.json per Pitfall 1 avoidance (duplicate hook registration)
 - [Phase 14]: One-liner installers via GitHub Release API (curl|bash + irm|iex)
 - [Phase 15]: MIT License, plugin-first README, GitHub topic tags for discovery
+- [Phase 16]: marketplace.json source=./ resolves to repo root (not .claude-plugin/ dir)
+- [Phase 16]: author is object {name: ...} not bare string in both marketplace.json and plugin.json
+- [Phase 16]: owner.email uses GitHub noreply format (hlwqds@users.noreply.github.com)
+- [Phase 16]: license/homepage/repository belong in plugin.json, not marketplace entry (D-05)
+- [Phase 16]: Version stays 1.4.0 -- bump to 1.5.0 is Phase 17 (DOC-02)
+- [Phase 16]: marketplace.json source=./ resolves to repo root, author is object not string
 
 ### Pending Todos
 
@@ -81,13 +88,13 @@ None.
 
 ### Blockers/Concerns
 
-- [Phase 16]: Claude Code plugin marketplace system is new -- `/plugin marketplace add` and `/plugin install` CLI availability needs hands-on verification. May need research before planning.
+None.
 
 ## Session Continuity
 
-Last session: 2026-03-31T15:30:16.109Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-marketplace/16-CONTEXT.md
+Last session: 2026-03-31T15:55:53.794Z
+Stopped at: Completed 16-01-PLAN.md
+Resume file: None
 
 ---
-*State updated: 2026-03-31 after v1.5 roadmap created*
+*State updated: 2026-03-31 after Phase 16 Plan 1 completion*
