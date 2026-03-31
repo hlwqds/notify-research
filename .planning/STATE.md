@@ -4,8 +4,8 @@ milestone: v1.5
 milestone_name: 插件市场分发
 current_phase: 17
 status: completed
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-03-31T15:59:38.703Z"
+stopped_at: Phase 17 context gathered
+last_updated: "2026-03-31T16:04:03.534Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 2
@@ -92,9 +92,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-31T15:55:53.794Z
-Stopped at: Completed 16-01-PLAN.md
-Resume file: None
+Last session: 2026-03-31T16:04:03.532Z
+Stopped at: Phase 17 context gathered
+Resume file: .planning/phases/17-release/17-CONTEXT.md
 
 ---
 *State updated: 2026-03-31 after Phase 16 Plan 1 completion*
