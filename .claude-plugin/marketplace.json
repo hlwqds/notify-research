@@ -1,0 +1,23 @@
+{
+  "name": "hlwqds",
+  "owner": {
+    "name": "hlwqds",
+    "email": "hlwqds@users.noreply.github.com"
+  },
+  "metadata": {
+    "description": "Cross-platform voice notifications for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "claude-voice-notify",
+      "source": "./",
+      "description": "Chinese voice notifications for Claude Code task events. Plays audio on task complete, confirmation, error, and progress.",
+      "version": "1.4.0",
+      "author": {
+        "name": "hlwqds"
+      },
+      "keywords": ["notification", "audio", "voice", "chinese", "tts"],
+      "category": "productivity"
+    }
+  ]
+}
