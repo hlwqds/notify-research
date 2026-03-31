@@ -104,4 +104,18 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Invoke-Pester -Path tests/powershell -Output Detailed
+          $result = Invoke-Pester -Path tests/powershell -Output Normal -PassThru
+          if ($result.FailedCount -gt 0) {
+            Write-Host "=== Pester failures ==="
+            foreach ($t in $result.Tests) {
+              if ($t.Result -eq 'Failed') {
+                Write-Host "FAIL: $($t.ExpandedName)"
+                if ($t.ErrorRecord) {
+                  Write-Host "  Exception: $($t.ErrorRecord.Exception.Message)"
+                  Write-Host "  Target: $($t.ErrorRecord.TargetObject)"
+                  Write-Host "  Script: $($t.ErrorRecord.InvocationInfo.ScriptName):$($t.ErrorRecord.InvocationInfo.ScriptLineNumber)"
+                }
+              }
+            }
+            exit 1
+          }
