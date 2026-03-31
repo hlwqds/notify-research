@@ -72,6 +72,11 @@ Plans:
 
 **Requirement mapping:** CI-01, CI-02, CI-03, CI-04, CI-05, CI-06, CI-07, CI-08, CI-10
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 10-01-PLAN.md — Fix BASH-02 macOS date incompatibility, create ci.yml with lint + 3-platform test matrix
+
 **Success criteria:**
 1. Push to main triggers CI run across all 3 platforms (ubuntu, macos, windows)
 2. Pull request to main triggers CI run with concurrency cancellation of in-progress PR runs
@@ -96,6 +101,7 @@ Plans:
 3. Badge reflects actual CI status (passing green after Phase 10 verification)
 
 **Approach:** Create README.md following the project description from PROJECT.md. Badge URL format: `![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)`. Complete after Phase 10 workflow is verified passing.
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -114,4 +120,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-31 after phase 09 completion*
+*Last updated: 2026-03-31 after phase 10 planning*
