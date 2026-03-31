@@ -71,16 +71,24 @@ jobs:
           }
 
       # --- bats tests (Linux + macOS only) ---
-      - name: Install jq (macOS)
+      - name: Install bats (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          git clone --depth 1 --branch v1.11.0 https://github.com/bats-core/bats-core.git /tmp/bats-core
+          /tmp/bats-core/install.sh /usr/local
+          rm -rf /tmp/bats-core
+
+      - name: Install bats and jq (macOS)
         if: runner.os == 'macOS'
-        run: brew install jq
+        run: |
+          brew install jq
+          git clone --depth 1 --branch v1.11.0 https://github.com/bats-core/bats-core.git /tmp/bats-core
+          /tmp/bats-core/install.sh /usr/local
+          rm -rf /tmp/bats-core
 
       - name: Run bats tests
         if: runner.os != 'Windows'
-        uses: bats-core/bats-action@v4.0.0
-        with:
-          bats-version: "1.11.0"
-          path: tests/bash
+        run: bats tests/bash
 
       # --- Pester tests (all platforms) ---
       - name: Install Pester
