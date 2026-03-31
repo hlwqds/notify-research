@@ -135,7 +135,7 @@ Phases execute in numeric order: 12 -> 13 -> 14 -> 15
 | 11. README + documentation | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 12. Multi-Voice Foundation | v1.4 | 3/3 | Complete    | 2026-03-31 |
 | 13. Plugin Packaging | v1.4 | 2/2 | Complete    | 2026-03-31 |
-| 14. Install & Voice Selection | v1.4 | 3/3 | Complete   | 2026-03-31 |
+| 14. Install & Voice Selection | v1.4 | 3/3 | Complete    | 2026-03-31 |
 | 15. Community & Docs | v1.4 | 0/2 | Not started | - |
 
 ---
