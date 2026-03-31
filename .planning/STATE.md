@@ -26,15 +26,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
-**Current focus:** Planning next milestone
+**Current focus:** v1.4 Hooks 生态分发 — 打包分发 + 多语音风格 + 社区收录
 
 ## Current Position
 
-Milestone: v1.3 GitHub Actions CI — COMPLETE
-Status: All milestones shipped, ready for next milestone
-Last activity: 2026-03-31
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-31 — Milestone v1.4 started
 
 Progress: [██████████] 100% (11/11 phases shipped across 4 milestones)
+
+**v1.4 progress:** Defining requirements
 
 ## Accumulated Context
 

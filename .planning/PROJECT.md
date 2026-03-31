@@ -20,12 +20,19 @@ v1.3 shipped — 11 phases, 18 plans complete. Cross-platform notification syste
 ### Shipped Versions
 
 - **v1.3 GitHub Actions CI** — 3-platform CI matrix, README with CI badge
+- **v1.2 跨平台测试** — 22 automated tests (bats + Pester), Docker test matrix
 - **v1.1 跨平台兼容** — macOS afplay + Windows PowerShell, 三平台一键安装
 - **v1.0 语音通知** — Docker TTS + 4 mp3 + Claude Code hooks
 
-## Current Milestone: Planning next milestone
+## Current Milestone: v1.4 Hooks 生态分发
 
-All v1.3 requirements shipped. Ready for next milestone definition.
+**Goal:** 将通知系统打包为 Claude Code hooks 扩展包，通过 GitHub 社区生态分发给其他用户一键安装使用
+
+**Target features:**
+- 一键安装 hooks 扩展包（用户一行命令安装通知功能）
+- 多套预生成语音风格（如男声/女声、不同语调，安装时选择）
+- GitHub 社区生态收录（awesome lists、community discussions 等渠道曝光）
+- 发现与安装文档（让其他 Claude Code 用户能发现并使用）
 
 ## Requirements
 
