@@ -95,12 +95,17 @@ Plans:
 
 **Requirement mapping:** CI-11
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 11-01-PLAN.md — Create README.md with CI badge, tri-platform install instructions, hook config example, and links
+
 **Success criteria:**
 1. README.md exists at repo root with project description and usage instructions
 2. CI status badge renders correctly pointing to the `ci.yml` workflow
 3. Badge reflects actual CI status (passing green after Phase 10 verification)
 
-**Approach:** Create README.md following the project description from PROJECT.md. Badge URL format: `![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)`. Complete after Phase 10 workflow is verified passing.
+**Approach:** Create README.md following the project description from PROJECT.md. Badge URL format: `![CI](https://github.com/hlwqds/notify-research/actions/workflows/ci.yml/badge.svg)`. Concise format: one-liner + CI badge + install + hook config + links. English language, under 80 lines.
 
 ## Progress
 
@@ -116,8 +121,8 @@ Plans:
 | 8. PowerShell 单元测试 | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 9. 测试路径适配 | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 10. GitHub Actions workflow | v1.3 | 1/1 | Complete    | 2026-03-31 |
-| 11. README + documentation | v1.3 | 0/1 | Pending | - |
+| 11. README + documentation | v1.3 | 0/1 | Planned | - |
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-31 after phase 10 planning*
+*Last updated: 2026-03-31 after phase 11 planning*
