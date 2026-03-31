@@ -2,50 +2,50 @@
 
 ## Milestones
 
-- ✅ **v1.0 语音通知** — Phases 1-3 (shipped 2026-03-30)
-- ✅ **v1.1 跨平台兼容** — Phases 4-5 (shipped 2026-03-30)
-- ✅ **v1.2 跨平台测试** — Phases 6-8 (shipped 2026-03-30)
-- ✅ **v1.3 GitHub Actions CI** — Phases 9-11 (shipped 2026-03-31)
-- 🚧 **v1.4 Hooks 生态分发** — Phases 12-15 (in progress)
+- **v1.0 语音通知** -- Phases 1-3 (shipped 2026-03-30)
+- **v1.1 跨平台兼容** -- Phases 4-5 (shipped 2026-03-30)
+- **v1.2 跨平台测试** -- Phases 6-8 (shipped 2026-03-30)
+- **v1.3 GitHub Actions CI** -- Phases 9-11 (shipped 2026-03-31)
+- **v1.4 Hooks 生态分发** -- Phases 12-15 (in progress)
 
 ## Phases
 
 <details>
-<summary>✅ v1.0 语音通知 (Phases 1-3) — SHIPPED 2026-03-30</summary>
+<summary>v1.0 语音通知 (Phases 1-3) -- SHIPPED 2026-03-30</summary>
 
-- [x] Phase 1: Docker TTS 环境 (2/2 plans) — completed 2026-03-30
-- [x] Phase 2: 生成脚本 (1/1 plans) — completed 2026-03-30
-- [x] Phase 3: Hooks 集成 (1/1 plans) — completed 2026-03-30
-
-</details>
-
-<details>
-<summary>✅ v1.1 跨平台兼容 (Phases 4-5) — SHIPPED 2026-03-30</summary>
-
-- [x] Phase 4: macOS 兼容 (1/1 plans) — completed 2026-03-30
-- [x] Phase 5: Windows 兼容 (1/1 plans) — completed 2026-03-30
+- [x] Phase 1: Docker TTS 环境 (2/2 plans) -- completed 2026-03-30
+- [x] Phase 2: 生成脚本 (1/1 plans) -- completed 2026-03-30
+- [x] Phase 3: Hooks 集成 (1/1 plans) -- completed 2026-03-30
 
 </details>
 
 <details>
-<summary>✅ v1.2 跨平台测试 (Phases 6-8) — SHIPPED 2026-03-30</summary>
+<summary>v1.1 跨平台兼容 (Phases 4-5) -- SHIPPED 2026-03-30</summary>
 
-- [x] Phase 6: 测试基础设施 + 静态分析 (2/2 plans) — completed 2026-03-30
-- [x] Phase 7: Bash 单元测试 (3/3 plans) — completed 2026-03-30
-- [x] Phase 8: PowerShell 单元测试 (2/2 plans) — completed 2026-03-30
+- [x] Phase 4: macOS 兼容 (1/1 plans) -- completed 2026-03-30
+- [x] Phase 5: Windows 兼容 (1/1 plans) -- completed 2026-03-30
 
 </details>
 
 <details>
-<summary>✅ v1.3 GitHub Actions CI (Phases 9-11) — SHIPPED 2026-03-31</summary>
+<summary>v1.2 跨平台测试 (Phases 6-8) -- SHIPPED 2026-03-30</summary>
 
-- [x] Phase 9: 测试路径适配 (1/1 plans) — completed 2026-03-31
-- [x] Phase 10: GitHub Actions workflow (1/1 plans) — completed 2026-03-31
-- [x] Phase 11: README + documentation (1/1 plans) — completed 2026-03-31
+- [x] Phase 6: 测试基础设施 + 静态分析 (2/2 plans) -- completed 2026-03-30
+- [x] Phase 7: Bash 单元测试 (3/3 plans) -- completed 2026-03-30
+- [x] Phase 8: PowerShell 单元测试 (2/2 plans) -- completed 2026-03-30
 
 </details>
 
-### 🚧 v1.4 Hooks 生态分发 (In Progress)
+<details>
+<summary>v1.3 GitHub Actions CI (Phases 9-11) -- SHIPPED 2026-03-31</summary>
+
+- [x] Phase 9: 测试路径适配 (1/1 plans) -- completed 2026-03-31
+- [x] Phase 10: GitHub Actions workflow (1/1 plans) -- completed 2026-03-31
+- [x] Phase 11: README + documentation (1/1 plans) -- completed 2026-03-31
+
+</details>
+
+### v1.4 Hooks 生态分发 (In Progress)
 
 **Milestone Goal:** 将通知系统打包为 Claude Code hooks 扩展包，通过 GitHub 社区生态分发给其他用户一键安装使用
 
@@ -64,12 +64,12 @@
   1. `audio/voices/{voice-name}/` directory structure exists with one subdirectory per voice style, each containing 4 notification mp3 files
   2. `generate.py --voice <name>` loads voice settings from `voices/<name>.json` and produces audio in the correct subdirectory
   3. At least 2 voice packs (default + 1 alternative) are pre-generated, committed, and playable
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 12-01: Restructure audio/ to voices/{name}/ directory layout and create voices.json manifest
-- [ ] 12-02: Parameterize generate.py with --voice flag and voices/*.json config files
-- [ ] 12-03: Generate and commit alternative voice pack
+- [ ] 12-01-PLAN.md -- Migrate audio/ to voices/gentle/ directory layout and update all path references
+- [ ] 12-02-PLAN.md -- Parameterize generate.py/generate.sh with --voice flag and create voice config JSON files
+- [ ] 12-03-PLAN.md -- Generate and verify deep voice pack
 
 ### Phase 13: Plugin Packaging
 **Goal**: Notification system installable as a Claude Code plugin via one command, with portable path resolution
@@ -118,7 +118,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 12 → 13 → 14 → 15
+Phases execute in numeric order: 12 -> 13 -> 14 -> 15
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -140,4 +140,4 @@ Phases execute in numeric order: 12 → 13 → 14 → 15
 
 ---
 *Roadmap created: 2026-03-30*
-*Last updated: 2026-03-31 after v1.4 roadmap creation*
+*Last updated: 2026-03-31 after Phase 12 planning*
