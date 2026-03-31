@@ -3,75 +3,53 @@
 **Defined:** 2026-03-31
 **Core Value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
 
-## v1.4 Requirements
+## v1.5 Requirements
 
-### Distribution & Install (DIST)
+### Marketplace 构建
 
-- [x] **DIST-01**: User can install the notification system as a Claude Code plugin via one command
-- [ ] **DIST-02**: User can install the notification system via `curl | bash` one-liner without plugin support
-- [ ] **DIST-03**: Existing install.sh/install.ps1 scripts continue to work as legacy fallback
-- [x] **DIST-04**: Plugin uses `${CLAUDE_PLUGIN_ROOT}` for portable path resolution (no hardcoded repo paths)
+- [ ] **MKT-01**: 用户可通过 `/plugin marketplace add owner/repo` 添加语音通知插件市场
+- [ ] **MKT-02**: `.claude-plugin/marketplace.json` 包含市场 name、owner 信息、plugin 入口（source/description/version/author）
+- [ ] **MKT-03**: `plugin.json` 补全 marketplace 可选字段（author, license, homepage, repository, keywords）
+- [ ] **MKT-04**: `hooks/hooks.json` 所有路径使用 `${CLAUDE_PLUGIN_ROOT}` 可移植变量（v1.4 已实现，需确认无回归）
 
-### Multi-Voice Audio (VOICE)
+### 验证与测试
 
-- [x] **VOICE-01**: Audio files are organized in `audio/{voice-name}/` directory structure with one subdirectory per voice style
-- [x] **VOICE-02**: `generate.py` accepts `--voice` parameter to load voice settings from `voices/*.json` config files
-- [x] **VOICE-03**: At least 2 voice styles are pre-generated and shipped (default + 1 alternative, e.g. female voice)
-- [ ] **VOICE-04**: User can select a voice style during installation
-- [ ] **VOICE-05**: Switching voice style at install time swaps all 4 notification audio files atomically
+- [ ] **VAL-01**: `claude plugin validate .` 验证 plugin.json 通过（无 error）
+- [ ] **VAL-02**: 用户可通过 `/plugin install claude-voice-notify@marketplace-name` 安装插件
+- [ ] **VAL-03**: 安装后 hooks 正确注册（通过 `/plugin` → Installed tab 可见）
 
-### Community & Docs (DOCS)
+### 文档与版本
 
-- [ ] **DOCS-01**: Project has a LICENSE file (MIT) required for community listing eligibility
-- [ ] **DOCS-02**: README documents plugin-based install as the primary installation method
-- [ ] **DOCS-03**: GitHub repository has topic tags for discoverability (claude-code, hooks, notifications, tts)
-
-## v2 Requirements
-
-### Marketplace & Promotion
-
-- **MKT-01**: Project is listed in Claude Code official marketplace (when submission process is available)
-- **MKT-02**: Project is included in awesome-claude-code / awesome-claude-plugins community lists
-- **MKT-03**: Project is promoted on Chinese developer communities (V2EX, SegmentFault, Juejin)
-
-### Advanced Voice
-
-- **VOICE-06**: User can create custom voice packs by providing a speaker reference audio file
-- **VOICE-07**: Voice preview (play sample before selecting during install)
+- [ ] **DOC-01**: README 添加 `/plugin marketplace add` 作为首要安装方式
+- [ ] **DOC-02**: 版本号升级到 1.5.0（plugin.json）
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| 实时语音合成 | CPU 推理 8 分钟/句，性能不可接受 |
-| 动态文案通知 | 需要实时 TTS，超出预生成架构 |
-| GUI 设置界面 | CLI install + 手动编辑即可，保持简单 |
-| npm/PyPI 分发 | Claude Code plugin 系统和 curl|bash 已足够 |
-| 音频文件 Git LFS | 单文件 ~10-15 KB，总大小 ~200 KB，不需要 LFS |
-| 官方 marketplace 提交 | Anthropic 未公开提交标准和时间线，需等待 |
+| 提交到 Anthropic 官方市场 | 需要 Anthropic 审核，不在控制范围内 |
+| npm 包分发 | hooks + 音频文件适合 git 分发，npm 不合适 |
+| 私有市场 (GITHUB_TOKEN auth) | 公开仓库无需私有认证 |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DIST-01 | Phase 13 | Complete |
-| DIST-02 | Phase 14 | Pending |
-| DIST-03 | Phase 14 | Pending |
-| DIST-04 | Phase 13 | Complete |
-| VOICE-01 | Phase 12 | Complete |
-| VOICE-02 | Phase 12 | Complete |
-| VOICE-03 | Phase 12 | Complete |
-| VOICE-04 | Phase 14 | Pending |
-| VOICE-05 | Phase 14 | Pending |
-| DOCS-01 | Phase 15 | Pending |
-| DOCS-02 | Phase 15 | Pending |
-| DOCS-03 | Phase 15 | Pending |
+| MKT-01 | — | Pending |
+| MKT-02 | — | Pending |
+| MKT-03 | — | Pending |
+| MKT-04 | — | Pending |
+| VAL-01 | — | Pending |
+| VAL-02 | — | Pending |
+| VAL-03 | — | Pending |
+| DOC-01 | — | Pending |
+| DOC-02 | — | Pending |
 
 **Coverage:**
-- v1.4 requirements: 12 total
-- Mapped to phases: 12
-- Unmapped: 0
+- v1.5 requirements: 9 total
+- Mapped to phases: 0
+- Unmapped: 9 ⚠️
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after v1.4 roadmap creation*
+*Last updated: 2026-03-31 after v1.5 initial definition*
