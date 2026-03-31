@@ -1,6 +1,6 @@
 {
   "name": "claude-voice-notify",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Chinese voice notifications for Claude Code task events. Plays audio on task complete, confirmation, error, and progress.",
   "author": {
     "name": "hlwqds"
@@ -8,7 +8,13 @@
   "license": "MIT",
   "homepage": "https://github.com/hlwqds/notify-research",
   "repository": "https://github.com/hlwqds/notify-research",
-  "keywords": ["notification", "audio", "voice", "chinese", "tts"],
+  "keywords": [
+    "notification",
+    "audio",
+    "voice",
+    "chinese",
+    "tts"
+  ],
   "userConfig": {
     "voice": {
       "type": "string",
