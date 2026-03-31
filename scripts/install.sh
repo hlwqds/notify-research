@@ -11,6 +11,22 @@ CLAUDE_DIR="$HOME/.claude"
 SETTINGS="$CLAUDE_DIR/settings.json"
 NOTIFY_PLAY="$REPO_ROOT/scripts/notify-play.sh"
 
+# --- Argument parsing ---
+VOICE_FLAG=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --voice)
+            VOICE_FLAG="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            echo "Usage: bash install.sh [--voice <voice_name>]" >&2
+            exit 1
+            ;;
+    esac
+done
+
 # --- Prerequisite checks ---
 # Portable version comparison (pure bash, works on macOS bash 3.2+)
 version_gte() {
@@ -72,18 +88,115 @@ if [ ! -x "$NOTIFY_PLAY" ]; then
 fi
 
 # --- Copy audio files (per D-01, D-02) ---
+# Append command to existing trap (POSIX-compatible)
+trap_add() {
+    local cmd="$1"
+    local trap_name="$2"
+    local existing_trap
+    existing_trap=$(trap -p "$trap_name" 2>/dev/null | sed "s/^trap -- '\(.*\)' $trap_name/\1/")
+    if [ -z "$existing_trap" ]; then
+        trap "$cmd" "$trap_name"
+    else
+        trap "$existing_trap; $cmd" "$trap_name"
+    fi
+}
+
+# --- Voice selection (per D-01, D-02, D-03) ---
+select_voice() {
+    # Priority: --voice flag > VOICE env var > interactive prompt > default
+    if [ -n "$VOICE_FLAG" ]; then
+        VOICE="$VOICE_FLAG"
+        return
+    fi
+    if [ -n "${VOICE:-}" ]; then
+        VOICE="$VOICE"
+        return
+    fi
+
+    # Non-interactive mode (CI, piped stdin): use default
+    if [[ ! -t 0 ]]; then
+        VOICE="gentle"
+        return
+    fi
+
+    # Interactive mode: show numbered list from voices.json
+    local voices_json="$REPO_ROOT/voices.json"
+    if [ ! -f "$voices_json" ]; then
+        VOICE="gentle"
+        return
+    fi
+
+    local voice_count
+    voice_count=$(jq '.voices | length' "$voices_json")
+    local voice_names
+    voice_names=$(jq -r '.voices[]' "$voices_json")
+
+    echo ""
+    echo "Available voice packs:"
+    local i=1
+    while IFS= read -r name; do
+        echo "  $i) $name"
+        i=$((i + 1))
+    done <<< "$voice_names"
+
+    while true; do
+        read -rp "Select voice [1]: " choice
+        choice="${choice:-1}"
+        if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$voice_count" ]; then
+            echo "Invalid selection. Enter a number between 1 and $voice_count."
+            continue
+        fi
+
+        VOICE=$(echo "$voice_names" | sed -n "${choice}p")
+        echo "Selected: $VOICE"
+
+        # Preview option (per D-02)
+        read -rp "Preview? Enter notification type to hear (complete/confirm/error/progress), or press Enter to continue: " preview_type
+        if [ -n "$preview_type" ]; then
+            local preview_file="$REPO_ROOT/audio/voices/$VOICE/notify-${preview_type}.mp3"
+            if [ -f "$preview_file" ]; then
+                echo "Playing $VOICE $preview_type preview..."
+                "$NOTIFY_PLAY" "$preview_type" "$preview_file" 2>/dev/null || echo "  (preview playback unavailable)"
+                read -rp "Continue with this voice? [Y/n]: " confirm
+                confirm="${confirm:-Y}"
+                if [[ "$confirm" =~ ^[Yy] ]]; then
+                    break
+                fi
+                # Loop back to selection
+                echo ""
+                continue
+            else
+                echo "  Preview file not found for '$preview_type'. Skipping preview."
+            fi
+        fi
+        break
+    done
+}
+
+select_voice
+echo ""
+echo "Using voice: $VOICE"
+
 echo "Copying audio files to $CLAUDE_DIR/ ..."
-# Default voice pack (Phase 14 adds interactive selection)
-VOICE="${VOICE:-gentle}"
+# Atomic voice swap: copy to temp, then move all at once (per D-05)
+TMPVOICE=$(mktemp -d)
+trap_add 'rm -rf "$TMPVOICE"' EXIT
+
 for type in complete confirm error progress; do
     src="$REPO_ROOT/audio/voices/$VOICE/notify-${type}.mp3"
     if [ ! -f "$src" ]; then
+        rm -rf "$TMPVOICE"
         echo "ERROR: $src not found. Run generate.sh first." >&2
         exit 1
     fi
-    cp "$src" "$CLAUDE_DIR/notify-${type}.mp3"
+    cp "$src" "$TMPVOICE/notify-${type}.mp3"
 done
 
+# All copies succeeded -- swap atomically
+for type in complete confirm error progress; do
+    mv "$TMPVOICE/notify-${type}.mp3" "$CLAUDE_DIR/notify-${type}.mp3"
+done
+rm -rf "$TMPVOICE"
 # --- Inject hooks via jq (per D-07, D-09) ---
 # Per D-03 event mapping:
 #   Stop -> notify-complete.mp3
@@ -119,10 +232,11 @@ fi
 
 mv "$TMPFILE" "$SETTINGS"
 
-echo "Done! Notification hooks installed."
+echo "Done! Notification hooks installed (voice: $VOICE)."
 echo "  Stop          -> notify-complete.mp3"
 echo "  Notification  -> notify-confirm.mp3"
 echo "  StopFailure   -> notify-error.mp3"
 echo "  SubagentStop  -> notify-progress.mp3"
 echo ""
+echo "To switch voice later: bash $SCRIPT_DIR/install.sh --voice <name>"
 echo "Run 'bash $SCRIPT_DIR/uninstall.sh' to remove."
