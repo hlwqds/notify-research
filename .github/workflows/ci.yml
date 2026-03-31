@@ -36,7 +36,7 @@ jobs:
             Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
           }
           Import-Module PSScriptAnalyzer
-          $results = Invoke-ScriptAnalyzer -Path scripts -Severity Warning -Recurse
+          $results = Invoke-ScriptAnalyzer -Path scripts -Severity Warning -Recurse -Settings PSScriptAnalyzerSettings.psd1
           if ($results) {
             $results | Format-Table -AutoSize
             Write-Error "PSScriptAnalyzer found issues"
@@ -63,7 +63,7 @@ jobs:
             Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
           }
           Import-Module PSScriptAnalyzer
-          $results = Invoke-ScriptAnalyzer -Path scripts -Severity Warning -Recurse
+          $results = Invoke-ScriptAnalyzer -Path scripts -Severity Warning -Recurse -Settings PSScriptAnalyzerSettings.psd1
           if ($results) {
             $results | Format-Table -AutoSize
             Write-Error "PSScriptAnalyzer found issues"
