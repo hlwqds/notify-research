@@ -15,13 +15,13 @@
 ### 验证与测试
 
 - [x] **VAL-01**: `claude plugin validate .` 验证 plugin.json 通过（无 error）
-- [ ] **VAL-02**: 用户可通过 `/plugin install claude-voice-notify@marketplace-name` 安装插件
-- [ ] **VAL-03**: 安装后 hooks 正确注册（通过 `/plugin` → Installed tab 可见）
+- [x] **VAL-02**: 用户可通过 `/plugin install claude-voice-notify@marketplace-name` 安装插件
+- [x] **VAL-03**: 安装后 hooks 正确注册（通过 `/plugin` → Installed tab 可见）
 
 ### 文档与版本
 
-- [ ] **DOC-01**: README 添加 `/plugin marketplace add` 作为首要安装方式
-- [ ] **DOC-02**: 版本号升级到 1.5.0（plugin.json）
+- [x] **DOC-01**: README 添加 `/plugin marketplace add` 作为首要安装方式
+- [x] **DOC-02**: 版本号升级到 1.5.0（plugin.json）
 
 ## Out of Scope
 
@@ -40,10 +40,10 @@
 | MKT-03 | Phase 16 | Complete |
 | MKT-04 | Phase 16 | Complete |
 | VAL-01 | Phase 16 | Complete |
-| VAL-02 | Phase 17 | Pending |
-| VAL-03 | Phase 17 | Pending |
-| DOC-01 | Phase 17 | Pending |
-| DOC-02 | Phase 17 | Pending |
+| VAL-02 | Phase 17 | Complete |
+| VAL-03 | Phase 17 | Complete |
+| DOC-01 | Phase 17 | Complete |
+| DOC-02 | Phase 17 | Complete |
 
 **Coverage:**
 - v1.5 requirements: 9 total
