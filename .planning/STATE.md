@@ -33,7 +33,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 Phase: 17 (release) — EXECUTING
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-03-31
+Last activity: 2026-03-31 - Completed quick task 260401-0ya: Bump plugin.json version to 1.5.1 to fix stale hooks.json cache
 
 Progress: [█████░░░░░] 50%
 
@@ -86,6 +86,12 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 None.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260401-0ya | Bump plugin.json version to 1.5.1 to fix stale hooks.json cache | 2026-03-31 | 33c72fd | [260401-0ya-bump-plugin-json-version-to-1-5-1-to-fix](./quick/260401-0ya-bump-plugin-json-version-to-1-5-1-to-fix/) |
 
 ### Blockers/Concerns
 
