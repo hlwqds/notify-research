@@ -170,7 +170,10 @@ Plans:
   2. `plugin.json` includes all optional marketplace fields (author, license, homepage, repository, keywords)
   3. `hooks/hooks.json` uses `${CLAUDE_PLUGIN_ROOT}` for all script paths (no regression from v1.4)
   4. `claude plugin validate .` passes with zero errors
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 16-01: Create marketplace.json and enrich plugin.json, then validate with claude plugin validate
 
 ### Phase 17: 验证与发布
 **Goal**: Users can discover and install the plugin via /plugin, and README reflects marketplace as primary installation method
@@ -190,5 +193,5 @@ Phases execute in numeric order: 16 → 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Marketplace 构建 | v1.5 | 0/? | Not started | - |
+| 16. Marketplace 构建 | v1.5 | 0/1 | Planned | - |
 | 17. 验证与发布 | v1.5 | 0/? | Not started | - |
