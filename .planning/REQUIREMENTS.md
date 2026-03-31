@@ -35,21 +35,21 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MKT-01 | — | Pending |
-| MKT-02 | — | Pending |
-| MKT-03 | — | Pending |
-| MKT-04 | — | Pending |
-| VAL-01 | — | Pending |
-| VAL-02 | — | Pending |
-| VAL-03 | — | Pending |
-| DOC-01 | — | Pending |
-| DOC-02 | — | Pending |
+| MKT-01 | Phase 16 | Pending |
+| MKT-02 | Phase 16 | Pending |
+| MKT-03 | Phase 16 | Pending |
+| MKT-04 | Phase 16 | Pending |
+| VAL-01 | Phase 16 | Pending |
+| VAL-02 | Phase 17 | Pending |
+| VAL-03 | Phase 17 | Pending |
+| DOC-01 | Phase 17 | Pending |
+| DOC-02 | Phase 17 | Pending |
 
 **Coverage:**
 - v1.5 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9 ⚠️
+- Mapped to phases: 9
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after v1.5 initial definition*
+*Last updated: 2026-03-31 after v1.5 roadmap creation*

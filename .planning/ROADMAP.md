@@ -2,142 +2,193 @@
 
 ## Milestones
 
-- **v1.0 语音通知** -- Phases 1-3 (shipped 2026-03-30)
-- **v1.1 跨平台兼容** -- Phases 4-5 (shipped 2026-03-30)
-- **v1.2 跨平台测试** -- Phases 6-8 (shipped 2026-03-30)
-- **v1.3 GitHub Actions CI** -- Phases 9-11 (shipped 2026-03-31)
-- **v1.4 Hooks 生态分发** -- Phases 12-15 (in progress)
+- ✅ **v1.0 Claude Code 语音通知** - Phases 1-3 (shipped 2026-03-29)
+- ✅ **v1.1 跨平台兼容** - Phases 4-5 (shipped 2026-03-30)
+- ✅ **v1.2 跨平台测试** - Phases 6-8 (shipped 2026-03-30)
+- ✅ **v1.3 GitHub Actions CI** - Phases 9-11 (shipped 2026-03-31)
+- ✅ **v1.4 Hooks 生态分发** - Phases 12-15 (shipped 2026-03-31)
+- 🚧 **v1.5 插件市场分发** - Phases 16-17 (in progress)
 
 ## Phases
 
 <details>
-<summary>v1.0 语音通知 (Phases 1-3) -- SHIPPED 2026-03-30</summary>
+<summary>✅ v1.0 MVP (Phases 1-3) - SHIPPED 2026-03-29</summary>
 
-- [x] Phase 1: Docker TTS 环境 (2/2 plans) -- completed 2026-03-30
-- [x] Phase 2: 生成脚本 (1/1 plans) -- completed 2026-03-30
-- [x] Phase 3: Hooks 集成 (1/1 plans) -- completed 2026-03-30
+### Phase 1: Docker TTS 环境
+**Goal**: Containerized Spark-TTS environment for generating Chinese notification audio
+**Plans**: 1 plan
+
+Plans:
+- [x] 01-01: Docker build environment with Spark-TTS 0.5B
+
+### Phase 2: 音频生成
+**Goal**: 4 Chinese notification mp3 files generated and committed to repo
+**Plans**: 2 plans
+
+Plans:
+- [x] 02-01: Generate 4 notification audio files via Spark-TTS
+- [x] 02-02: Audio file cleanup, normalization, and repo commit
+
+### Phase 3: Claude Code Hooks 集成
+**Goal**: Claude Code hooks play notification sounds on task completion, errors, and prompts
+**Plans**: 1 plan
+
+Plans:
+- [x] 03-01: Three shell scripts for hooks integration (install/uninstall/notify-play)
 
 </details>
 
 <details>
-<summary>v1.1 跨平台兼容 (Phases 4-5) -- SHIPPED 2026-03-30</summary>
+<summary>✅ v1.1 跨平台兼容 (Phases 4-5) - SHIPPED 2026-03-30</summary>
 
-- [x] Phase 4: macOS 兼容 (1/1 plans) -- completed 2026-03-30
-- [x] Phase 5: Windows 兼容 (1/1 plans) -- completed 2026-03-30
+### Phase 4: macOS 兼容
+**Goal**: Notification system works on macOS (afplay, BSD stat)
+**Plans**: 1 plan
+
+Plans:
+- [x] 04-01: macOS platform support in notify-play.sh and install.sh
+
+### Phase 5: Windows PowerShell
+**Goal**: Full Windows support via PowerShell scripts
+**Plans**: 1 plan
+
+Plans:
+- [x] 05-01: Three PowerShell scripts for Windows (notify-play, install, uninstall)
 
 </details>
 
 <details>
-<summary>v1.2 跨平台测试 (Phases 6-8) -- SHIPPED 2026-03-30</summary>
+<summary>✅ v1.2 跨平台测试 (Phases 6-8) - SHIPPED 2026-03-30</summary>
 
-- [x] Phase 6: 测试基础设施 + 静态分析 (2/2 plans) -- completed 2026-03-30
-- [x] Phase 7: Bash 单元测试 (3/3 plans) -- completed 2026-03-30
-- [x] Phase 8: PowerShell 单元测试 (2/2 plans) -- completed 2026-03-30
+### Phase 6: 测试基础设施
+**Goal**: Test directory structure and mock stubs for cross-platform testing
+**Plans**: 3 plans
+
+Plans:
+- [x] 06-01: Test directory scaffold (bash/powershell/fixtures)
+- [x] 06-02: test.sh unified test runner
+- [x] 06-03: bats-core tests for 3 bash scripts (10 tests)
+
+### Phase 7: PowerShell 测试
+**Goal**: 12 Pester tests covering all PowerShell script logic
+**Plans**: 3 plans
+
+Plans:
+- [x] 07-01: Pester tests for notify-play.ps1
+- [x] 07-02: Pester tests for install.ps1
+- [x] 07-03: Pester tests for uninstall.ps1
+
+### Phase 8: Docker 测试矩阵
+**Goal**: Docker-based test matrix running lint + bats + Pester
+**Plans**: 1 plan
+
+Plans:
+- [x] 08-01: Docker test matrix integration
 
 </details>
 
 <details>
-<summary>v1.3 GitHub Actions CI (Phases 9-11) -- SHIPPED 2026-03-31</summary>
+<summary>✅ v1.3 GitHub Actions CI (Phases 9-11) - SHIPPED 2026-03-31</summary>
 
-- [x] Phase 9: 测试路径适配 (1/1 plans) -- completed 2026-03-31
-- [x] Phase 10: GitHub Actions workflow (1/1 plans) -- completed 2026-03-31
-- [x] Phase 11: README + documentation (1/1 plans) -- completed 2026-03-31
+### Phase 9: CI-Compatible Test Paths
+**Goal**: Tests pass in CI without hardcoded Docker paths
+**Plans**: 1 plan
+
+Plans:
+- [x] 09-01: Convert tests to variable-based paths ($REPO_ROOT/$RepoRoot)
+
+### Phase 10: GitHub Actions CI Workflow
+**Goal**: CI runs lint + test on 3 platforms automatically
+**Plans**: 1 plan
+
+Plans:
+- [x] 10-01: GitHub Actions CI workflow with 3-platform matrix
+
+### Phase 11: README with CI Badge
+**Goal**: README documents the project with CI status
+**Plans**: 1 plan
+
+Plans:
+- [x] 11-01: README with CI badge and project documentation
 
 </details>
 
-### v1.4 Hooks 生态分发 (In Progress)
+<details>
+<summary>✅ v1.4 Hooks 生态分发 (Phases 12-15) - SHIPPED 2026-03-31</summary>
 
-**Milestone Goal:** 将通知系统打包为 Claude Code hooks 扩展包，通过 GitHub 社区生态分发给其他用户一键安装使用
+### Phase 12: Multi-Voice Foundation
+**Goal**: Per-voice directory structure with parameterized voice generation
+**Plans**: 3 plans
 
-- [x] **Phase 12: Multi-Voice Foundation** - Per-voice directory structure with parameterized generation and 2 shipped voice packs (completed 2026-03-31)
-- [x] **Phase 13: Plugin Packaging** - Claude Code plugin manifest and hooks with portable path resolution (completed 2026-03-31)
-- [x] **Phase 14: Install & Voice Selection** - curl|bash fallback, voice selection at install time, legacy backward compatibility (completed 2026-03-31)
-- [x] **Phase 15: Community & Docs** - MIT LICENSE, plugin-primary README, GitHub topic tags for discoverability (completed 2026-03-31)
+Plans:
+- [x] 12-01: Migrate audio to per-voice directory layout (audio/voices/{name}/)
+- [x] 12-02: Parameterized voice generation (--voice flag, voices/*.json)
+- [x] 12-03: Generate second voice pack (deep: male/high pitch)
+
+### Phase 13: Plugin Packaging
+**Goal**: Claude Code plugin manifest with hooks.json for native /plugin install
+**Plans**: 2 plans
+
+Plans:
+- [x] 13-01: .claude-plugin/plugin.json manifest
+- [x] 13-02: hooks/hooks.json with ${CLAUDE_PLUGIN_ROOT} portable paths
+
+### Phase 14: Install Voice Selection
+**Goal**: Interactive voice selection at install time with one-liner installers
+**Plans**: 3 plans
+
+Plans:
+- [x] 14-01: Interactive voice selection with preview (--voice flag)
+- [x] 14-02: Atomic voice swap (temp dir + mv)
+- [x] 14-03: One-liner installers (curl|bash, irm|iex) via GitHub Release
+
+### Phase 15: Community Docs
+**Goal**: MIT License, plugin-first README, GitHub discovery metadata
+**Plans**: 2 plans
+
+Plans:
+- [x] 15-01: MIT License + plugin-first README overhaul
+- [x] 15-02: GitHub discovery metadata (topics, description, community submission)
+
+</details>
+
+### 🚧 v1.5 插件市场分发 (In Progress)
+
+**Milestone Goal:** 搭建 Claude Code 自建插件市场，让用户通过 `/plugin` 原生发现和安装语音通知插件
+
+- [ ] **Phase 16: Marketplace 构建** - Create marketplace.json and update plugin manifest for plugin marketplace distribution
+- [ ] **Phase 17: 验证与发布** - End-to-end validation of /plugin install flow and documentation update
 
 ## Phase Details
 
-### Phase 12: Multi-Voice Foundation
-**Goal**: Audio files organized in per-voice directory structure with parameterized voice generation, shipping at least 2 voice styles
-**Depends on**: Phase 11 (v1.3 shipped)
-**Requirements**: VOICE-01, VOICE-02, VOICE-03
+### Phase 16: Marketplace 构建
+**Goal**: Plugin marketplace artifacts created and validated, ready for /plugin native discovery
+**Depends on**: Phase 15 (plugin packaging from v1.4)
+**Requirements**: MKT-01, MKT-02, MKT-03, MKT-04, VAL-01
 **Success Criteria** (what must be TRUE):
-  1. `audio/voices/{voice-name}/` directory structure exists with one subdirectory per voice style, each containing 4 notification mp3 files
-  2. `generate.py --voice <name>` loads voice settings from `voices/<name>.json` and produces audio in the correct subdirectory
-  3. At least 2 voice packs (default + 1 alternative) are pre-generated, committed, and playable
-**Plans**: 3 plans
+  1. `.claude-plugin/marketplace.json` exists with market name, owner, and plugin entry metadata (source, description, version, author)
+  2. `plugin.json` includes all optional marketplace fields (author, license, homepage, repository, keywords)
+  3. `hooks/hooks.json` uses `${CLAUDE_PLUGIN_ROOT}` for all script paths (no regression from v1.4)
+  4. `claude plugin validate .` passes with zero errors
+**Plans**: TBD
 
-Plans:
-- [x] 12-01-PLAN.md -- Migrate audio/ to voices/gentle/ directory layout and update all path references
-- [x] 12-02-PLAN.md -- Parameterize generate.py/generate.sh with --voice flag and create voice config JSON files
-- [x] 12-03-PLAN.md -- Generate and verify deep voice pack
-
-### Phase 13: Plugin Packaging
-**Goal**: Notification system installable as a Claude Code plugin via one command, with portable path resolution
-**Depends on**: Phase 12
-**Requirements**: DIST-01, DIST-04
+### Phase 17: 验证与发布
+**Goal**: Users can discover and install the plugin via /plugin, and README reflects marketplace as primary installation method
+**Depends on**: Phase 16
+**Requirements**: VAL-02, VAL-03, DOC-01, DOC-02
 **Success Criteria** (what must be TRUE):
-  1. User can install the notification system with a single Claude Code plugin install command and immediately hear voice notifications on task completion
-  2. All audio and script paths in hooks resolve correctly via `${CLAUDE_PLUGIN_ROOT}` with no hardcoded absolute paths
-  3. Plugin structure validates successfully (plugin.json + hooks/hooks.json)
-**Plans**: 2 plans
-
-Plans:
-- [x] 13-01-PLAN.md -- Create .claude-plugin/plugin.json manifest with userConfig for voice selection
-- [x] 13-02-PLAN.md -- Create hooks/hooks.json with ${CLAUDE_PLUGIN_ROOT} path resolution and validate plugin structure
-
-### Phase 14: Install & Voice Selection
-**Goal**: Users can install via curl|bash fallback, choose a voice at install time, and legacy install scripts still work
-**Depends on**: Phase 13
-**Requirements**: DIST-02, DIST-03, VOICE-04, VOICE-05
-**Success Criteria** (what must be TRUE):
-  1. User can install the notification system on a fresh machine with a single `curl | bash` command and hear notifications immediately
-  2. User can select a voice style during installation and all 4 notification sounds reflect the chosen voice
-  3. Existing install.sh/install.ps1 scripts continue to work as before (backward compatibility)
-  4. Switching voice at install time swaps all 4 audio files atomically (no partial state)
-**Plans**: 3 plans
-
-Plans:
-- [x] 14-01-PLAN.md -- Voice selection + atomic swap for install.sh (--voice flag, interactive prompt, preview)
-- [x] 14-02-PLAN.md -- Voice selection + atomic swap for install.ps1 (-Voice parameter, interactive prompt, preview)
-- [x] 14-03-PLAN.md -- Create install-online.sh and install-online.ps1 curl|bash/irm|iex one-liner installers
-
-### Phase 15: Community & Docs
-**Goal**: Project is discoverable and installable by Claude Code users searching GitHub or community lists
-**Depends on**: Phase 14
-**Requirements**: DOCS-01, DOCS-02, DOCS-03
-**Success Criteria** (what must be TRUE):
-  1. README shows plugin-based install as the primary installation method with curl|bash as fallback
-  2. Project has a LICENSE file (MIT) making it eligible for community listing
-  3. GitHub repository has topic tags (claude-code, hooks, notifications, tts) that appear in search results
-**Plans**: 2 plans
-
-Plans:
-- [x] 15-01-PLAN.md -- Add MIT LICENSE file and update README with plugin install as primary method
-- [x] 15-02-PLAN.md -- Document GitHub topic tags, repository description, and community submission steps
+  1. User can install the plugin via `/plugin install claude-voice-notify@marketplace-name`
+  2. After install, plugin appears in `/plugin` Installed tab with hooks correctly registered
+  3. README shows `/plugin marketplace add` as the primary installation method (above one-liner and git-clone methods)
+  4. plugin.json version is 1.5.0
+**Plans**: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 12 -> 13 -> 14 -> 15
+Phases execute in numeric order: 16 → 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Docker TTS 环境 | v1.0 | 2/2 | Complete | 2026-03-30 |
-| 2. 生成脚本 | v1.0 | 1/1 | Complete | 2026-03-30 |
-| 3. Hooks 集成 | v1.0 | 1/1 | Complete | 2026-03-30 |
-| 4. macOS 兼容 | v1.1 | 1/1 | Complete | 2026-03-30 |
-| 5. Windows 兼容 | v1.1 | 1/1 | Complete | 2026-03-30 |
-| 6. 测试基础设施 + 静态分析 | v1.2 | 2/2 | Complete | 2026-03-30 |
-| 7. Bash 单元测试 | v1.2 | 3/3 | Complete | 2026-03-30 |
-| 8. PowerShell 单元测试 | v1.2 | 2/2 | Complete | 2026-03-30 |
-| 9. 测试路径适配 | v1.3 | 1/1 | Complete | 2026-03-31 |
-| 10. GitHub Actions workflow | v1.3 | 1/1 | Complete | 2026-03-31 |
-| 11. README + documentation | v1.3 | 1/1 | Complete | 2026-03-31 |
-| 12. Multi-Voice Foundation | v1.4 | 3/3 | Complete    | 2026-03-31 |
-| 13. Plugin Packaging | v1.4 | 2/2 | Complete    | 2026-03-31 |
-| 14. Install & Voice Selection | v1.4 | 3/3 | Complete    | 2026-03-31 |
-| 15. Community & Docs | v1.4 | 2/2 | Complete    | 2026-03-31 |
-
----
-*Roadmap created: 2026-03-30*
-*Last updated: 2026-03-31*
+| 16. Marketplace 构建 | v1.5 | 0/? | Not started | - |
+| 17. 验证与发布 | v1.5 | 0/? | Not started | - |

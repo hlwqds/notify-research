@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: 插件市场分发
-current_phase: 0
-status: defining-requirements
-last_updated: "2026-03-31T15:00:00.000Z"
+current_phase: 16
+status: roadmap-created
+last_updated: "2026-03-31T16:00:00.000Z"
 last_activity: 2026-03-31
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -18,7 +18,7 @@ progress:
 
 **Project:** Claude Code 语音通知
 **Initialized:** 2026-03-30
-**Current Phase:** 15
+**Current Phase:** 16
 
 ## Project Reference
 
@@ -29,18 +29,20 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 16 of 17 (Marketplace 构建)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-03-31 — Milestone v1.5 started
+Status: Roadmap created, ready to plan Phase 16
+Last activity: 2026-03-31 — Roadmap created for v1.5 (2 phases)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 16
+- Total plans completed: 28 (across v1.0-v1.4)
 - Average duration: ~15 min
-- Total execution time: ~4 hours (across 4 milestones)
+- Total execution time: ~7 hours (across 5 milestones)
 
 **By Phase:**
 
@@ -50,18 +52,14 @@ Last activity: 2026-03-31 — Milestone v1.5 started
 | 4-5 (v1.1) | 2 | 2 | ~15 min |
 | 6-8 (v1.2) | 7 | 7 | ~15 min |
 | 9-11 (v1.3) | 3 | 3 | ~10 min |
+| 12-15 (v1.4) | 10 | 10 | ~20 min |
 
 **Recent Trend:**
 
-- Last 5 plans: ~10-15 min each
-- Trend: Improving
+- Last 5 plans: ~1-80 min each (wide variance due to TTS generation)
+- Trend: Stable
 
 *Updated after each plan completion*
-| Phase 12 P01 | 80 | 2 tasks | 10 files |
-| Phase 12 P02 | 1min | 2 tasks | 6 files |
-| Phase 12 P03 | 33min | 2 tasks | 6 files |
-| Phase 13 P01 | 1min | 1 tasks | 1 files |
-| Phase 13 P02 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -70,20 +68,11 @@ Last activity: 2026-03-31 — Milestone v1.5 started
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Phase 12]: audio/voices/{name}/ directory-per-voice structure (not flat audio/)
-- [Phase 12]: voices.json manifest for voice pack discovery
-- [Phase 12]: generate.py --voice parameterization with voices/*.json configs
-- [Phase 12]: audio/voices/{name}/ directory-per-voice layout for multi-voice support (VOICE-01)
-- [Phase 12]: VOICE env var with default fallback (gentle) in install.sh
-- [Phase 12]: PowerShell $VoiceName hardcoded to gentle until Phase 14 adds -Voice parameter
-- [Phase 12]: JSON voice configs in voices/{name}.json with gender/pitch/speed fields
-- [Phase 12]: GENERATE_VOICE env var bridges --voice flag through Docker boundary
-- [Phase 12]: Voice-aware output subdirectory OUTPUT_DIR/{voice_name}/ when --voice specified
-- [Phase 12]: Fix generate.sh to mount voices/ parent dir, not voice-specific subdir, to prevent double-nesting with generate.py voice-aware output logic
-- [Phase 12]: Skip --user flag when running with podman rootless mode (uid mapping conflict)
 - [Phase 13]: plugin.json with name/version/description/userConfig.voice, no hooks field (Pitfall 1 avoidance)
 - [Phase 13]: userConfig.voice.title field required by claude plugin validate schema
 - [Phase 13]: No hooks field in plugin.json per Pitfall 1 avoidance (duplicate hook registration)
+- [Phase 14]: One-liner installers via GitHub Release API (curl|bash + irm|iex)
+- [Phase 15]: MIT License, plugin-first README, GitHub topic tags for discovery
 
 ### Pending Todos
 
@@ -91,14 +80,13 @@ None.
 
 ### Blockers/Concerns
 
-- [Phase 13]: Claude Code plugin system maturity -- hooks.json variable expansion (${CLAUDE_PLUGIN_ROOT}), claude plugin CLI availability, plugin update flow not hands-on verified. Run /gsd:research-phase before planning.
-- [Phase 12]: Existing test fixtures reference flat audio/notify-*.mp3 paths -- must update to voices/default/ structure
+- [Phase 16]: Claude Code plugin marketplace system is new -- `/plugin marketplace add` and `/plugin install` CLI availability needs hands-on verification. May need research before planning.
 
 ## Session Continuity
 
-Last session: 2026-03-31T07:50:18.026Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-install-voice-selection/14-CONTEXT.md
+Last session: 2026-03-31
+Stopped at: Roadmap created for v1.5 milestone
+Resume file: None
 
 ---
-*State updated: 2026-03-31 after v1.5 milestone started*
+*State updated: 2026-03-31 after v1.5 roadmap created*
