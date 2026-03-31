@@ -10,7 +10,7 @@
 
 ## Current State
 
-v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system with full test coverage:
+v1.3 shipped — 11 phases, 18 plans complete. Cross-platform notification system with CI and full test coverage:
 - 4 pre-generated mp3 notification sounds
 - 6 scripts (install/uninstall/notify-play × bash/PowerShell)
 - 22 automated tests (10 bats-core + 12 Pester)
@@ -19,18 +19,13 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 
 ### Shipped Versions
 
-- **v1.2 跨平台测试** — 22 automated tests, Docker test matrix, static analysis
+- **v1.3 GitHub Actions CI** — 3-platform CI matrix, README with CI badge
 - **v1.1 跨平台兼容** — macOS afplay + Windows PowerShell, 三平台一键安装
 - **v1.0 语音通知** — Docker TTS + 4 mp3 + Claude Code hooks
 
-## Current Milestone: v1.3 GitHub Actions CI
+## Current Milestone: v1.3 GitHub Actions CI — COMPLETE
 
 **Goal:** 把现有测试体系搬到 GitHub Actions，三平台（Linux/macOS/Windows）push/PR 自动运行 lint + 单元测试。
-
-**Target features:**
-- GitHub Actions workflow 配置（push/PR 触发）
-- 三平台矩阵：Linux (ShellCheck + bats), macOS (ShellCheck + bats), Windows (PSScriptAnalyzer + Pester)
-- 适配现有 test.sh 到 CI 环境（macOS 无 Docker、Windows 原生 PowerShell）
 
 ## Requirements
 
@@ -53,6 +48,8 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 - ✓ Docker 测试矩阵覆盖 Linux/macOS/Windows — v1.2
 
 - ✓ CI-compatible test paths ($REPO_ROOT/$RepoRoot, no hardcoded /app/) — v1.3 Phase 9
+- ✓ GitHub Actions CI workflow (3-platform matrix, lint + test) — v1.3 Phase 10
+- ✓ README with CI status badge and project documentation — v1.3 Phase 11
 
 ### Active
 
@@ -67,7 +64,7 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 - 音量控制 — 用户通过系统音量控制即可
 - macOS Docker 容器测试 — 不可容器化，mock 测试覆盖
 - Windows Docker 容器测试 — 3-11 GB 镜像过大
-- GitHub Actions CI — v1.3 Phase 10 规划中
+- GitHub Actions CI — v1.3 shipped (Phase 10)
 - bash 代码覆盖率 — kcov 停止维护，无成熟工具
 
 ## Context
@@ -84,6 +81,8 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 - `tests/stubs/` — mock stubs（paplay, afplay, claude CLI）
 - `tests/fixtures/` — 共享测试 fixture（settings.json, dummy.mp3）
 - `test.sh` — 统一测试入口（lint + bash + powershell + Docker 矩阵）
+- `.github/workflows/ci.yml` — GitHub Actions CI workflow（3-platform matrix）
+- `README.md` — 项目文档（CI badge、安装说明、hook 配置）
 - `Dockerfile` + `requirements.txt` — Spark-TTS Docker 构建环境（仅预生成用）
 - `generate.sh` — 音频重新生成编排脚本
 
@@ -93,7 +92,7 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 - **环境**：Docker 容器化 Spark-TTS，仅用于音频预生成，运行时无需 Docker
 - **平台**：Linux (paplay)、macOS (afplay)、Windows (MediaPlayer)
 - **许可**：Spark-TTS 使用 Apache 2.0 许可证
-- **测试**：Docker Linux-only 容器测试，macOS/Windows 代码路径通过 mock 覆盖；CI-compatible 路径支持 GitHub Actions
+- **测试**：Docker Linux-only 容器测试，macOS/Windows 代码路径通过 mock 覆盖；GitHub Actions CI 三平台自动运行
 
 ## Key Decisions
 
@@ -114,10 +113,12 @@ v1.2 shipped — 8 phases, 16 plans complete. Cross-platform notification system
 | Docker Linux-only 测试 | Windows 容器 3-11 GB，Pester 在 pwsh 容器运行 | ✓ v1.2 validated |
 | CI-compatible test paths | $REPO_ROOT/$RepoRoot 替代 /app/，mktemp stubs 替代 /usr/bin/ | ✓ v1.3 Phase 9 validated |
 | Pester 5.6.1 pinned | 避免 Pester 6.x beta 不兼容 | ✓ v1.2 validated |
+| CI 3-platform matrix | 三平台 lint + test 自动化 | ✓ v1.3 Phase 10 validated |
+| README with CI badge | 项目文档 + CI 状态展示 | ✓ v1.3 Phase 11 validated |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after v1.3 Phase 9 (测试路径适配) completion*
+*Last updated: 2026-03-31 after v1.3 Phase 11 (README + CI badge) completion*
