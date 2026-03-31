@@ -75,7 +75,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           git clone --depth 1 --branch v1.11.0 https://github.com/bats-core/bats-core.git /tmp/bats-core
-          /tmp/bats-core/install.sh /usr/local
+          /tmp/bats-core/install.sh ~/.local
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           rm -rf /tmp/bats-core
 
       - name: Install bats and jq (macOS)
@@ -83,7 +84,8 @@ jobs:
         run: |
           brew install jq
           git clone --depth 1 --branch v1.11.0 https://github.com/bats-core/bats-core.git /tmp/bats-core
-          /tmp/bats-core/install.sh /usr/local
+          PREFIX="$HOME/.local" /tmp/bats-core/install.sh ~/.local
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           rm -rf /tmp/bats-core
 
       - name: Run bats tests
