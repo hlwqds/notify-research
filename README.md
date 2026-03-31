@@ -1,8 +1,8 @@
 # Claude Code Voice Notifications
 
-Cross-platform voice notifications for Claude Code. Get audio alerts when tasks complete, need input, or fail -- so you don't have to keep checking the terminal.
+[![CI](https://github.com/hlwqds/notify-research/actions/workflows/ci.yml/badge.svg)](https://github.com/hlwqds/notify-research/actions)
 
-![CI](https://github.com/hlwqds/notify-research/actions/workflows/ci.yml/badge.svg)
+Cross-platform voice notifications for Claude Code. Get audio alerts when tasks complete, need input, or fail -- so you don't have to keep checking the terminal.
 
 ## Plugin Installation (Recommended)
 
@@ -14,6 +14,9 @@ The easiest way to install. No git clone, no manual setup -- Claude Code handles
 
 # Step 2: Install the notification plugin
 /plugin install claude-voice-notify@hlwqds
+
+# Step 3: Reload plugins to apply
+/reload-plugins
 ```
 
 ## One-Liner Installation (Alternative)
@@ -69,6 +72,24 @@ All hooks run asynchronously (`async: true`) so they never block your workflow.
 - **Linux**: `paplay` (PipeWire/PulseAudio) + `jq`
 - **macOS**: `afplay` (built-in)
 - **Windows**: No extra dependencies
+
+## Troubleshooting
+
+**No sound after install?**
+
+- Plugin users: make sure you ran `/reload-plugins` after install
+- Legacy users: run `bash scripts/install.sh` again to repair
+
+**Audio not playing on Linux?**
+
+- Verify `paplay` is available: `which paplay`
+- Check PipeWire/PulseAudio is running: `pactl info`
+- Fallback: install `mpv` and the hooks will use it automatically
+
+**Hook not triggering?**
+
+- Check hooks are registered: `/plugin` → Installed tab → claude-voice-notify
+- Verify hook events are listed (Stop, Notification, StopFailure, SubagentStop)
 
 ## Uninstall
 
