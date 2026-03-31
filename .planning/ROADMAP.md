@@ -82,7 +82,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 13-01-PLAN.md -- Create .claude-plugin/plugin.json manifest with userConfig for voice selection
+- [x] 13-01-PLAN.md -- Create .claude-plugin/plugin.json manifest with userConfig for voice selection
 - [ ] 13-02-PLAN.md -- Create hooks/hooks.json with ${CLAUDE_PLUGIN_ROOT} path resolution and validate plugin structure
 
 ### Phase 14: Install & Voice Selection
@@ -134,7 +134,7 @@ Phases execute in numeric order: 12 -> 13 -> 14 -> 15
 | 10. GitHub Actions workflow | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 11. README + documentation | v1.3 | 1/1 | Complete | 2026-03-31 |
 | 12. Multi-Voice Foundation | v1.4 | 3/3 | Complete    | 2026-03-31 |
-| 13. Plugin Packaging | v1.4 | 0/2 | Not started | - |
+| 13. Plugin Packaging | v1.4 | 1/2 | In Progress|  |
 | 14. Install & Voice Selection | v1.4 | 0/3 | Not started | - |
 | 15. Community & Docs | v1.4 | 0/2 | Not started | - |
 

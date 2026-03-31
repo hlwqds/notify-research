@@ -7,10 +7,10 @@
 
 ### Distribution & Install (DIST)
 
-- [ ] **DIST-01**: User can install the notification system as a Claude Code plugin via one command
+- [x] **DIST-01**: User can install the notification system as a Claude Code plugin via one command
 - [ ] **DIST-02**: User can install the notification system via `curl | bash` one-liner without plugin support
 - [ ] **DIST-03**: Existing install.sh/install.ps1 scripts continue to work as legacy fallback
-- [ ] **DIST-04**: Plugin uses `${CLAUDE_PLUGIN_ROOT}` for portable path resolution (no hardcoded repo paths)
+- [x] **DIST-04**: Plugin uses `${CLAUDE_PLUGIN_ROOT}` for portable path resolution (no hardcoded repo paths)
 
 ### Multi-Voice Audio (VOICE)
 
@@ -54,10 +54,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DIST-01 | Phase 13 | Pending |
+| DIST-01 | Phase 13 | Complete |
 | DIST-02 | Phase 14 | Pending |
 | DIST-03 | Phase 14 | Pending |
-| DIST-04 | Phase 13 | Pending |
+| DIST-04 | Phase 13 | Complete |
 | VOICE-01 | Phase 12 | Complete |
 | VOICE-02 | Phase 12 | Complete |
 | VOICE-03 | Phase 12 | Complete |
