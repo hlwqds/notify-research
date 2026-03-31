@@ -52,7 +52,7 @@
 - [x] **Phase 12: Multi-Voice Foundation** - Per-voice directory structure with parameterized generation and 2 shipped voice packs (completed 2026-03-31)
 - [x] **Phase 13: Plugin Packaging** - Claude Code plugin manifest and hooks with portable path resolution (completed 2026-03-31)
 - [x] **Phase 14: Install & Voice Selection** - curl|bash fallback, voice selection at install time, legacy backward compatibility (completed 2026-03-31)
-- [ ] **Phase 15: Community & Docs** - MIT LICENSE, plugin-primary README, GitHub topic tags for discoverability
+- [x] **Phase 15: Community & Docs** - MIT LICENSE, plugin-primary README, GitHub topic tags for discoverability (completed 2026-03-31)
 
 ## Phase Details
 
@@ -113,7 +113,7 @@ Plans:
 
 Plans:
 - [x] 15-01-PLAN.md -- Add MIT LICENSE file and update README with plugin install as primary method
-- [ ] 15-02-PLAN.md -- Document GitHub topic tags, repository description, and community submission steps
+- [x] 15-02-PLAN.md -- Document GitHub topic tags, repository description, and community submission steps
 
 ## Progress
 
@@ -136,7 +136,7 @@ Phases execute in numeric order: 12 -> 13 -> 14 -> 15
 | 12. Multi-Voice Foundation | v1.4 | 3/3 | Complete    | 2026-03-31 |
 | 13. Plugin Packaging | v1.4 | 2/2 | Complete    | 2026-03-31 |
 | 14. Install & Voice Selection | v1.4 | 3/3 | Complete    | 2026-03-31 |
-| 15. Community & Docs | v1.4 | 1/2 | In Progress|  |
+| 15. Community & Docs | v1.4 | 2/2 | Complete   | 2026-03-31 |
 
 ---
 *Roadmap created: 2026-03-30*
