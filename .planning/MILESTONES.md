@@ -1,5 +1,17 @@
 # Milestones
 
+## v1.3 GitHub Actions CI (Shipped: 2026-03-31)
+
+**Phases completed:** 3 phases, 3 plans, 6 tasks
+
+**Key accomplishments:**
+
+- Converted 8 test files from hardcoded Docker /app/ paths to CI-compatible variable paths ($REPO_ROOT for bats, $RepoRoot for Pester) with root-free PATH-prepend stub pattern
+- GitHub Actions CI with 3-platform matrix (Ubuntu/macOS/Windows), lint gating (ShellCheck + PSSA), bats-core tests on Linux+macOS, and Pester 5.6.1 tests on all platforms
+- README.md with CI status badge, tri-platform install commands, and hook configuration reference
+
+---
+
 ## v1.2 跨平台测试 (Shipped: 2026-03-30)
 
 **Phases completed:** 3 phases, 7 plans, 14 tasks

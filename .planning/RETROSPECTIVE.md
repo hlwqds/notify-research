@@ -144,17 +144,68 @@
 - Model mix: opus (orchestration, verification), sonnet (execution)
 - Notable: 22 tests written with zero post-merge failures — research + testability refactoring investment paid off
 
+## Milestone: v1.3 — GitHub Actions CI
+
+**Shipped:** 2026-03-31
+**Phases:** 3 | **Plans:** 3 | **Tasks:** 6
+
+### What Was Built
+
+- CI-compatible test paths ($REPO_ROOT/$RepoRoot replacing hardcoded /app/) with root-free PATH-prepend stubs
+- GitHub Actions ci.yml with 3-platform matrix (Ubuntu/macOS/Windows), push/PR triggers, concurrency control
+- ShellCheck lint job (Ubuntu only) + PSScriptAnalyzer on all platforms
+- bats-core tests on Ubuntu + macOS, Pester 5.6.1 on all 3 platforms
+- README.md with CI status badge, tri-platform install instructions, and hook configuration reference
+- BASH-02 Darwin skip guard for GNU date incompatibility
+
+### What Worked
+
+- Phase 9 path adaptation before Phase 10 CI — CI ran without Docker path dependencies
+- Root-free stub pattern (PATH-prepend instead of /usr/bin/ writes) — CI runners have no sudo
+- Darwin skip guard (uname -s check) for GNU date — simpler than POSIX rewrite
+- Minimal permissions + fail-fast: false — secure and informative CI
+
+### What Was Inefficient
+
+- Phase 10 had 11 fix commits — CI runner environment differences caused multiple test failures
+- Pester RepoRoot resolution required fix — PowerShell 5.1 vs 7.x path differences in CI
+- bats-action@v3 vs v4 confusion — settled on v4.0.0 with direct install fallback
+- Multiple PSScriptAnalyzer settings iterations (Rules key, settings file path)
+
+### Patterns Established
+
+- `$REPO_ROOT` from `BATS_TEST_DIRNAME` for CI-compatible bats test paths
+- `$RepoRoot` from `$PSScriptRoot` for Pester CI paths
+- `PATH="$REPO_ROOT/tests/stubs:$PATH"` for root-free test stubs
+- `uname -s` Darwin guard for platform-specific test skips
+- Single ci.yml with separate lint job + test matrix job
+
+### Key Lessons
+
+- CI environment is different from local Docker — always test on actual runners, not just locally
+- Root-free patterns essential for CI — /usr/bin/ writes require sudo, not available on GitHub runners
+- Platform matrix reveals real compatibility issues — macOS GNU date, PowerShell 5.1 path resolution
+- Pinned tool versions (Pester 5.6.1, bats-core via action) prevent CI breakage
+
+### Cost Observations
+
+- Timeline: ~2 hours
+- Commits: 37 (including 11 fix commits during Phase 10)
+- Model mix: opus (orchestration, planning), sonnet (execution, fixing)
+- Notable: High fix-to-feature ratio (11/37) due to CI environment surprises — research covered Docker well but not GitHub runner quirks
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | Total |
-|--------|------|------|------|-------|
-| Phases | 3 | 2 | 3 | 8 |
-| Plans | 4 | 2 | 7 | 13 |
-| Tasks | 11 | 6 | 14 | 31 |
-| Timeline | ~3 hours | ~1 day | ~2.5 hours | ~1.5 days |
-| Commits | 32 | ~20 | 15 | ~67 |
-| Tests added | 0 | 0 | 22 | 22 |
-| Verification first-pass rate | 100% | 100% | 100% | 100% |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | Total |
+|--------|------|------|------|------|-------|
+| Phases | 3 | 2 | 3 | 3 | 11 |
+| Plans | 4 | 2 | 7 | 3 | 16 |
+| Tasks | 11 | 6 | 14 | 6 | 37 |
+| Timeline | ~3 hours | ~1 day | ~2.5 hours | ~2 hours | ~2 days |
+| Commits | 32 | ~20 | 15 | 37 | ~104 |
+| Tests added | 0 | 0 | 22 | 0 | 22 |
+| Fix commits | 0 | 0 | 0 | 11 | 11 |
+| Verification first-pass rate | 100% | 100% | 100% | 100% | 100% |
 
 ---
-*Retrospective updated: 2026-03-30 after v1.2 milestone*
+*Retrospective updated: 2026-03-31 after v1.3 milestone*
