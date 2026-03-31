@@ -111,6 +111,10 @@ teardown() {
     cp "$REPO_ROOT/tests/fixtures/settings.json" "$settings"
 
     # Test: missing paplay (remove stub, set PATH to only essentials)
+    # Only applicable on Linux — macOS checks afplay instead
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        skip "paplay check is Linux-only; macOS uses afplay"
+    fi
     rm -f "$STUB_DIR/paplay"
     PATH_BACKUP="$PATH"
     # Use a PATH with bash, jq, and claude stub — but NO paplay
