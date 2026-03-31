@@ -5,8 +5,8 @@ milestone_name: Hooks 生态分发
 current_phase: 15
 status: executing
 stopped_at: Phase 14 context gathered
-last_updated: "2026-03-31T14:24:14.292Z"
-last_activity: 2026-03-31
+last_updated: "2026-03-31T14:27:56.174Z"
+last_activity: 2026-03-31 -- Phase 15 execution started
 progress:
   total_phases: 4
   completed_phases: 3
@@ -26,14 +26,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
-**Current focus:** Phase 14 — install-voice-selection
+**Current focus:** Phase 15 — community-docs
 
 ## Current Position
 
-Phase: 14 (install-voice-selection) — EXECUTING
-Plan: Not started
-Status: Executing Phase 14
-Last activity: 2026-03-31
+Phase: 15 (community-docs) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 15
+Last activity: 2026-03-31 -- Phase 15 execution started
 
 Progress: [██████████░░] 84% (21/25 plans shipped, 14/15 phases complete)
 
