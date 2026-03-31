@@ -25,21 +25,23 @@ v1.4 shipped — 15 phases, 28 plans. Cross-platform notification system ready f
 
 ### Shipped Versions
 
+- **v1.5 插件市场分发** — (in progress) self-hosted marketplace for /plugin native discovery
 - **v1.4 Hooks 生态分发** — plugin packaging, voice selection, one-liner installers, community docs
 - **v1.3 GitHub Actions CI** — 3-platform CI matrix, README with CI badge
 - **v1.2 跨平台测试** — 22 automated tests (bats + Pester), Docker test matrix
 - **v1.1 跨平台兼容** — macOS afplay + Windows PowerShell, 三平台一键安装
 - **v1.0 语音通知** — Docker TTS + 4 mp3 + Claude Code hooks
 
-## Current Milestone: v1.4 Hooks 生态分发
+## Current Milestone: v1.5 插件市场分发
 
-**Goal:** 将通知系统打包为 Claude Code hooks 扩展包，通过 GitHub 社区生态分发给其他用户一键安装使用
+**Goal:** 搭建 Claude Code 自建插件市场，让用户通过 `/plugin` 原生发现和安装语音通知插件
 
 **Target features:**
-- 一键安装 hooks 扩展包（用户一行命令安装通知功能）
-- 多套预生成语音风格（如男声/女声、不同语调，安装时选择）
-- GitHub 社区生态收录（awesome lists、community discussions 等渠道曝光）
-- 发现与安装文档（让其他 Claude Code 用户能发现并使用）
+- `.claude-plugin/marketplace.json` 市场清单
+- 用户可通过 `/plugin marketplace add` 添加市场
+- 用户可通过 `/plugin install` 一键安装插件
+- `claude plugin validate` 验证通过
+- README 更新市场安装方式
 
 ## Requirements
 
@@ -161,4 +163,4 @@ v1.4 shipped — 15 phases, 28 plans. Cross-platform notification system ready f
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-31 after Phase 15 completion (v1.4 shipped)*
+*Last updated: 2026-03-31 — v1.5 milestone started*

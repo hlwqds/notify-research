@@ -1,18 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Hooks 生态分发
-current_phase: 15
-status: executing
-stopped_at: Phase 14 context gathered
-last_updated: "2026-03-31T14:44:12.157Z"
+milestone: v1.5
+milestone_name: 插件市场分发
+current_phase: 0
+status: defining-requirements
+last_updated: "2026-03-31T15:00:00.000Z"
 last_activity: 2026-03-31
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 10
-  completed_plans: 10
-  percent: 84
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -26,18 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** 用户不在 Claude Code 窗口时，通过语音即时感知任务状态，不用反复切窗口查看。
-**Current focus:** Phase 15 — community-docs
+**Current focus:** v1.5 — 插件市场分发
 
 ## Current Position
 
-Phase: 15 (community-docs) — EXECUTING
-Plan: Not started
-Status: Executing Phase 15
-Last activity: 2026-03-31
-
-Progress: [██████████░░] 84% (21/25 plans shipped, 14/15 phases complete)
-
-**v1.4 progress:** [██████░░░░] 60% (6/10 plans, 3/4 phases)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-31 — Milestone v1.5 started
 
 ## Performance Metrics
 
@@ -106,4 +101,4 @@ Stopped at: Phase 14 context gathered
 Resume file: .planning/phases/14-install-voice-selection/14-CONTEXT.md
 
 ---
-*State updated: 2026-03-31 after v1.4 roadmap creation*
+*State updated: 2026-03-31 after v1.5 milestone started*
