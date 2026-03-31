@@ -7,25 +7,25 @@
 
 ### CI Workflow
 
-- [ ] **CI-01**: GitHub Actions workflow triggered on push to main and pull_request
-- [ ] **CI-02**: 3-platform matrix (ubuntu-latest, macos-latest, windows-latest)
-- [ ] **CI-03**: Minimal permissions (`permissions: contents: read`)
-- [ ] **CI-04**: fail-fast: false (don't cancel other platforms on single failure)
-- [ ] **CI-05**: Concurrency control (cancel in-progress PR runs, queue main pushes)
+- [x] **CI-01**: GitHub Actions workflow triggered on push to main and pull_request
+- [x] **CI-02**: 3-platform matrix (ubuntu-latest, macos-latest, windows-latest)
+- [x] **CI-03**: Minimal permissions (`permissions: contents: read`)
+- [x] **CI-04**: fail-fast: false (don't cancel other platforms on single failure)
+- [x] **CI-05**: Concurrency control (cancel in-progress PR runs, queue main pushes)
 
 ### Static Analysis in CI
 
-- [ ] **CI-06**: ShellCheck runs on all 3 bash scripts (Ubuntu only, lint results platform-independent)
-- [ ] **CI-07**: PSScriptAnalyzer runs on all 3 PowerShell scripts (all platforms)
+- [x] **CI-06**: ShellCheck runs on all 3 bash scripts (Ubuntu only, lint results platform-independent)
+- [x] **CI-07**: PSScriptAnalyzer runs on all 3 PowerShell scripts (all platforms)
 
 ### bats Tests in CI
 
-- [ ] **CI-08**: bats-core tests run on Ubuntu and macOS runners (10 tests)
+- [x] **CI-08**: bats-core tests run on Ubuntu and macOS runners (10 tests)
 - [x] **CI-09**: Test files use CI-compatible paths (no hardcoded `/app/` Docker paths)
 
 ### Pester Tests in CI
 
-- [ ] **CI-10**: Pester tests run on all 3 platform runners (12 tests)
+- [x] **CI-10**: Pester tests run on all 3 platform runners (12 tests)
 
 ### README
 

@@ -50,6 +50,10 @@ teardown() {
 
 # BASH-02: Cooldown passes when lock file is older than 5 seconds
 @test "cooldown pass when lock file is older than 5 seconds" {
+    # GNU date (-d @epoch) is not available on macOS BSD date
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        skip "GNU date not available on macOS"
+    fi
     # Create lock file and set its mtime to 10 seconds ago
     # BusyBox-safe: use date -d @epoch to compute timestamp, then touch -t
     touch "$LOCK_DIR/claude-notify-complete.lock"

@@ -72,10 +72,10 @@ Plans:
 
 **Requirement mapping:** CI-01, CI-02, CI-03, CI-04, CI-05, CI-06, CI-07, CI-08, CI-10
 
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 10-01-PLAN.md — Fix BASH-02 macOS date incompatibility, create ci.yml with lint + 3-platform test matrix
+- [x] 10-01-PLAN.md — Fix BASH-02 macOS date incompatibility, create ci.yml with lint + 3-platform test matrix
 
 **Success criteria:**
 1. Push to main triggers CI run across all 3 platforms (ubuntu, macos, windows)
@@ -115,7 +115,7 @@ Plans:
 | 7. Bash 单元测试 | v1.2 | 3/3 | Complete | 2026-03-30 |
 | 8. PowerShell 单元测试 | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 9. 测试路径适配 | v1.3 | 1/1 | Complete | 2026-03-31 |
-| 10. GitHub Actions workflow | v1.3 | 0/1 | Pending | - |
+| 10. GitHub Actions workflow | v1.3 | 1/1 | Complete   | 2026-03-31 |
 | 11. README + documentation | v1.3 | 0/1 | Pending | - |
 
 ---
