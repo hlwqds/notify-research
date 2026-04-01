@@ -6,7 +6,7 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify-play.sh complete ${CLAUDE_PLUGIN_ROOT}/audio/voices/${user_config.voice}/notify-complete.mp3",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify complete ${CLAUDE_PLUGIN_ROOT}/audio/voices/${user_config.voice}/notify-complete.mp3",
             "async": true,
             "timeout": 10
           }
@@ -19,7 +19,7 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify-play.sh confirm ${CLAUDE_PLUGIN_ROOT}/audio/voices/${user_config.voice}/notify-confirm.mp3",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify confirm ${CLAUDE_PLUGIN_ROOT}/audio/voices/${user_config.voice}/notify-confirm.mp3",
             "async": true,
             "timeout": 10
           }
@@ -32,7 +32,7 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify-play.sh error ${CLAUDE_PLUGIN_ROOT}/audio/voices/${user_config.voice}/notify-error.mp3",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify error ${CLAUDE_PLUGIN_ROOT}/audio/voices/${user_config.voice}/notify-error.mp3",
             "async": true,
             "timeout": 10
           }
@@ -45,7 +45,7 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify-play.sh progress ${CLAUDE_PLUGIN_ROOT}/audio/voices/${user_config.voice}/notify-progress.mp3",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify progress ${CLAUDE_PLUGIN_ROOT}/audio/voices/${user_config.voice}/notify-progress.mp3",
             "async": true,
             "timeout": 10
           }

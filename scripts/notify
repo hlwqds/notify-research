@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Cross-platform notification entry point.
+# Detects OS and delegates to the appropriate playback script.
+# Usage: notify <event> <audio-file>
+
+set -euo pipefail
+
+EVENT="$1"
+AUDIO_FILE="$2"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+case "$(uname -s)" in
+  Linux|Darwin)
+    bash "$SCRIPT_DIR/notify-play.sh" "$EVENT" "$AUDIO_FILE"
+    ;;
+  MINGW*|MSYS*|CYGWIN*)
+    # Windows with Git Bash
+    if command -v powershell.exe &>/dev/null; then
+      powershell.exe -File "$SCRIPT_DIR/notify-play.ps1" "$EVENT" "$AUDIO_FILE"
+    elif command -v pwsh &>/dev/null; then
+      pwsh -File "$SCRIPT_DIR/notify-play.ps1" "$EVENT" "$AUDIO_FILE"
+    fi
+    ;;
+  *)
+    # Fallback: try PowerShell directly
+    if command -v powershell &>/dev/null; then
+      powershell -File "$SCRIPT_DIR/notify-play.ps1" "$EVENT" "$AUDIO_FILE"
+    elif command -v pwsh &>/dev/null; then
+      pwsh -File "$SCRIPT_DIR/notify-play.ps1" "$EVENT" "$AUDIO_FILE"
+    fi
+    ;;
+esac
