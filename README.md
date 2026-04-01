@@ -88,14 +88,14 @@ All hooks run asynchronously (`async: true`) so they never block your workflow.
 
 **Plugin not updating after a new release?**
 
-- Run `/plugin marketplace update` to refresh the marketplace listing
-- The auto-update interval is ~10 minutes — if it doesn't pick up the new version, use the command above
-- If that still doesn't work, clear the cache and reinstall:
-  ```bash
-  rm -rf ~/.claude/plugins/cache/hlwqds/claude-voice-notify/
+- Uninstall first, then reinstall — this ensures a clean state:
+  ```
+  /plugin uninstall claude-voice-notify
+  /plugin marketplace update
   /plugin install claude-voice-notify@hlwqds
   /reload-plugins
   ```
+- The auto-update interval is ~10 minutes — if it doesn't pick up the new version, use `marketplace update` above
 
 **Error about old version after updating?**
 
