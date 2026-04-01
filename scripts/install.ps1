@@ -8,7 +8,6 @@
 
 param(
     [Parameter(Mandatory=$true)][string]$RepoPath,
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Voice')]
     [Parameter(Mandatory=$false)][string]$Voice
 )
 
