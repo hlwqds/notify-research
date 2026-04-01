@@ -82,7 +82,7 @@ run_powershell_tests() {
                 Install-Module -Name Pester -RequiredVersion 5.6.1 -Force -Scope CurrentUser
             }
             Import-Module Pester
-            `$env:REPO_ROOT = '/app'
+            $env:REPO_ROOT = '/app'
             Invoke-Pester -Path /app/tests/powershell -Output Detailed
         "
 }

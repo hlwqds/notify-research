@@ -95,8 +95,10 @@ trap_add() {
     local existing_trap
     existing_trap=$(trap -p "$trap_name" 2>/dev/null | sed "s/^trap -- '\(.*\)' $trap_name/\1/")
     if [ -z "$existing_trap" ]; then
+        # shellcheck disable=SC2064
         trap "$cmd" "$trap_name"
     else
+        # shellcheck disable=SC2064
         trap "$existing_trap; $cmd" "$trap_name"
     fi
 }
@@ -109,7 +111,6 @@ select_voice() {
         return
     fi
     if [ -n "${VOICE:-}" ]; then
-        VOICE="$VOICE"
         return
     fi
 
