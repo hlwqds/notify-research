@@ -43,7 +43,22 @@ Choose between two voice packs to customize your notification sound.
 
 ```
 /plugin configure claude-voice-notify
+/reload-plugins
 ```
+
+> **Note:** `/plugin configure` only saves the setting — you must run `/reload-plugins` for it to take effect.
+>
+> If the configure UI doesn't respond ("Configuration skipped"), edit `~/.claude/settings.json` manually:
+> ```json
+> "pluginOptions": {
+>   "claude-voice-notify@hlwqds": {
+>     "options": { "voice": "deep" }
+>   }
+> }
+> ```
+> Then run `/reload-plugins`.
+
+Available voices: `gentle` (default), `deep`.
 
 **Legacy install users:**
 

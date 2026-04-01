@@ -3,30 +3,53 @@
 # Detects OS and delegates to the appropriate playback script.
 # Usage: notify <event> <audio-file>
 
+LOG_FILE="/tmp/claude-voice-notify.log"
+
+log() { echo "[$(date '+%H:%M:%S')] $*" >> "$LOG_FILE"; }
+
+log "START event=$1 audio=$2"
 set -euo pipefail
 
 EVENT="$1"
 AUDIO_FILE="$2"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+log "SCRIPT_DIR=$SCRIPT_DIR OS=$(uname -s)"
+
 case "$(uname -s)" in
   Linux|Darwin)
+    log "Calling notify-play.sh"
     bash "$SCRIPT_DIR/notify-play.sh" "$EVENT" "$AUDIO_FILE"
+    log "notify-play.sh exited: $?"
     ;;
   MINGW*|MSYS*|CYGWIN*)
     # Windows with Git Bash
     if command -v powershell.exe &>/dev/null; then
+      log "Calling powershell.exe"
       powershell.exe -File "$SCRIPT_DIR/notify-play.ps1" "$EVENT" "$AUDIO_FILE"
+      log "powershell.exe exited: $?"
     elif command -v pwsh &>/dev/null; then
+      log "Calling pwsh"
       pwsh -File "$SCRIPT_DIR/notify-play.ps1" "$EVENT" "$AUDIO_FILE"
+      log "pwsh exited: $?"
+    else
+      log "ERROR: no powershell found on Windows"
     fi
     ;;
   *)
     # Fallback: try PowerShell directly
     if command -v powershell &>/dev/null; then
+      log "Fallback: calling powershell"
       powershell -File "$SCRIPT_DIR/notify-play.ps1" "$EVENT" "$AUDIO_FILE"
+      log "powershell exited: $?"
     elif command -v pwsh &>/dev/null; then
+      log "Fallback: calling pwsh"
       pwsh -File "$SCRIPT_DIR/notify-play.ps1" "$EVENT" "$AUDIO_FILE"
+      log "pwsh exited: $?"
+    else
+      log "ERROR: no powershell found (fallback)"
     fi
     ;;
 esac
+
+log "END"
