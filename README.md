@@ -86,6 +86,17 @@ All hooks run asynchronously (`async: true`) so they never block your workflow.
 - Check PipeWire/PulseAudio is running: `pactl info`
 - Fallback: install `mpv` and the hooks will use it automatically
 
+**Plugin not updating after a new release?**
+
+- Run `/plugin marketplace update` to refresh the marketplace listing
+- The auto-update interval is ~10 minutes — if it doesn't pick up the new version, use the command above
+- If that still doesn't work, clear the cache and reinstall:
+  ```bash
+  rm -rf ~/.claude/plugins/cache/hlwqds/claude-voice-notify/
+  /plugin install claude-voice-notify@hlwqds
+  /reload-plugins
+  ```
+
 **Hook not triggering?**
 
 - Check hooks are registered: `/plugin` → Installed tab → claude-voice-notify
