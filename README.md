@@ -52,13 +52,13 @@ Choose between two voice packs to customize your notification sound.
 > ```json
 > "pluginOptions": {
 >   "claude-voice-notify@hlwqds": {
->     "options": { "voice": "deep" }
+>     "options": { "voice": "gentle" }
 >   }
 > }
 > ```
 > Then run `/reload-plugins`.
 
-Available voices: `gentle` (default), `deep`.
+Available voices: `gentle` (recommended, default), `deep`.
 
 **Legacy install users:**
 
