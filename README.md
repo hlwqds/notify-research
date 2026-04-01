@@ -154,6 +154,75 @@ bash scripts/uninstall.sh
 powershell -File scripts/uninstall.ps1
 ```
 
+## Custom Voice Generation
+
+Generate your own notification voice using Spark-TTS.
+
+### Prerequisites
+
+- Docker
+- ~4 GB disk space for model weights
+
+### Generate audio
+
+```bash
+# Generate all 4 notifications with default voice
+./generate.sh
+
+# Generate with a custom voice
+./generate.sh --voice myvoice
+
+# Generate specific notifications only
+./generate.sh --type confirm,error
+```
+
+First run downloads the Spark-TTS 0.5B model (~4 GB). CPU inference takes ~5 min per sentence.
+
+### Create a voice pack
+
+1. Create a voice config file `voices/myvoice.json`:
+   ```json
+   {
+     "name": "myvoice",
+     "gender": "female",
+     "pitch": "low",
+     "speed": "moderate"
+   }
+   ```
+   - `gender`: `female` or `male`
+   - `pitch`: `very_low`, `low`, `moderate`, `high`, `very_high`
+   - `speed`: `very_low`, `low`, `moderate`, `fast`, `very_fast`
+
+2. Generate:
+   ```bash
+   ./generate.sh --voice myvoice
+   ```
+   Output: `audio/voices/myvoice/` with 4 mp3 files.
+
+3. Use your voice:
+   ```
+   /plugin configure claude-voice-notify    # Select "myvoice"
+   /reload-plugins
+   ```
+
+### Replace built-in voice
+
+To replace the default `gentle` voice with your own files:
+
+```bash
+# Backup originals
+cp audio/voices/gentle/*.mp3 /tmp/gentle-backup/
+
+# Copy your generated files
+./generate.sh --voice gentle
+```
+
+Or manually place 4 files into `audio/voices/gentle/`:
+- `notify-complete.mp3`
+- `notify-confirm.mp3`
+- `notify-error.mp3`
+- `notify-progress.mp3`
+
 ## Links
 
 - [Spark-TTS](https://github.com/SparkAudio/Spark-TTS) -- TTS engine
