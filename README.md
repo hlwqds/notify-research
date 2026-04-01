@@ -97,6 +97,15 @@ All hooks run asynchronously (`async: true`) so they never block your workflow.
   /reload-plugins
   ```
 
+**Error about old version after updating?**
+
+- After a plugin update, old version cache directories may remain and cause errors
+- Clean up stale cache manually:
+  ```bash
+  rm -rf ~/.claude/plugins/cache/hlwqds/claude-voice-notify/1.5.0/
+  /reload-plugins
+  ```
+
 **Hook not triggering?**
 
 - Check hooks are registered: `/plugin` → Installed tab → claude-voice-notify
